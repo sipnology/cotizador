@@ -488,7 +488,10 @@ tr.subtot td{background:#0c2033;font-weight:700}
   <section class="view" data-view="cotizacion">
     <div class="card">
       <div class="row"><h2 style="margin:0">Vista previa de cotización</h2>
-        <button class="btn right" onclick="downloadPDF()">⬇️ Descargar PDF</button>
+        <div class="right row" style="gap:8px;flex-wrap:nowrap">
+          <button class="btn sec" data-reqonline="1" onclick="enviarEjecutivo()">📧 Enviar al ejecutivo</button>
+          <button class="btn" onclick="downloadPDF()">⬇️ Descargar PDF</button>
+        </div>
       </div>
       <div class="hint">Descarga como PDF para el cliente.</div>
       <div id="quoteDoc"></div>
@@ -1503,7 +1506,7 @@ async function exportPDF(){
   finally{document.body.removeChild(holder);}
 }
 /* PDF nativo (autoTable): texto vectorial, archivos livianos, sin cortar filas */
-async function exportPDFnative(){
+async function buildQuotePDF(){
   if(!window.jspdf){alert('No se pudo cargar jsPDF (requiere internet).');return;}
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF('p','mm','a4');
@@ -1564,7 +1567,67 @@ async function exportPDFnative(){
   if(yy>ph-28){doc.addPage();yy=M;}yy+=12;
   doc.setDrawColor(120);doc.setLineWidth(0.3);doc.line(M+8,yy,M+68,yy);doc.line(pw-M-68,yy,pw-M-8,yy);yy+=5;
   doc.setFontSize(9);doc.setTextColor(60);doc.setFont(undefined,'bold');doc.text('Sipnology',M+38,yy,{align:'center'});doc.text('CLIENTE',pw-M-38,yy,{align:'center'});
-  doc.save(costeoBaseName()+'.pdf');
+  return doc;
+}
+async function exportPDFnative(){const doc=await buildQuotePDF();if(doc)doc.save(costeoBaseName()+'.pdf');}
+/* ===== Enviar cotización por correo al ejecutivo (Microsoft Graph sendMail) ===== */
+async function graphTokenScopes(scopeArr){
+  const cfg=getGraphCfg();
+  if(typeof msal==='undefined')throw new Error('No se pudo cargar MSAL (requiere internet).');
+  if(!_msalApp){_msalApp=new msal.PublicClientApplication({auth:{clientId:cfg.clientId,authority:'https://login.microsoftonline.com/'+cfg.tenantId,redirectUri:location.origin+location.pathname},cache:{cacheLocation:'localStorage'}});await _msalApp.initialize();}
+  let acc=_msalApp.getAllAccounts()[0];
+  if(!acc){const r=await _msalApp.loginPopup({scopes:scopeArr});acc=r.account;}
+  try{return (await _msalApp.acquireTokenSilent({scopes:scopeArr,account:acc})).accessToken;}
+  catch(e){return (await _msalApp.acquireTokenPopup({scopes:scopeArr})).accessToken;}
+}
+function enviarEjecutivo(){
+  if(location.protocol==='file:'){alert('Enviar por correo requiere la versión publicada (https) o la app de escritorio.');return;}
+  syncFromInputs();
+  const p=S.proyecto;
+  const am=DIR.ejecutivos.find(x=>x.nombre===p.ejecutivo);
+  const cli=findClient(p.empresa);
+  const cont=cli?cli.contactos.find(c=>c.nombre===p.contacto):null;
+  const to=am?am.email:'';
+  const cc=cont?cont.email:'';
+  const asunto='Cotización '+(p.empresa||'')+(p.oportunidad?(' - '+p.oportunidad):'')+(p.version?(' ('+p.version+')'):'');
+  const cuerpo='Hola,\n\nAdjunto la cotización'+(p.oportunidad?(' "'+p.oportunidad+'"'):'')+(p.empresa?(' para '+p.empresa):'')+', junto con su archivo de configuración.\n\nQuedo atento a cualquier comentario.\n\nSaludos,\n'+(am?am.nombre:'');
+  $('modal').innerHTML=`<h3>Enviar cotización al ejecutivo</h3>
+    <div class="grid" style="gap:10px">
+      <div><label class="f">Para</label><input id="em_to" value="${esc(to)}" placeholder="correo@dominio.com"></div>
+      <div><label class="f">Con copia (CC) — separa varios con coma</label><input id="em_cc" value="${esc(cc)}" placeholder="opcional"></div>
+      <div><label class="f">Asunto</label><input id="em_subj" value="${esc(asunto)}"></div>
+      <div><label class="f">Mensaje</label><textarea id="em_msg" class="ta" rows="7" style="min-height:130px">${esc(cuerpo)}</textarea></div>
+    </div>
+    <div class="hint" style="margin-top:8px">Se adjuntará el PDF y el archivo de configuración (.json). Al enviar también se guardará el proyecto (local + repositorio) y se sincronizará el catálogo.</div>
+    <div class="row" style="margin-top:14px"><button class="btn" id="em_send" onclick="doEnviarEjecutivo()">📧 Enviar</button><button class="btn sec" onclick="closeModal()">Cancelar</button></div>`;
+  $('overlay').classList.add('on');
+}
+async function doEnviarEjecutivo(){
+  const to=(($('em_to')||{}).value||'').trim();
+  if(!to){alert('Indica al menos un correo en "Para".');return;}
+  const ccRaw=(($('em_cc')||{}).value||'').trim();
+  const subj=(($('em_subj')||{}).value||'').trim()||'Cotización';
+  const msg=($('em_msg')||{}).value||'';
+  const btn=$('em_send'); if(btn){btn.disabled=true;btn.textContent='Guardando y enviando…';}
+  try{
+    await guardarRapido();                       // 1) guardar el trabajo (local + repositorio + catálogo)
+    const doc=await buildQuotePDF();             // 2) generar el PDF
+    if(!doc)throw new Error('No se pudo generar el PDF.');
+    const pdfB64=doc.output('datauristring').split('base64,')[1];
+    const jsonB64=btoa(unescape(encodeURIComponent(JSON.stringify(projectPayload(),null,2))));  // 3) .json
+    const base=costeoBaseName();
+    const token=await graphTokenScopes(['Mail.Send']);   // 4) token con permiso de envío
+    const rec=s=>s.split(',').map(x=>x.trim()).filter(Boolean).map(a=>({emailAddress:{address:a}}));
+    const body={message:{subject:subj,body:{contentType:'Text',content:msg},toRecipients:rec(to),ccRecipients:rec(ccRaw),
+      attachments:[
+        {'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.pdf',contentType:'application/pdf',contentBytes:pdfB64},
+        {'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.json',contentType:'application/json',contentBytes:jsonB64}
+      ]},saveToSentItems:true};
+    const r=await fetch('https://graph.microsoft.com/v1.0/me/sendMail',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok){const t=await r.text();throw new Error('HTTP '+r.status+' — '+t.slice(0,180));}
+    closeModal();
+    alert('✅ Cotización enviada a: '+to+(ccRaw?('\nCC: '+ccRaw):'')+'\nProyecto guardado.');
+  }catch(e){if(btn){btn.disabled=false;btn.textContent='📧 Enviar';}alert('No se pudo enviar el correo: '+((e&&e.message)||e));console.error(e);}
 }
 
 /* ============================ EXCEL EXPORT (branded, todos los datos) ============================ */
