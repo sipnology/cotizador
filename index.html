@@ -1404,8 +1404,8 @@ function renderQuote(){
   const co=S.comercial||{notas:'',condiciones:''};
   $('quoteDoc').innerHTML=`
     <div class="qhead">
-      <div>${LOGO_SVG}<div style="font-size:11px;color:#777;margin-top:2px">${esc(p.oficina)} · ${esc(off.city)}</div></div>
-      <div style="text-align:right;font-size:11px;color:#555"><div style="font-size:17px;font-weight:800;color:${BRAND};letter-spacing:1px">COTIZACIÓN</div><div>Fecha: ${p.fecha}</div><div>ID: ${esc(p.crm||'—')}</div><div>Válida por: 15 días</div></div>
+      <div>${LOGO_SVG}<div style="font-size:11px;color:#777;margin-top:2px">${esc(p.oficina)} · ${esc(off.city)}</div><div style="font-size:11px;color:#777;margin-top:6px;white-space:nowrap">Sipnology SA de CV, Manuel Lopez Cotilla No 1032 int 2A, Colonia Del Valle Centro, Benito Juarez, CP 03100, CDMX</div><div style="font-size:11px;color:#777">RFC: SIP1111119C9</div></div>
+      <div style="text-align:right;font-size:11px;color:#555"><div style="font-size:17px;font-weight:800;color:${BRAND};letter-spacing:1px">COTIZACIÓN</div><div>Fecha: ${p.fecha}</div><div>Oportunidad: ${esc(p.oportunidad||'—')}</div><div>ID: ${esc(p.crm||'—')}</div><div>Válida por: 15 días</div></div>
     </div>
     <table class="infobox" style="margin-bottom:16px"><tr>
       <td class="l" style="width:52%"><b>Cliente:</b> ${esc(p.empresa||'—')}<br><b>Nombre:</b> ${esc(cont?cont.nombre:'—')}<br><b>E-mail:</b> ${esc(cont?cont.email:'—')}<br><b>Teléfono:</b> ${esc(cont?cont.telefono:'—')}<br><b>Dirección:</b> ${esc(cli?cli.direccion:'—')}</td>
