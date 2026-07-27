@@ -1403,9 +1403,15 @@ function renderQuote(){
   const subtotal=servTotal+mesaTotal+matTotal+conTotal, iva=subtotal*0.16, total=subtotal+iva;
   const co=S.comercial||{notas:'',condiciones:''};
   $('quoteDoc').innerHTML=`
-    <div class="qhead">
-      <div>${LOGO_SVG}<div style="font-size:11px;color:#777;margin-top:2px">${esc(p.oficina)} · ${esc(off.city)}</div><div style="font-size:11px;color:#777;margin-top:6px;white-space:nowrap">Sipnology SA de CV, Manuel Lopez Cotilla No 1032 int 2A, Colonia Del Valle Centro, Benito Juarez, CP 03100, CDMX</div><div style="font-size:11px;color:#777">RFC: SIP1111119C9</div></div>
-      <div style="text-align:right;font-size:11px;color:#555"><div style="font-size:17px;font-weight:800;color:${BRAND};letter-spacing:1px">COTIZACIÓN</div><div>Fecha: ${p.fecha}</div><div>Oportunidad: ${esc(p.oportunidad||'—')}</div><div>ID: ${esc(p.crm||'—')}</div><div>Válida por: 15 días</div></div>
+    <div class="qhead" style="flex-direction:column;align-items:stretch">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%">
+        <div>${LOGO_SVG}<div style="font-size:11px;color:#777;margin-top:2px">${esc(p.oficina)} · ${esc(off.city)}</div></div>
+        <div style="text-align:right;font-size:11px;color:#555"><div style="font-size:17px;font-weight:800;color:${BRAND};letter-spacing:1px">COTIZACIÓN</div><div>Fecha: ${p.fecha}</div><div>Oportunidad: ${esc(p.oportunidad||'—')}</div><div>ID: ${esc(p.crm||'—')}</div><div>Válida por: 15 días</div></div>
+      </div>
+      <div style="text-align:center;font-size:11px;color:#777;line-height:1.55;margin-top:6px">
+        <div style="font-weight:600">SIPNOLOGY SA de CV - RFC: SIP1111119C9</div>
+        <div>Manuel Lopez Cotilla No 1032 int 2A, Col. Del Valle Centro, Benito Juarez, CP 03100, CDMX</div>
+      </div>
     </div>
     <table class="infobox" style="margin-bottom:16px"><tr>
       <td class="l" style="width:52%"><b>Cliente:</b> ${esc(p.empresa||'—')}<br><b>Nombre:</b> ${esc(cont?cont.nombre:'—')}<br><b>E-mail:</b> ${esc(cont?cont.email:'—')}<br><b>Teléfono:</b> ${esc(cont?cont.telefono:'—')}<br><b>Dirección:</b> ${esc(cli?cli.direccion:'—')}</td>
@@ -1522,9 +1528,9 @@ async function buildQuotePDF(){
   doc.setFontSize(17);doc.setTextColor(BR[0],BR[1],BR[2]);doc.setFont(undefined,'bold');doc.text('COTIZACIÓN',pw-M,yy+4,{align:'right'});
   doc.setFontSize(9);doc.setTextColor(90);doc.setFont(undefined,'normal');
   doc.text('Fecha: '+p.fecha,pw-M,yy+9,{align:'right'});doc.text('Oportunidad: '+(p.oportunidad||'—'),pw-M,yy+13,{align:'right'});doc.text('ID: '+(p.crm||'—'),pw-M,yy+17,{align:'right'});doc.text('Válida por: 15 días',pw-M,yy+21,{align:'right'});
-  doc.setFontSize(8.5);doc.setTextColor(120);doc.setFont(undefined,'normal');
-  doc.text('Sipnology SA de CV, Manuel Lopez Cotilla No 1032 int 2A, Colonia Del Valle Centro, Benito Juarez, CP 03100, CDMX',M,yy+24);
-  doc.text('RFC: SIP1111119C9',M,yy+28);
+  doc.setFontSize(7.5);doc.setTextColor(120);doc.setFont(undefined,'normal');
+  doc.text('SIPNOLOGY SA de CV - RFC: SIP1111119C9',pw/2,yy+24,{align:'center'});
+  doc.text('Manuel Lopez Cotilla No 1032 int 2A, Col. Del Valle Centro, Benito Juarez, CP 03100, CDMX',pw/2,yy+28,{align:'center'});
   yy+=32;doc.setDrawColor(BR[0],BR[1],BR[2]);doc.setLineWidth(0.7);doc.line(M,yy,pw-M,yy);yy+=4;
   doc.autoTable({startY:yy,theme:'grid',body:[[
     `Cliente: ${p.empresa||'—'}\nNombre: ${cont?cont.nombre:'—'}\nE-mail: ${cont?cont.email:'—'}\nTeléfono: ${cont?cont.telefono:'—'}\nDirección: ${cli?cli.direccion:'—'}`,
