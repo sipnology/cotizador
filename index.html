@@ -1609,7 +1609,7 @@ function enviarEjecutivo(){
   const cli=findClient(p.empresa);
   const cont=cli?cli.contactos.find(c=>c.nombre===p.contacto):null;
   const to=am?am.email:'';
-  const cc=cont?cont.email:'';
+  const cc='';   // CC vacío por defecto (evita envíos no autorizados al cliente)
   const asunto='Cotización '+(p.empresa||'')+(p.oportunidad?(' - '+p.oportunidad):'')+(p.version?(' ('+p.version+')'):'');
   const cuerpo='Hola,\n\nAdjunto la cotización'+(p.oportunidad?(' "'+p.oportunidad+'"'):'')+(p.empresa?(' para '+p.empresa):'')+', junto con su archivo de configuración.\n\nQuedo atento a cualquier comentario.\n\nSaludos,\n'+(am?am.nombre:'');
   $('modal').innerHTML=`<h3>Enviar cotización al ejecutivo</h3>
