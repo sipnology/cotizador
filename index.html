@@ -490,13 +490,7 @@ tr.subtot td{background:#0c2033;font-weight:700}
       <div class="row"><h2 style="margin:0">Vista previa de cotización</h2>
         <button class="btn right" onclick="downloadPDF()">⬇️ Descargar PDF</button>
       </div>
-      <div class="row" style="justify-content:flex-end;margin-top:8px">
-        <button class="btn sec" data-reqonline="1" onclick="enviarAM()"
-          title="Guarda la cotización y envía por correo una liga para abrirla y editarla">
-          ✉️ Enviar al Ejecutivo de Cuenta</button>
-      </div>
-      <div class="hint">Descarga como PDF para el cliente, o envía la liga al Ejecutivo
-        de Cuenta para que la revise y edite en el aplicativo.</div>
+      <div class="hint">Descarga como PDF para el cliente.</div>
       <div id="quoteDoc"></div>
     </div>
   </section>
@@ -1524,8 +1518,11 @@ async function exportPDFnative(){
   doc.setFontSize(8.5);doc.setTextColor(120);doc.setFont(undefined,'normal');doc.text(`${p.oficina} · ${off.city}`,M,yy+16.5);
   doc.setFontSize(17);doc.setTextColor(BR[0],BR[1],BR[2]);doc.setFont(undefined,'bold');doc.text('COTIZACIÓN',pw-M,yy+4,{align:'right'});
   doc.setFontSize(9);doc.setTextColor(90);doc.setFont(undefined,'normal');
-  doc.text('Fecha: '+p.fecha,pw-M,yy+9,{align:'right'});doc.text('ID: '+(p.crm||'—'),pw-M,yy+13,{align:'right'});doc.text('Válida por: 15 días',pw-M,yy+17,{align:'right'});
-  yy+=21;doc.setDrawColor(BR[0],BR[1],BR[2]);doc.setLineWidth(0.7);doc.line(M,yy,pw-M,yy);yy+=4;
+  doc.text('Fecha: '+p.fecha,pw-M,yy+9,{align:'right'});doc.text('Oportunidad: '+(p.oportunidad||'—'),pw-M,yy+13,{align:'right'});doc.text('ID: '+(p.crm||'—'),pw-M,yy+17,{align:'right'});doc.text('Válida por: 15 días',pw-M,yy+21,{align:'right'});
+  doc.setFontSize(8.5);doc.setTextColor(120);doc.setFont(undefined,'normal');
+  doc.text('Sipnology SA de CV, Manuel Lopez Cotilla No 1032 int 2A, Colonia Del Valle Centro, Benito Juarez, CP 03100, CDMX',M,yy+24);
+  doc.text('RFC: SIP1111119C9',M,yy+28);
+  yy+=32;doc.setDrawColor(BR[0],BR[1],BR[2]);doc.setLineWidth(0.7);doc.line(M,yy,pw-M,yy);yy+=4;
   doc.autoTable({startY:yy,theme:'grid',body:[[
     `Cliente: ${p.empresa||'—'}\nNombre: ${cont?cont.nombre:'—'}\nE-mail: ${cont?cont.email:'—'}\nTeléfono: ${cont?cont.telefono:'—'}\nDirección: ${cli?cli.direccion:'—'}`,
     `Ejecutivo de cuenta\nNombre: ${p.ejecutivo||'—'}\nE-mail: ${am?am.email:'—'}\nTeléfono: ${am?am.telefono:'—'}`]],
@@ -2216,27 +2213,6 @@ function costeoBaseName(){
 }
 /* ===== Guardado y versionado (Guardar / Guardar Cambios) ===== */
 let localFileHandle=null, openedFileName=null, hasFile=false;
-
-/* ===== Estado de cambios =====================================================
-   Para saber si la cotización merece una versión nueva hace falta compararla
-   contra cómo estaba la última vez que se guardó o se abrió. Se guarda una
-   huella del contenido, no una bandera: así un cambio y su deshacer no cuentan
-   como cambio. */
-let selloGuardado = null;   // null = cotización nueva, nunca guardada
-
-/* Último archivo escrito en SharePoint: de ahí sale la liga del correo */
-let ultimoSubido = null;
-
-function huellaActual(){
-  try{ return JSON.stringify(projectPayload()); }catch(e){ return null; }
-}
-function sellarGuardado(){ selloGuardado = huellaActual(); }
-
-/* nueva | cambiada | igual */
-function estadoCotizacion(){
-  if(!hasFile || selloGuardado===null) return 'nueva';
-  return (huellaActual() === selloGuardado) ? 'igual' : 'cambiada';
-}
 function projectPayload(){return {state:S,clients:DB_CLIENTS,dirs:{preventa:DIR.preventa,ejecutivos:DIR.ejecutivos,oficinas:DIR.oficinas}};}
 function dlLocal(json,fname){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));a.download=fname;a.click();}
 function bumpVersion(ver,major){const m=/^v?(\d+)(?:\.(\d+))?$/i.exec(String(ver||'v1'));let M=m?+m[1]:1,N=(m&&m[2]!=null)?+m[2]:0;if(major){M+=1;N=0;}else{N+=1;}return 'v'+M+(N>0?('.'+N):'');}
@@ -2246,14 +2222,8 @@ async function saveLocalNew(json){const fname=openedFileName||(costeoBaseName()+
   if(window.showSaveFilePicker){try{const h=await window.showSaveFilePicker({suggestedName:fname,types:[{description:'Proyecto Sipnology',accept:{'application/json':['.json']}}]});const w=await h.createWritable();await w.write(json);await w.close();localFileHandle=h;openedFileName=h.name;return true;}catch(e){if(e&&e.name==='AbortError')return false;}}
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));a.download=fname;a.click();openedFileName=fname;return true;}
 async function saveLocalSame(json){if(localFileHandle){try{const w=await localFileHandle.createWritable();await w.write(json);await w.close();return true;}catch(e){}}return saveLocalNew(json);}
-async function repoPutJSON(json,fname){const cfg=getGraphCfg();if(!cfg||!cfg.clientId||!cfg.host||!cfg.sitePath)throw new Error('Configura el repositorio (⚙️).');if(location.protocol==='file:')throw new Error('Requiere la versión publicada (https).');const token=await graphToken(cfg);const H={Authorization:'Bearer '+token};const site=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${cfg.host}:${cfg.sitePath}`,{headers:H})).json();if(!site.id)throw new Error('No se encontró el sitio.');const drv=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:H})).json();const drive=(drv.value||[]).find(d=>d.name===cfg.library)||(drv.value||[])[0];if(!drive)throw new Error('No se encontró la biblioteca.');const up=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive.id}/root:/${encodeURIComponent(fname)}:/content`,{method:'PUT',headers:Object.assign({},H,{'Content-Type':'application/json'}),body:json});if(!up.ok)throw new Error('HTTP '+up.status);
-  /* Se devuelve el archivo (id y URL) para poder armar la liga del correo.
-     Sigue siendo un valor verdadero, así que quien solo pregunta si funcionó
-     no se entera del cambio. */
-  const subido=await up.json().catch(()=>({}));
-  ultimoSubido={ok:true, id:subido.id||'', webUrl:subido.webUrl||'', drive:drive.id, name:fname};
-  return ultimoSubido;}
-async function guardar(){if(hasFile)return;syncFromInputs();if(!S.proyecto.version)setVersion('v1');const json=JSON.stringify(projectPayload(),null,2);const fname=costeoBaseName()+'.json';let okL=false,okR=false,er=[];try{dlLocal(json,fname);okL=true;}catch(e){er.push('Local: '+e.message);}try{okR=await repoPutJSON(json,fname);}catch(e){er.push('Repositorio: '+e.message);}if(okL||okR){hasFile=true;openedFileName=fname;updateSaveButtons();sellarGuardado();}const cat=await syncCatalogQuiet();alert('Guardado '+(S.proyecto.version||'v1')+'\n'+(okL?'✅ Local (Descargas)':'— Local')+'\n'+(okR?'✅ Repositorio':'— Repositorio')+'\n'+cat+(er.length?('\n\n'+er.join('\n')):''));}
+async function repoPutJSON(json,fname){const cfg=getGraphCfg();if(!cfg||!cfg.clientId||!cfg.host||!cfg.sitePath)throw new Error('Configura el repositorio (⚙️).');if(location.protocol==='file:')throw new Error('Requiere la versión publicada (https).');const token=await graphToken(cfg);const H={Authorization:'Bearer '+token};const site=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${cfg.host}:${cfg.sitePath}`,{headers:H})).json();if(!site.id)throw new Error('No se encontró el sitio.');const drv=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:H})).json();const drive=(drv.value||[]).find(d=>d.name===cfg.library)||(drv.value||[])[0];if(!drive)throw new Error('No se encontró la biblioteca.');const up=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive.id}/root:/${encodeURIComponent(fname)}:/content`,{method:'PUT',headers:Object.assign({},H,{'Content-Type':'application/json'}),body:json});if(!up.ok)throw new Error('HTTP '+up.status);return true;}
+async function guardar(){if(hasFile)return;syncFromInputs();if(!S.proyecto.version)setVersion('v1');const json=JSON.stringify(projectPayload(),null,2);const fname=costeoBaseName()+'.json';let okL=false,okR=false,er=[];try{dlLocal(json,fname);okL=true;}catch(e){er.push('Local: '+e.message);}try{okR=await repoPutJSON(json,fname);}catch(e){er.push('Repositorio: '+e.message);}if(okL||okR){hasFile=true;openedFileName=fname;updateSaveButtons();}const cat=await syncCatalogQuiet();alert('Guardado '+(S.proyecto.version||'v1')+'\n'+(okL?'✅ Local (Descargas)':'— Local')+'\n'+(okR?'✅ Repositorio':'— Repositorio')+'\n'+cat+(er.length?('\n\n'+er.join('\n')):''));}
 function guardarCambios(){if(!hasFile){alert('Primero usa "Guardar" para crear el archivo.');return;}syncFromInputs();
   $('modal').innerHTML=`<h3>Guardar cambios</h3><div class="hint">Se sobrescribe el mismo archivo (local + repositorio) y se incrementa la versión.</div>
     <div style="margin-top:10px"><label class="f">Tipo de cambio</label><div class="row" style="gap:18px;margin-top:4px"><label class="row" style="gap:6px"><input type="radio" name="verkind" value="menor" checked> Menor <b>${bumpVersion(S.proyecto.version,false)}</b></label><label class="row" style="gap:6px"><input type="radio" name="verkind" value="mayor"> Mayor <b>${bumpVersion(S.proyecto.version,true)}</b></label></div></div>
@@ -2261,7 +2231,7 @@ function guardarCambios(){if(!hasFile){alert('Primero usa "Guardar" para crear e
     <div class="row" style="margin-top:14px"><button class="btn" onclick="doGuardarCambios()">Guardar cambios</button><button class="btn sec" onclick="closeModal()">Cancelar</button></div>`;
   $('overlay').classList.add('on');}
 async function doGuardarCambios(){const major=((document.querySelector('input[name=verkind]:checked')||{}).value)==='mayor';const resumen=($('chg_resumen')?$('chg_resumen').value:'').trim();const nv=bumpVersion(S.proyecto.version,major);setVersion(nv);if(!Array.isArray(S.historial))S.historial=[];const d=new Date();S.historial.unshift({fecha:d.toISOString().slice(0,10),hora:d.toTimeString().slice(0,5),version:nv,resumen:resumen});closeModal();renderHistorial();renderQuote();
-  const json=JSON.stringify(projectPayload(),null,2);const fname=costeoBaseName()+'.json';openedFileName=fname;let okL=false,okR=false,er=[];try{dlLocal(json,fname);okL=true;}catch(e){er.push('Local: '+e.message);}try{okR=await repoPutJSON(json,fname);}catch(e){er.push('Repositorio: '+e.message);}if(okL||okR)sellarGuardado();const cat=await syncCatalogQuiet();alert('Versión '+nv+'\n'+(okL?'✅ Local (Descargas)':'— Local')+'\n'+(okR?'✅ Repositorio':'— Repositorio')+'\n'+cat+(er.length?('\n\n'+er.join('\n')):''));}
+  const json=JSON.stringify(projectPayload(),null,2);const fname=costeoBaseName()+'.json';openedFileName=fname;let okL=false,okR=false,er=[];try{dlLocal(json,fname);okL=true;}catch(e){er.push('Local: '+e.message);}try{okR=await repoPutJSON(json,fname);}catch(e){er.push('Repositorio: '+e.message);}const cat=await syncCatalogQuiet();alert('Versión '+nv+'\n'+(okL?'✅ Local (Descargas)':'— Local')+'\n'+(okR?'✅ Repositorio':'— Repositorio')+'\n'+cat+(er.length?('\n\n'+er.join('\n')):''));}
 /* Guardado automático antes de descargar el PDF (evita perder el trabajo) */
 async function guardarRapido(){
   syncFromInputs();
@@ -2273,7 +2243,6 @@ async function guardarRapido(){
   try{dlLocal(json,fname);okL=true;}catch(e){er.push('Local: '+e.message);}
   try{okR=await repoPutJSON(json,fname);}catch(e){er.push('Repositorio: '+e.message);}
   openedFileName=fname;
-  if(okL||okR)sellarGuardado();
   alert('💾 Trabajo guardado ('+(S.proyecto.version||'v1')+')\n'+(okL?'✅ Local (Descargas)':'— Local')+'\n'+(okR?'✅ Repositorio':'— Repositorio')+(er.length?('\n\n'+er.join('\n')):''));
 }
 async function downloadPDF(){
@@ -2283,7 +2252,7 @@ async function downloadPDF(){
 function applyLoaded(j){if(j.state){S=j.state;mergeCatalog(j.dirs,j.clients);}else{S=j;}if(!Array.isArray(S.historial))S.historial=[];if(!S.proyecto.version)S.proyecto.version='v1';
   if(S.ing&&S.ing.subc&&!S.ing.subc.moneda){S.ing.subc.moneda='MXN';S.ing.subc.fx=S.ing.subc.fx||20;}
   if(S.sa&&!S.sa.sacalc)S.sa.sacalc={moneda:'MXN',fx:20,rows:[{concepto:'',cant:1,costo:0,margin:0,nota:''}]};}
-async function abrirLocal(){if(window.showOpenFilePicker){try{const [h]=await window.showOpenFilePicker({types:[{description:'Proyecto Sipnology',accept:{'application/json':['.json']}}]});const file=await h.getFile();const j=JSON.parse(await file.text());applyLoaded(j);localFileHandle=h;openedFileName=h.name;hasFile=true;pushToInputs();recompute();updateSaveButtons();sellarGuardado();alert('Proyecto abierto: '+h.name);return;}catch(e){if(e&&e.name==='AbortError')return;}}$('fileInput').click();}
+async function abrirLocal(){if(window.showOpenFilePicker){try{const [h]=await window.showOpenFilePicker({types:[{description:'Proyecto Sipnology',accept:{'application/json':['.json']}}]});const file=await h.getFile();const j=JSON.parse(await file.text());applyLoaded(j);localFileHandle=h;openedFileName=h.name;hasFile=true;pushToInputs();recompute();updateSaveButtons();alert('Proyecto abierto: '+h.name);return;}catch(e){if(e&&e.name==='AbortError')return;}}$('fileInput').click();}
 function renderHistorial(){const b=$('hist_body');if(!b)return;const h=(S&&Array.isArray(S.historial))?S.historial:[];b.innerHTML=h.length?h.map((r,i)=>`<tr><td class="fitc" style="text-align:center">${esc(r.fecha||'')}</td><td class="fitc" style="text-align:center;color:#E8632A;font-weight:700">${esc(r.version||'')}</td><td class="fitc" style="text-align:center">${esc(r.hora||'')}</td><td class="l"><textarea class="ta" rows="1" data-hist="${i}" style="width:100%">${esc(r.resumen||'')}</textarea></td></tr>`).join(''):`<tr><td colspan="4" class="l" style="color:#999">Sin cambios registrados aún.</td></tr>`;
   b.querySelectorAll('[data-hist]').forEach(el=>{el.oninput=()=>{S.historial[+el.dataset.hist].resumen=el.value;autoGrow(el);};});}
 
@@ -2314,20 +2283,8 @@ async function graphToken(cfg,opts){
   opts=opts||{};
   if(typeof msal==='undefined')throw new Error('No se pudo cargar MSAL (requiere internet).');
   if(!_msalApp){_msalApp=new msal.PublicClientApplication({auth:{clientId:cfg.clientId,authority:'https://login.microsoftonline.com/'+cfg.tenantId,redirectUri:location.origin+location.pathname},cache:{cacheLocation:'localStorage'}});await _msalApp.initialize();}
-  /* Mail.Send permite avisar al Ejecutivo de Cuenta desde el propio aplicativo */
-  const scopes=['Sites.ReadWrite.All','Mail.Send'];
+  const scopes=['Sites.ReadWrite.All'];
   let acc=_msalApp.getAllAccounts()[0];
-
-  /* Al llegar por liga todavía no hubo clic y el navegador bloquearía la
-     ventana emergente. Se intenta en silencio y, si no alcanza, se avisa
-     para pedirlo con un botón. */
-  if(opts.soloSilencioso){
-    const falta=()=>{const e=new Error('Se requiere iniciar sesión.');e.silencioso=true;return e;};
-    if(!acc)throw falta();
-    try{return (await _msalApp.acquireTokenSilent({scopes,account:acc})).accessToken;}
-    catch(e){throw falta();}
-  }
-
   if(opts.forceLogin){const r=await _msalApp.loginPopup({scopes,prompt:'login'});acc=r.account;}
   else if(!acc){const r=await _msalApp.loginPopup({scopes});acc=r.account;}
   try{return (await _msalApp.acquireTokenSilent({scopes,account:acc})).accessToken;}
@@ -2451,84 +2408,23 @@ async function repoSearch(q){
   }catch(e){box.innerHTML=`<div class="small" style="padding:12px;color:#e88">Error de búsqueda: ${esc(e.message)}</div>`;}
 }
 function repoPathLabel(f){const p=(f.parentReference&&f.parentReference.path)||'';const m=(p.split('root:')[1]||'');const c=decodeURIComponent(m).replace(/^\//,'');return c?('📁 '+c):'';}
-/* La carga recibe el drive y las credenciales como parámetros: así sirve
-   tanto para el explorador del repositorio como para la liga del correo,
-   que llega sin haber abierto ninguna ventana. */
-async function cargarCotizacion(drive,H,itemId){
-  const meta=await (await fetch(`https://graph.microsoft.com/v1.0/drives/${drive}/items/${itemId}`,{headers:H})).json();
-  if(meta.error)throw new Error(meta.error.message||'No se encontró la cotización.');
-  const url=meta['@microsoft.graph.downloadUrl']||meta['@content.downloadUrl'];
-  if(!url)throw new Error('No se obtuvo la URL de descarga.');
-  const j=JSON.parse(await (await fetch(url)).text());
-  applyLoaded(j);localFileHandle=null;openedFileName=(meta&&meta.name)||openedFileName;hasFile=true;
-  ultimoSubido={ok:true,id:itemId,webUrl:meta.webUrl||'',drive:drive,name:meta.name||''};
-  closeModal();pushToInputs();recompute();updateSaveButtons();sellarGuardado();
-  return meta;
-}
-
 async function repoOpenFile(itemId){
   try{
-    await cargarCotizacion(repoOpen._drive, repoOpen._H, itemId);
-    alert('✅ Proyecto abierto desde el repositorio: '+(openedFileName||''));
+    const H=repoOpen._H,drive=repoOpen._drive;
+    const meta=await (await fetch(`https://graph.microsoft.com/v1.0/drives/${drive}/items/${itemId}`,{headers:H})).json();
+    const url=meta['@microsoft.graph.downloadUrl']||meta['@content.downloadUrl'];
+    if(!url)throw new Error('No se obtuvo la URL de descarga.');
+    const j=JSON.parse(await (await fetch(url)).text());
+    applyLoaded(j);localFileHandle=null;openedFileName=(meta&&meta.name)||openedFileName;hasFile=true;
+    closeModal();pushToInputs();recompute();updateSaveButtons();alert('✅ Proyecto abierto desde el repositorio: '+(openedFileName||''));
   }catch(e){alert('No se pudo abrir el archivo: '+e.message);console.error(e);}
-}
-
-/* ===== Liga directa desde el correo =========================================
-   El aviso trae #c=<drive>/<archivo>. Se usa el fragmento y no un parámetro
-   normal para que el identificador no viaje al servidor ni quede en bitácoras;
-   MSAL solo reacciona a fragmentos con code= o error=, así que no estorba.
-   El separador es "/" porque la codificación siempre lo escapa (%2F) y ningún
-   identificador puede partir la liga por accidente. */
-function ligaCotizacion(drive,itemId){
-  return `${location.origin}${location.pathname}#c=`+
-         `${encodeURIComponent(drive)}/${encodeURIComponent(itemId)}`;
-}
-function leerLigaCot(){
-  const m=String(location.hash||'').match(/[#&]c=([^&/]+)\/([^&]+)/);
-  if(!m)return null;
-  try{return {drive:decodeURIComponent(m[1]), item:decodeURIComponent(m[2])};}
-  catch(e){return null;}
-}
-function limpiarLigaCot(){
-  try{history.replaceState(null,'',location.pathname+location.search);}
-  catch(e){location.hash='';}
-}
-
-async function abrirCotDesdeLiga(ref,forzarLogin){
-  const cerrar=()=>{const o=$('overlay');if(o)o.classList.remove('on');};
-  const pinta=(txt,btn)=>{
-    $('modal').innerHTML=`<h3>Cotización recibida por correo</h3>
-      <div class="hint" style="margin-top:6px">${esc(txt)}</div>
-      <div class="row" style="margin-top:14px">
-        ${btn?`<button class="btn" id="ligaEntrar">Iniciar sesión y abrir</button>`:''}
-        <button class="btn sec" id="ligaCancelar">Cerrar</button>
-      </div>`;
-    $('overlay').classList.add('on');
-    const b=$('ligaEntrar'); if(b)b.onclick=()=>abrirCotDesdeLiga(ref,true);
-    $('ligaCancelar').onclick=()=>{cerrar();limpiarLigaCot();};
-  };
-
-  pinta('Abriendo la cotización…',false);
-  try{
-    const cfg=getGraphCfg();
-    if(!cfg||!cfg.clientId)throw new Error('Falta configurar el repositorio (⚙️).');
-    const token=await graphToken(cfg, forzarLogin?{}:{soloSilencioso:true});
-    const H={Authorization:'Bearer '+token};
-    await cargarCotizacion(ref.drive,H,ref.item);
-    cerrar();limpiarLigaCot();
-    showView('cotizacion');
-    alert('✅ Cotización abierta: '+(openedFileName||''));
-  }catch(e){
-    if(e&&e.silencioso) pinta('Inicia sesión con tu cuenta de Sipnology para abrir la cotización.',true);
-    else{console.error(e);pinta('No se pudo abrir la cotización: '+(e.message||e),true);}
-  }
 }
 function loadProject(ev){
   const f=ev.target.files[0];if(!f)return;const rd=new FileReader();
-  rd.onload=()=>{try{const j=JSON.parse(rd.result);applyLoaded(j);localFileHandle=null;openedFileName=f.name;hasFile=true;pushToInputs();recompute();updateSaveButtons();sellarGuardado();alert('Proyecto abierto: '+f.name);}catch(e){alert('Archivo inválido');}};
+  rd.onload=()=>{try{const j=JSON.parse(rd.result);applyLoaded(j);localFileHandle=null;openedFileName=f.name;hasFile=true;pushToInputs();recompute();updateSaveButtons();alert('Proyecto abierto: '+f.name);}catch(e){alert('Archivo inválido');}};
   rd.readAsText(f);
 }
-function newProject(){if(confirm('¿Empezar un proyecto nuevo en blanco? Se perderán los datos no guardados.')){S=blankState();localFileHandle=null;openedFileName=null;hasFile=false;selloGuardado=null;pushToInputs();recompute();updateSaveButtons();showView('proyecto');}}
+function newProject(){if(confirm('¿Empezar un proyecto nuevo en blanco? Se perderán los datos no guardados.')){S=blankState();localFileHandle=null;openedFileName=null;hasFile=false;pushToInputs();recompute();updateSaveButtons();showView('proyecto');}}
 
 /* ===== Persistencia: guardar datos capturados como base ===== */
 const BASE_KEY='sip_costeo_base';
@@ -2578,14 +2474,6 @@ function unlockApp(mode){
   if(mode==='local'){
     document.querySelectorAll('[data-reqonline]').forEach(b=>{b.disabled=true;b.style.opacity='.4';b.style.cursor='not-allowed';b.title='No disponible en modo local (sin conexión / sin iniciar sesión)';});
   }else if(mode==='full'){ startSessionTimer(); try{catalogPullSilent();}catch(e){} }
-  /* Si se entró por la liga de un correo, la cotización se abre sola.
-     Va aquí y no en init() porque hasta este punto ya hay sesión. */
-  if(mode==='full'){
-    const ref=leerLigaCot();
-    if(ref) setTimeout(()=>abrirCotDesdeLiga(ref,false), 60);
-  }else if(leerLigaCot()){
-    alert('La cotización del correo necesita conexión e inicio de sesión para abrirse.');
-  }
 }
 function relock(){
   clearInterval(_sessTimer); authState='locked';
@@ -2614,217 +2502,6 @@ async function initAuthGate(){
   msg.textContent=(authAt()>0?'Tu sesión expiró (más de 3 horas). ':'')+'Inicia sesión con tu cuenta de Microsoft 365 de la organización para usar el aplicativo.';
   btn.style.display='';
 }
-
-/* ===== Enviar la cotización al Ejecutivo de Cuenta ==========================
-   Un solo clic hace tres cosas que antes eran tres: guardar el trabajo del
-   ingeniero, dejarlo en SharePoint y avisar por correo con una liga que abre
-   la cotización dentro del aplicativo, no un archivo suelto que hay que
-   volver a cargar a mano. */
-
-function correoEjecutivo(){
-  const p=(S&&S.proyecto)||{};
-  const am=(DIR.ejecutivos||[]).find(x=>x.nombre===p.ejecutivo);
-  return am&&am.email?am.email:'';
-}
-function correoPreventa(){
-  const p=(S&&S.proyecto)||{};
-  const pv=(DIR.preventa||[]).find(x=>x.nombre===p.preventa);
-  return pv&&pv.email?pv.email:'';
-}
-
-/* Acepta comas, punto y coma, espacios o saltos de línea */
-function listaCorreos(txt){
-  return String(txt||'').split(/[,;\s]+/).map(s=>s.trim()).filter(Boolean);
-}
-function correosInvalidos(arr){
-  const ok=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return arr.filter(c=>!ok.test(c));
-}
-
-function enviarAM(){
-  syncFromInputs();
-  if(location.protocol==='file:'){
-    alert('El envío requiere abrir el aplicativo desde su URL publicada (https), no como archivo local.');
-    return;
-  }
-  const cfg=getGraphCfg();
-  if(!cfg||!cfg.clientId||!cfg.host||!cfg.sitePath){
-    alert('Primero configura el repositorio (botón ⚙️).');return;
-  }
-
-  const estado=estadoCotizacion();
-  const v=S.proyecto.version||'v1';
-  const men=bumpVersion(v,false), may=bumpVersion(v,true);
-
-  /* Qué se hará con la versión depende de si hubo cambios, no de lo que
-     el ingeniero recuerde haber tocado. */
-  let bloqueVer='';
-  if(estado==='nueva'){
-    bloqueVer=`<div class="hint" style="margin-top:8px">Cotización nueva ·
-      se guardará como <b>${esc(v)}</b>.</div>`;
-  }else if(estado==='igual'){
-    bloqueVer=`<div class="hint" style="margin-top:8px">Sin cambios desde el último
-      guardado · se enviará <b>${esc(v)}</b> tal cual.</div>`;
-  }else{
-    bloqueVer=`<div style="margin-top:10px"><label class="f">Tiene cambios sin guardar. ¿Cómo se registra?</label>
-      <div class="row" style="gap:18px;margin-top:4px;flex-wrap:wrap">
-        <label class="row" style="gap:6px"><input type="radio" name="amver" value="menor" checked> Menor <b>${esc(men)}</b></label>
-        <label class="row" style="gap:6px"><input type="radio" name="amver" value="mayor"> Mayor <b>${esc(may)}</b></label>
-        <label class="row" style="gap:6px"><input type="radio" name="amver" value="misma"> Misma <b>${esc(v)}</b></label>
-      </div></div>
-      <div style="margin-top:10px"><label class="f">Resumen del cambio (opcional)</label>
-        <textarea id="am_resumen" class="ta" rows="2"></textarea></div>`;
-  }
-
-  const am=correoEjecutivo(), pv=correoPreventa();
-  const sug=[];
-  if(am)sug.push(`<a href="#" data-sug="${esc(am)}" data-dest="am_para">${esc(am)}</a> (ejecutivo)`);
-  if(pv)sug.push(`<a href="#" data-sug="${esc(pv)}" data-dest="am_cc">${esc(pv)}</a> (preventa)`);
-
-  $('modal').innerHTML=`<h3>Enviar cotización</h3>
-    <div class="hint">Se guarda la cotización y se envía una liga para abrirla y editarla
-      en el aplicativo. El archivo .json va adjunto por si aún no está terminada.</div>
-    ${bloqueVer}
-    <div style="margin-top:10px"><label class="f">Para</label>
-      <input id="am_para" class="in" placeholder="correo@sipnology.com.mx, otro@..." autocomplete="off"></div>
-    <div style="margin-top:8px"><label class="f">Copia a (opcional)</label>
-      <input id="am_cc" class="in" placeholder="correo@sipnology.com.mx" autocomplete="off"></div>
-    ${sug.length?`<div class="hint" style="margin-top:6px">Del directorio: ${sug.join(' · ')}</div>`:''}
-    <div style="margin-top:10px"><label class="f">Mensaje (opcional)</label>
-      <textarea id="am_msg" class="ta" rows="2" placeholder="Notas para el ejecutivo"></textarea></div>
-    <div class="row" style="margin-top:14px">
-      <button class="btn" id="am_enviar">Guardar y enviar</button>
-      <button class="btn sec" onclick="closeModal()">Cancelar</button>
-    </div>`;
-  $('overlay').classList.add('on');
-
-  /* Los correos se capturan a mano; el directorio solo sugiere con un clic */
-  $('modal').querySelectorAll('[data-sug]').forEach(a=>{
-    a.onclick=ev=>{
-      ev.preventDefault();
-      const c=$(a.dataset.dest);
-      const ya=listaCorreos(c.value);
-      if(!ya.includes(a.dataset.sug)) c.value=ya.concat(a.dataset.sug).join(', ');
-      c.focus();
-    };
-  });
-  $('am_para').focus();
-  $('am_enviar').onclick=doEnviarAM;
-}
-
-async function doEnviarAM(){
-  const para=listaCorreos($('am_para').value);
-  const cc=listaCorreos($('am_cc')?$('am_cc').value:'');
-  if(!para.length){alert('Escribe al menos un destinatario.');$('am_para').focus();return;}
-  const malos=correosInvalidos(para.concat(cc));
-  if(malos.length){alert('Estos correos no parecen válidos:\n'+malos.join('\n'));return;}
-
-  const estado=estadoCotizacion();
-  const kind=(document.querySelector('input[name=amver]:checked')||{}).value||'misma';
-  const resumen=($('am_resumen')?$('am_resumen').value:'').trim();
-  const msg=($('am_msg')?$('am_msg').value:'').trim();
-
-  const btn=$('am_enviar'); const prev=btn?btn.textContent:'';
-  if(btn){btn.disabled=true;btn.textContent='Guardando…';}
-
-  try{
-    /* 1 · Versión ---------------------------------------------------------- */
-    if(estado==='nueva'){
-      if(!S.proyecto.version) setVersion('v1');
-    }else if(estado==='cambiada' && kind!=='misma'){
-      const nv=bumpVersion(S.proyecto.version, kind==='mayor');
-      setVersion(nv);
-      if(!Array.isArray(S.historial))S.historial=[];
-      const d=new Date();
-      S.historial.unshift({fecha:d.toISOString().slice(0,10),hora:d.toTimeString().slice(0,5),
-                           version:nv, resumen:resumen||'Enviada al Ejecutivo de Cuenta'});
-      renderHistorial();
-    }
-    renderQuote();
-
-    /* 2 · Guardado --------------------------------------------------------- */
-    const json=JSON.stringify(projectPayload(),null,2);
-    const fname=(hasFile&&openedFileName)?openedFileName:(costeoBaseName()+'.json');
-    const sub=await repoPutJSON(json,fname);
-    hasFile=true; openedFileName=fname; updateSaveButtons(); sellarGuardado();
-
-    /* 3 · Correo ----------------------------------------------------------- */
-    if(btn)btn.textContent='Enviando…';
-    const cfg=getGraphCfg();
-    const token=await graphToken(cfg);
-    const H={Authorization:'Bearer '+token};
-    await correoCotizacion(H,{para,cc,msg,json,fname,sub});
-
-    closeModal();
-    alert('✅ Cotización '+(S.proyecto.version||'')+' guardada y enviada a:\n'+para.join('\n'));
-  }catch(e){
-    console.error(e);
-    alert('No se completó el envío: '+(e.message||e)+
-          '\n\nSi el correo falló, la cotización ya quedó guardada en el repositorio.');
-    if(btn){btn.disabled=false;btn.textContent=prev;}
-  }
-}
-
-async function correoCotizacion(H,o){
-  const p=S.proyecto||{};
-  const liga=(o.sub&&o.sub.id)?ligaCotizacion(o.sub.drive,o.sub.id):'';
-  const asunto=`Cotización ${p.empresa||'—'} · ${p.oportunidad||openedFileName||''} · ${S.proyecto.version||''}`;
-  const fila=(k,v)=>`<tr><td style="padding:4px 14px 4px 0;color:#666">${esc(k)}</td>
-      <td style="padding:4px 0"><b>${esc(v||'—')}</b></td></tr>`;
-
-  const cuerpo=`
-    <div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#1a1a1a">
-      <p style="margin:0 0 14px">Ingeniería preparó una cotización para tu revisión.</p>
-      ${o.msg?`<p style="margin:0 0 14px;padding:10px 12px;background:#FAF3EF;
-        border-left:3px solid #E05C14;white-space:pre-wrap">${esc(o.msg)}</p>`:''}
-      <table style="border-collapse:collapse;font-size:14px">
-        ${fila('Cliente',p.empresa)}
-        ${fila('Oportunidad',p.oportunidad)}
-        ${fila('Versión',S.proyecto.version)}
-        ${fila('Ingeniero de Preventa',p.preventa)}
-        ${fila('Fecha',p.fecha)}
-      </table>
-      ${liga?`<p style="margin:18px 0 6px"><a href="${esc(liga)}"
-         style="background:#E05C14;color:#fff;text-decoration:none;padding:10px 18px;
-         border-radius:8px;display:inline-block;font-weight:600">Abrir en el Cotizador</a></p>
-      <p style="margin:0;font-size:12px;color:#888">Se abre lista para revisar y editar.
-        ${o.sub&&o.sub.webUrl?`<a href="${esc(o.sub.webUrl)}" style="color:#888">Ver el archivo en SharePoint</a>`:''}</p>`:''}
-      <p style="margin:22px 0 0;font-size:12px;color:#888">
-        Enviado automáticamente por el Cotizador de Sipnology</p>
-    </div>`;
-
-  const mensaje={
-    subject:asunto,
-    body:{contentType:'HTML',content:cuerpo},
-    toRecipients:o.para.map(a=>({emailAddress:{address:a}})),
-    attachments:[{
-      '@odata.type':'#microsoft.graph.fileAttachment',
-      name:o.fname,
-      contentType:'application/json',
-      contentBytes:b64Utf8(o.json),
-    }],
-  };
-  if(o.cc&&o.cc.length) mensaje.ccRecipients=o.cc.map(a=>({emailAddress:{address:a}}));
-
-  const r=await fetch('https://graph.microsoft.com/v1.0/me/sendMail',{
-    method:'POST',
-    headers:Object.assign({},H,{'Content-Type':'application/json'}),
-    body:JSON.stringify({message:mensaje,saveToSentItems:true}),
-  });
-  if(!r.ok){
-    let d=''; try{d=' · '+(await r.json()).error.message;}catch(e){}
-    throw new Error('El correo no salió (HTTP '+r.status+d+')');
-  }
-}
-
-/* btoa se atraganta con acentos: primero se pasa a UTF-8 */
-function b64Utf8(txt){
-  const bytes=new TextEncoder().encode(txt);
-  let bin=''; const CH=0x8000;
-  for(let i=0;i<bytes.length;i+=CH) bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+CH));
-  return btoa(bin);
-}
-
 /* ============================ INIT ============================ */
 function init(){
   buildTabs();showView('proyecto');
