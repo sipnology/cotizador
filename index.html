@@ -1586,6 +1586,21 @@ async function graphTokenScopes(scopeArr){
   try{return (await _msalApp.acquireTokenSilent({scopes:scopeArr,account:acc})).accessToken;}
   catch(e){return (await _msalApp.acquireTokenPopup({scopes:scopeArr})).accessToken;}
 }
+async function autoOpenFromLink(){
+  try{
+    const params=new URLSearchParams(location.search);
+    const fname=params.get('open'); if(!fname)return;
+    const token=await graphTokenSilent(); if(!token)return;   // requiere sesión iniciada
+    const H={Authorization:'Bearer '+token};
+    const drive=await catalogDriveId(H);
+    const meta=await (await fetch('https://graph.microsoft.com/v1.0/drives/'+drive+'/root:/'+encodeURIComponent(fname),{headers:H})).json();
+    const url=meta['@microsoft.graph.downloadUrl']; if(!url){alert('No se encontró la cotización enlazada: '+fname);return;}
+    const j=JSON.parse(await (await fetch(url)).text());
+    applyLoaded(j);localFileHandle=null;openedFileName=fname;hasFile=true;pushToInputs();recompute();updateSaveButtons();
+    showView('cotizacion');
+    try{history.replaceState({},'',location.pathname);}catch(e){}   // limpiar el parámetro para no reabrir al refrescar
+  }catch(e){console.error('autoOpenFromLink',e);}
+}
 function enviarEjecutivo(){
   if(location.protocol==='file:'){alert('Enviar por correo requiere la versión publicada (https) o la app de escritorio.');return;}
   syncFromInputs();
@@ -1622,9 +1637,17 @@ async function doEnviarEjecutivo(){
     const pdfB64=doc.output('datauristring').split('base64,')[1];
     const jsonB64=btoa(unescape(encodeURIComponent(JSON.stringify(projectPayload(),null,2))));  // 3) .json
     const base=costeoBaseName();
+    const fname=openedFileName||(base+'.json');
+    const link=APP_PUBLIC_URL+'?open='+encodeURIComponent(fname);   // enlace que abre y carga la cotización
+    const msgHtml=esc(msg).replace(/\n/g,'<br>');
+    const bodyHtml='<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;line-height:1.5">'
+      +'<div>'+msgHtml+'</div>'
+      +'<p style="margin:18px 0 6px"><a href="'+link+'" style="display:inline-block;background:#E8632A;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:bold">Abrir Configuración</a></p>'
+      +'<p style="font-size:12px;color:#888;margin-top:4px">Este enlace abre el Cotizador Sipnology y carga automáticamente esta cotización (requiere iniciar sesión con tu cuenta de la organización).</p>'
+      +'</div>';
     const token=await graphTokenScopes(['Mail.Send']);   // 4) token con permiso de envío
     const rec=s=>s.split(',').map(x=>x.trim()).filter(Boolean).map(a=>({emailAddress:{address:a}}));
-    const body={message:{subject:subj,body:{contentType:'Text',content:msg},toRecipients:rec(to),ccRecipients:rec(ccRaw),
+    const body={message:{subject:subj,body:{contentType:'HTML',content:bodyHtml},toRecipients:rec(to),ccRecipients:rec(ccRaw),
       attachments:[
         {'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.pdf',contentType:'application/pdf',contentBytes:pdfB64},
         {'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.json',contentType:'application/json',contentBytes:jsonB64}
@@ -2327,6 +2350,7 @@ function renderHistorial(){const b=$('hist_body');if(!b)return;const h=(S&&Array
 
 /* ===== Repositorio M365 (SharePoint vía Microsoft Graph / Entra ID) ===== */
 const GRAPH_KEY='sip_graph_cfg';
+const APP_PUBLIC_URL='https://sipnology.github.io/cotizador/';  // usado en el enlace "Abrir Configuración" del correo
 const DEFAULT_GRAPH_CFG={clientId:'301142e3-19ee-4d69-9dd9-8e15e564d922',tenantId:'7e4245e5-225d-4ad0-9cf3-276fcc694c15',host:'sipnologysacv.sharepoint.com',sitePath:'/sites/Cotizador',library:'Cotizaciones'};
 let _msalApp=null;
 function getGraphCfg(){try{const s=JSON.parse(localStorage.getItem(GRAPH_KEY)||'null');return (s&&s.clientId)?s:DEFAULT_GRAPH_CFG;}catch(e){return DEFAULT_GRAPH_CFG;}}
@@ -2542,7 +2566,7 @@ function unlockApp(mode){
   const g=$('authGate'); if(g)g.style.display='none';
   if(mode==='local'){
     document.querySelectorAll('[data-reqonline]').forEach(b=>{b.disabled=true;b.style.opacity='.4';b.style.cursor='not-allowed';b.title='No disponible en modo local (sin conexión / sin iniciar sesión)';});
-  }else if(mode==='full'){ startSessionTimer(); try{catalogPullSilent();}catch(e){} }
+  }else if(mode==='full'){ startSessionTimer(); try{catalogPullSilent();}catch(e){} try{autoOpenFromLink();}catch(e){} }
 }
 function relock(){
   clearInterval(_sessTimer); authState='locked';
