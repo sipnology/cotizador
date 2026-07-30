@@ -206,6 +206,16 @@ tr.subtot td{background:#0c2033;font-weight:700}
         </table>
       </div>
     </div>
+    <div class="card">
+      <h2>Bitácora de actividad</h2>
+      <div class="hint">Registro automático de eventos clave (crear, abrir, guardar, correo, conversión de moneda, prorrateo, catálogo, plantilla). Se conservan los <b id="log_cap">200</b> más recientes.</div>
+      <div style="overflow-x:auto">
+        <table id="log_table">
+          <thead><tr><th class="fitc">Fecha</th><th class="fitc">Hora</th><th class="l">Evento</th><th class="l">Detalle</th><th class="l">Usuario</th></tr></thead>
+          <tbody id="log_body"></tbody>
+        </table>
+      </div>
+    </div>
   </section>
 
   <!-- ===================== INGENIERÍA ===================== -->
@@ -381,11 +391,12 @@ tr.subtot td{background:#0c2033;font-weight:700}
         <div style="width:120px"><label class="f">Margen Global</label><div class="pctcell"><input id="mat_marginG" type="text" inputmode="decimal" oninput="setBOMglobal('mat','margin',this.value)"><span>%</span></div></div>
         <div style="width:120px"><label class="f">Moneda</label><select id="mat_moneda" onchange="recompute()"><option>MXN</option><option>USD</option></select></div>
         <div style="width:110px"><label class="f">Tipo de cambio</label><input id="mat_fx" type="number" step="0.01" value="19" oninput="S.mat.fx=num(this.value)"></div>
+        <div style="width:150px"><label class="f">Prorrateo (costo a repartir)</label><input id="mat_prorr" type="text" inputmode="decimal" value="0" oninput="S.mat.prorr=num(this.value);recompute()" onchange="logEvent('Prorrateo','Materiales: '+n2(num(this.value)))" style="text-align:center" title="Costo adicional que se reparte en partes iguales entre los ítems con cantidad > 0"></div>
         <button class="btn sec" onclick="convertBOM('mat')" title="Convierte PL unit. entre MXN y USD">🔁 Convertir</button>
         <button class="btn sec" onclick="downloadTemplate('mat')">⬇️ Descargar plantilla</button>
         <label class="btn sec" style="cursor:pointer">⬆️ Cargar plantilla<input type="file" accept=".xlsx" style="display:none" onchange="importBulk('mat',event)"></label>
       </div>
-      <div class="hint"><b>Descuento/Margen Global</b> autollenan las columnas (puedes ajustar por fila). <b>Convertir</b> cambia los PL unit. según el Tipo de cambio y la moneda mostrada. <b>Descuento al cliente</b> = 1 − (Precio unit. / PL unit.).</div>
+      <div class="hint"><b>Descuento/Margen Global</b> autollenan las columnas (puedes ajustar por fila). <b>Convertir</b> cambia los PL unit. según el Tipo de cambio y la moneda mostrada. <b>Prorrateo</b> reparte un costo en partes iguales entre los ítems (con cantidad &gt; 0) y se suma a su costo. <b>Descuento al cliente</b> = 1 − (Precio unit. / PL unit.).</div>
       <div style="overflow-x:auto">
         <table id="mat_table">
           <thead><tr>
@@ -397,7 +408,7 @@ tr.subtot td{background:#0c2033;font-weight:700}
           <tbody id="mat_body"></tbody>
         </table>
       </div>
-      <div style="margin-top:8px"><button class="mini add" onclick="addBOMrow('mat')">＋ Agregar fila</button></div>
+      <div style="margin-top:8px;display:flex;gap:8px"><button class="mini add" onclick="addBOMrow('mat')">＋ Agregar fila</button><button class="mini add" onclick="addBOMsep('mat')" title="Inserta una fila separadora (solo etiqueta de grupo)">＋ Separador</button></div>
       <div class="kpis" style="margin-top:12px;grid-template-columns:repeat(3,1fr)">
         <div class="kpi"><div class="lab">PL total</div><div class="val" id="mat_pl">–</div></div>
         <div class="kpi cost"><div class="lab">Costo unit. (suma)</div><div class="val" id="mat_cunit">–</div></div>
@@ -415,11 +426,12 @@ tr.subtot td{background:#0c2033;font-weight:700}
         <div style="width:120px"><label class="f">Margen Global</label><div class="pctcell"><input id="con_marginG" type="text" inputmode="decimal" oninput="setBOMglobal('con','margin',this.value)"><span>%</span></div></div>
         <div style="width:120px"><label class="f">Moneda</label><select id="con_moneda" onchange="recompute()"><option>MXN</option><option>USD</option></select></div>
         <div style="width:110px"><label class="f">Tipo de cambio</label><input id="con_fx" type="number" step="0.01" value="19" oninput="S.con.fx=num(this.value)"></div>
+        <div style="width:150px"><label class="f">Prorrateo (costo a repartir)</label><input id="con_prorr" type="text" inputmode="decimal" value="0" oninput="S.con.prorr=num(this.value);recompute()" onchange="logEvent('Prorrateo','Contratos: '+n2(num(this.value)))" style="text-align:center" title="Costo adicional que se reparte en partes iguales entre los ítems con cantidad > 0"></div>
         <button class="btn sec" onclick="convertBOM('con')" title="Convierte PL unit. entre MXN y USD">🔁 Convertir</button>
         <button class="btn sec" onclick="downloadTemplate('con')">⬇️ Descargar plantilla</button>
         <label class="btn sec" style="cursor:pointer">⬆️ Cargar plantilla<input type="file" accept=".xlsx" style="display:none" onchange="importBulk('con',event)"></label>
       </div>
-      <div class="hint"><b>Descuento/Margen Global</b> autollenan las columnas (puedes ajustar por fila). <b>Convertir</b> cambia los PL unit. según el Tipo de cambio y la moneda mostrada. <b>Descuento al cliente</b> = 1 − (Precio unit. / PL unit.).</div>
+      <div class="hint"><b>Descuento/Margen Global</b> autollenan las columnas (puedes ajustar por fila). <b>Convertir</b> cambia los PL unit. según el Tipo de cambio y la moneda mostrada. <b>Prorrateo</b> reparte un costo en partes iguales entre los ítems (con cantidad &gt; 0) y se suma a su costo. <b>Descuento al cliente</b> = 1 − (Precio unit. / PL unit.).</div>
       <div style="overflow-x:auto">
         <table id="con_table">
           <thead><tr>
@@ -431,7 +443,7 @@ tr.subtot td{background:#0c2033;font-weight:700}
           <tbody id="con_body"></tbody>
         </table>
       </div>
-      <div style="margin-top:8px"><button class="mini add" onclick="addBOMrow('con')">＋ Agregar fila</button></div>
+      <div style="margin-top:8px;display:flex;gap:8px"><button class="mini add" onclick="addBOMrow('con')">＋ Agregar fila</button><button class="mini add" onclick="addBOMsep('con')" title="Inserta una fila separadora (solo etiqueta de grupo)">＋ Separador</button></div>
       <div class="kpis" style="margin-top:12px;grid-template-columns:repeat(3,1fr)">
         <div class="kpi"><div class="lab">PL total</div><div class="val" id="con_pl">–</div></div>
         <div class="kpi cost"><div class="lab">Costo unit. (suma)</div><div class="val" id="con_cunit">–</div></div>
@@ -458,7 +470,7 @@ tr.subtot td{background:#0c2033;font-weight:700}
         <tbody id="r_body"></tbody>
         <tfoot id="r_foot"></tfoot>
       </table>
-      <div class="small" style="margin-top:6px">Impuestos y logística de materiales se muestran por separado y no se incluyen en el margen global (igual que en el Excel).</div>
+      <div class="small" style="margin-top:6px">Impuestos y logística de materiales se muestran por separado y no se incluyen en el margen global (igual que en el Excel). El <b>TOTAL</b> se consolida en <b>MXN</b>: los rubros en USD se convierten con su tipo de cambio.</div>
     </div>
   </section>
 
@@ -467,6 +479,7 @@ tr.subtot td{background:#0c2033;font-weight:700}
     <div class="card">
       <h2>Condiciones comerciales</h2>
       <div class="hint">Lo que captures aquí se refleja en la cotización (igual que la hoja Print del Excel).</div>
+      <div style="width:240px;margin-bottom:14px"><label class="f">Validez de la cotización (días)</label><input id="c_validez" type="number" min="0" step="1" value="15" style="text-align:center" oninput="S.comercial.validez=num(this.value);renderQuote()"></div>
       <div style="margin-bottom:14px"><label class="f">Notas</label><textarea id="c_notas" class="ta" rows="2"></textarea></div>
       <div><label class="f">Condiciones comerciales</label><textarea id="c_cond" class="ta" rows="16" style="line-height:1.5"></textarea></div>
     </div>
@@ -539,7 +552,7 @@ tr.subtot td{background:#0c2033;font-weight:700}
 .fceq:hover{background:#d4551f}
 </style>
 <div id="floatCalc" style="display:none">
-  <div id="fcHead">🧮 Calculadora<span id="fcClose" onclick="toggleCalc(false)">✕</span></div>
+  <div id="fcHead">🧮 Calculadora<span style="display:flex;gap:10px;align-items:center;font-size:15px"><span id="fcCopy" title="Copiar (⌘/Ctrl+C)" style="cursor:pointer">⧉</span><span id="fcPaste" title="Pegar (⌘/Ctrl+V)" style="cursor:pointer">📋</span><span id="fcClose" onclick="toggleCalc(false)" style="cursor:pointer">✕</span></span></div>
   <input id="fcDisp" readonly value="0">
   <div id="fcKeys">
     <button type="button" class="fck fcop" data-k="C">C</button>
@@ -660,8 +673,8 @@ function blankState(){
   st.sa.onsite=[];st.sa.cotiz.rows=[];st.sa.sacalc.rows=[];
   ['basic','adv','end'].forEach(k=>{Object.keys(st.sa.dev[k]).forEach(r=>{st.sa.dev[k][r]=0;});});
   st.mat.rows=[];st.con.rows=[];
-  st.comercial={notas:'',condiciones:DEFAULT_CONDICIONES,comisiones:[]};
-  st.historial=[];
+  st.comercial={notas:'',condiciones:DEFAULT_CONDICIONES,comisiones:[],validez:15};
+  st.historial=[];st.bitacora=[];
   return st;
 }
 function defaultState(){
@@ -676,8 +689,8 @@ function defaultState(){
         add:{mant:'-',asist:'-',nac:'-',intl:'-'}, dev:{basic:{},adv:{},end:{}}, onsite:[],
         cotiz:{rows:[{partida:'',desc:'',cant:1,costo:0,nota:''},{partida:'',desc:'',cant:1,costo:0,nota:''}]},
         sacalc:{moneda:'MXN',fx:20,rows:[{concepto:'',cant:1,costo:0,margin:0.1,nota:''},{concepto:'',cant:1,costo:0,margin:0,nota:''}]}},
-    mat:{fx:19,disc:0.15,margin:0.15,moneda:'MXN',tax:0,freight:0,rows:[]},
-    con:{disc:0.15,margin:0.2,moneda:'MXN',fx:19,rows:[]}
+    mat:{fx:19,disc:0.15,margin:0.15,moneda:'MXN',tax:0,freight:0,prorr:0,rows:[]},
+    con:{disc:0.15,margin:0.2,moneda:'MXN',fx:19,prorr:0,rows:[]}
   };
   ['basic','adv','end'].forEach(k=>DEV_ROWS[k].forEach(d=>st.sa.dev[k][d.r]=0));
   st.sa.devNames={basic:{},adv:{},end:{}};
@@ -685,8 +698,8 @@ function defaultState(){
   st.sa.onsite=[{r:84,d:'Recurso 1',cant:0,costo:0,carga:0.42,margin:0.4,meses:12},{r:85,d:'Recurso 2',cant:0,costo:0,carga:0.42,margin:0.4,meses:12},{r:86,d:'Recurso 3',cant:0,costo:0,carga:0.42,margin:0.4,meses:12}];
   for(let i=0;i<21;i++) st.mat.rows.push({prov:i===0?'INGRAM':'',marca:i===0?'Cisco':'',item:'',sku:'',desc:'',pl:0,qty:0,disc:0.15,margin:0.15});
   for(let i=0;i<19;i++) st.con.rows.push({prov:i===0?'INGRAM':'',marca:i===0?'Cisco':'',item:'',sku:'',desc:'',pl:0,qty:0,disc:0.15,margin:0.2});
-  st.comercial={notas:'',condiciones:DEFAULT_CONDICIONES,comisiones:[{partida:'1',desc:'',cant:1,monto:0,nota:''}]};
-  st.historial=[];
+  st.comercial={notas:'',condiciones:DEFAULT_CONDICIONES,comisiones:[{partida:'1',desc:'',cant:1,monto:0,nota:''}],validez:15};
+  st.historial=[];st.bitacora=[];
   // ---- Datos de MUESTRA (para visualizar la cotización sin recapturar) ----
   st.proyecto.empresa='BBVA'; st.proyecto.contacto='Luis Octavio Rubio';
   st.proyecto.oportunidad='Renovación LAN CPD'; st.proyecto.crm='OPP-2026-014';
@@ -722,7 +735,10 @@ function defaultTrips(){return [
 
 /* ============================ HELPERS ============================ */
 const $=id=>document.getElementById(id);
-const num=v=>{const n=parseFloat(String(v).replace(/,/g,''));return isNaN(n)?0:n;};
+function evalFormula(str){try{const e=String(str).replace(/^\s*=/,'').replace(/,/g,'').replace(/[^0-9+\-*/().\s]/g,'');if(!e.trim())return null;const r=Function('"use strict";return('+e+')')();return (typeof r==='number'&&isFinite(r))?r:null;}catch(_){return null;}}
+const num=v=>{if(typeof v==='string'){const t=v.trim();if(t.charAt(0)==='='){const r=evalFormula(t);return r==null?0:r;}}const n=parseFloat(String(v).replace(/,/g,''));return isNaN(n)?0:n;};
+/* Al salir de una celda numérica, si escribiste una fórmula (=2+3*4) muestra el resultado */
+document.addEventListener('focusout',function(e){const el=e.target;if(!el||el.tagName!=='INPUT')return;const im=el.getAttribute('inputmode');if(im!=='decimal'&&im!=='numeric')return;const v=(el.value||'').trim();if(v.charAt(0)==='='){const r=evalFormula(v);if(r!=null)el.value=String(r);}},true);
 function money(v,cur){cur=cur||'MXN';return (v<0?'-':'')+cur+' '+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function n2(v){return (v<0?'-':'')+Math.abs(num(v)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function itemVal(v,i){if(v==null||String(v).trim()==='')return i+1;const s=String(v).replace(/,/g,'');const n=Number(s);return isNaN(n)?v:n;}
@@ -883,35 +899,45 @@ function compute(){
   /* Materiales — SIN tipo de cambio (igual que el Excel). Descuento y Margen por fila.
      PL total = PL*Cant ; Costo unit = PL*(1-desc) ; Costo subtot = Costo unit*Cant ;
      Precio unit = Costo unit/(1-margen) ; Precio total = Precio unit*Cant ; Margen real = (ΣPrecioTot-ΣCostoSub)/ΣPrecioTot */
+  const matN=S.mat.rows.filter(r=>!r.sep&&num(r.qty)>0).length;
+  const matPer=(matN>0&&num(S.mat.prorr)>0)?(num(S.mat.prorr)/matN):0;
   let matCost=0,matPrice=0,matPL=0,matCUnit=0,matPUnit=0; const matCalc=S.mat.rows.map(row=>{
+    if(row.sep)return {sep:true,plTot:0,cUnit:0,cSub:0,pUnit:0,pTot:0,dcli:0};
     const pl=num(row.pl), qty=num(row.qty), disc=num(row.disc), marg=num(row.margin);
-    const plTot=pl*qty, cUnit=pl-disc*pl, cSub=cUnit*qty, pUnit=marg<1?cUnit/(1-marg):0, pTot=pUnit*qty;
+    const plTot=pl*qty; const addU=(qty>0)?(matPer/qty):0; const cUnit=(pl-disc*pl)+addU;
+    const cSub=cUnit*qty, pUnit=marg<1?cUnit/(1-marg):0, pTot=pUnit*qty;
     const dcli=pl>0?(1-(pUnit/pl)):0;
     matCost+=cSub;matPrice+=pTot;matPL+=plTot;matCUnit+=cUnit;matPUnit+=pUnit;
     return {plTot,cUnit,cSub,pUnit,pTot,dcli};
   });
-  R.mat={cost:matCost,price:matPrice,pl:matPL,cUnitSum:matCUnit,pUnitSum:matPUnit,taxLog:0,matCalc,marg:matPrice?((matPrice-matCost)/matPrice):0};
+  R.mat={cost:matCost,price:matPrice,pl:matPL,cUnitSum:matCUnit,pUnitSum:matPUnit,taxLog:0,matCalc,prorr:num(S.mat.prorr),perItem:matPer,marg:matPrice?((matPrice-matCost)/matPrice):0};
 
   /* Contratos — SIN tipo de cambio. Descuento y Margen por fila (mismas fórmulas que Materiales) */
+  const conN=S.con.rows.filter(r=>!r.sep&&num(r.qty)>0).length;
+  const conPer=(conN>0&&num(S.con.prorr)>0)?(num(S.con.prorr)/conN):0;
   let conCost=0,conPrice=0,conPL=0,conCUnit=0,conPUnit=0; const conCalc=S.con.rows.map(row=>{
+    if(row.sep)return {sep:true,plTot:0,cUnit:0,cSub:0,pUnit:0,pTot:0,dcli:0};
     const pl=num(row.pl), qty=num(row.qty), disc=num(row.disc), marg=num(row.margin);
-    const plTot=pl*qty, cUnit=pl-disc*pl, cSub=cUnit*qty, pUnit=marg<1?cUnit/(1-marg):0, pTot=pUnit*qty;
+    const plTot=pl*qty; const addU=(qty>0)?(conPer/qty):0; const cUnit=(pl-disc*pl)+addU;
+    const cSub=cUnit*qty, pUnit=marg<1?cUnit/(1-marg):0, pTot=pUnit*qty;
     const dcli=pl>0?(1-(pUnit/pl)):0;
     conCost+=cSub;conPrice+=pTot;conPL+=plTot;conCUnit+=cUnit;conPUnit+=pUnit;
     return {plTot,cUnit,cSub,pUnit,pTot,dcli};
   });
-  R.con={cost:conCost,price:conPrice,pl:conPL,cUnitSum:conCUnit,pUnitSum:conPUnit,conCalc,marg:conPrice?((conPrice-conCost)/conPrice):0};
+  R.con={cost:conCost,price:conPrice,pl:conPL,cUnitSum:conCUnit,pUnitSum:conPUnit,conCalc,prorr:num(S.con.prorr),perItem:conPer,marg:conPrice?((conPrice-conCost)/conPrice):0};
 
   /* Consolidación */
   const streams=[
-    {k:'Ingeniero Interno y PM',cost:R.ing.cost,price:R.ing.price,tc:true},
-    {k:'Subcontratación / Extras',cost:R.subc.cost,price:R.subc.price,tc:true},
-    {k:'Soporte / Servicios Administrados',cost:R.sacalc.cost,price:R.sacalc.price},
-    {k:'Recurso en Sitio',cost:R.onsite.cost,price:R.onsite.price},
-    {k:'Materiales',cost:R.mat.cost,price:R.mat.price},
-    {k:'Contratos de Soporte / Renovación',cost:R.con.cost,price:R.con.price}
+    {k:'Ingeniero Interno y PM',cost:R.ing.cost,price:R.ing.price,cur:S.ing.moneda,fx:num(S.ing.fx)},
+    {k:'Subcontratación / Extras',cost:R.subc.cost,price:R.subc.price,cur:(S.ing.subc&&S.ing.subc.moneda)||S.ing.moneda,fx:num((S.ing.subc&&S.ing.subc.fx)||S.ing.fx)},
+    {k:'Soporte / Servicios Administrados',cost:R.sacalc.cost,price:R.sacalc.price,cur:(S.sa.sacalc&&S.sa.sacalc.moneda)||'MXN',fx:num((S.sa.sacalc&&S.sa.sacalc.fx)||S.sa.fx)},
+    {k:'Recurso en Sitio',cost:R.onsite.cost,price:R.onsite.price,cur:S.sa.moneda,fx:num(S.sa.fx)},
+    {k:'Materiales',cost:R.mat.cost,price:R.mat.price,cur:S.mat.moneda,fx:num(S.mat.fx)},
+    {k:'Contratos de Soporte / Renovación',cost:R.con.cost,price:R.con.price,cur:S.con.moneda,fx:num(S.con.fx)}
   ];
-  const totCost=streams.reduce((a,s)=>a+s.cost,0), totPrice=streams.reduce((a,s)=>a+s.price,0);
+  /* Total consolidado en MXN: los rubros en USD se convierten con su tipo de cambio (evita sumar monedas distintas) */
+  const toBase=s=>((s.cur==='USD')?(num(s.fx)||1):1);
+  const totCost=streams.reduce((a,s)=>a+s.cost*toBase(s),0), totPrice=streams.reduce((a,s)=>a+s.price*toBase(s),0);
   R.total={streams,cost:totCost,price:totPrice,profit:totPrice-totCost,margin:totPrice?((totPrice-totCost)/totPrice):0};
   /* Comisiones/Bolsa/Eventos: se restan de la Utilidad y afectan el Margen Total */
   const comis=((S.comercial&&S.comercial.comisiones)?S.comercial.comisiones:[]).reduce((a,rr)=>a+num(rr.monto),0);
@@ -1273,10 +1299,15 @@ function renderBOMtable(tag){
   const cur=St.moneda;
   const body=$(tag+'_body'); body.innerHTML='';
   St.rows.forEach((row,i)=>{
+    if(row.sep){
+      const trs=document.createElement('tr');trs.dataset.dndg=tag;trs.dataset.dndi=i;trs.className='sep-row';
+      trs.innerHTML=`<td class="l" style="background:#0c1730"><div style="display:flex;align-items:center;gap:6px">${grip(tag,i)}<span style="color:#E8632A;font-weight:800">▸</span><input type="text" data-sep="${tag}" data-i="${i}" value="${esc(row.label||'')}" placeholder="Grupo (ej. Switches LAN)" style="flex:1;min-width:0;background:transparent;border:none;color:#E8632A;font-weight:700;font-size:13px;outline:none"></div></td><td colspan="14" style="background:#0c1730"></td><td class="fit" style="text-align:center;background:#0c1730"><button class="mini del" data-delb2="${tag}.${i}">✕</button></td>`;
+      body.appendChild(trs);return;
+    }
     const c=calc[i];
-    const tr=document.createElement('tr');
+    const tr=document.createElement('tr');tr.dataset.dndg=tag;tr.dataset.dndi=i;
     tr.innerHTML=`
-      <td class="l"><textarea class="ta" rows="1" data-b2="${tag}" data-i="${i}" data-k="prov">${esc(row.prov)}</textarea></td>
+      <td class="l"><div style="display:flex;align-items:center;gap:3px">${grip(tag,i)}<textarea class="ta" rows="1" data-b2="${tag}" data-i="${i}" data-k="prov" style="flex:1;min-width:0">${esc(row.prov)}</textarea></div></td>
       <td class="l"><textarea class="ta" rows="1" data-b2="${tag}" data-i="${i}" data-k="marca">${esc(row.marca)}</textarea></td>
       <td class="fit" style="text-align:center"><input class="autow" type="text" data-b2="${tag}" data-i="${i}" data-k="item" value="${esc(row.item!=null&&row.item!==''?row.item:(i+1))}"></td>
       <td class="l"><textarea class="ta" rows="1" data-b2="${tag}" data-i="${i}" data-k="sku">${esc(row.sku)}</textarea></td>
@@ -1300,6 +1331,7 @@ function renderBOMtable(tag){
   $(tag+'_punit').textContent=money(Rt.pUnitSum,cur);
   $(tag+'_ptot').textContent=money(Rt.price,cur);
   $(tag+'_marg').textContent=pct(Rt.marg);
+  const pp=$(tag+'_prorr');if(pp&&document.activeElement!==pp)pp.value=n2(num(St.prorr));
 }
 function setBOMglobal(tag,field,pctVal){const St=tag==='mat'?S.mat:S.con;const v=num(pctVal)/100;St[field]=v;St.rows.forEach(r=>r[field]=v);recompute();}
 /* Conversión de moneda para calculadoras basadas en "costo" (Subcontratación y Servicio Administrado) */
@@ -1316,6 +1348,7 @@ function convertBOM(tag){const St=tag==='mat'?S.mat:S.con;const tc=num(St.fx);if
   const from=St.moneda||'MXN', to=(from==='MXN'?'USD':'MXN');
   St.rows.forEach(r=>{const pl=num(r.pl);r.pl=(to==='USD')?(pl/tc):(pl*tc);});
   St.moneda=to;const sel=$(tag+'_moneda');if(sel)sel.value=to;recompute();
+  logEvent('Convertir moneda',(tag==='mat'?'Materiales':'Contratos')+': '+from+'→'+to+' (TC '+tc.toFixed(2)+')');
   alert('PL unit. convertidos de '+from+' a '+to+' (Tipo de cambio '+tc.toFixed(2)+').');}
 function bindBOM2(){
   document.querySelectorAll('[data-b2]').forEach(el=>{el.oninput=()=>{
@@ -1332,9 +1365,11 @@ function bindBOM2(){
     el.onfocus=()=>{const v=num(el.value);el.value=(v===0?'':String(v));sizeMoney(el);};
     el.onblur=()=>{el.value=n2(num(el.value));sizeMoney(el);};
   });
+  document.querySelectorAll('[data-sep]').forEach(el=>{el.oninput=()=>{const tag=el.dataset.sep,i=+el.dataset.i;const St=tag==='mat'?S.mat:S.con;if(St.rows[i])St.rows[i].label=el.value;};});
   document.querySelectorAll('[data-delb2]').forEach(el=>{el.onclick=()=>{const p=el.dataset.delb2.split('.'),tag=p[0],i=+p[1];const St=tag==='mat'?S.mat:S.con;if(St.rows.length>1)St.rows.splice(i,1);else alert('Debe quedar al menos una fila.');recompute();};});
 }
 function addBOMrow(tag){const St=tag==='mat'?S.mat:S.con;St.rows.push({prov:'',marca:'',item:'',sku:'',desc:'',pl:0,qty:0,disc:0.15,margin:tag==='mat'?0.15:0.20});recompute();}
+function addBOMsep(tag){const St=tag==='mat'?S.mat:S.con;St.rows.push({sep:true,label:''});recompute();}
 
 function renderBOM(bodyId,rows,calc,tag){
   const body=$(bodyId); body.innerHTML='';
@@ -1360,7 +1395,7 @@ function renderResumen(){
   const rb=$('r_body'); rb.innerHTML='';
   R.total.streams.forEach(s=>{
     const util=s.price-s.cost, m=s.price?util/s.price:0;
-    const cc=s.tc?S.ing.moneda:undefined;
+    const cc=s.cur||(s.tc?S.ing.moneda:undefined);
     const tr=document.createElement('tr');
     tr.innerHTML=`<td class="l">${s.k}</td><td class="cost">${money(s.cost,cc)}</td><td class="calc">${money(s.price,cc)}</td><td>${money(util,cc)}</td><td>${pct(m)}</td>`;
     rb.appendChild(tr);
@@ -1406,7 +1441,7 @@ function renderQuote(){
     <div class="qhead" style="flex-direction:column;align-items:stretch">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%">
         <div>${LOGO_SVG}<div style="font-size:11px;color:#777;margin-top:2px">${esc(p.oficina)} · ${esc(off.city)}</div></div>
-        <div style="text-align:right;font-size:11px;color:#555"><div style="font-size:17px;font-weight:800;color:${BRAND};letter-spacing:1px">COTIZACIÓN</div><div>Fecha: ${p.fecha}</div><div>Oportunidad: ${esc(p.oportunidad||'—')}</div><div>ID: ${esc(p.crm||'—')}</div><div>Válida por: 15 días</div></div>
+        <div style="text-align:right;font-size:11px;color:#555"><div style="font-size:17px;font-weight:800;color:${BRAND};letter-spacing:1px">COTIZACIÓN</div><div>Fecha: ${p.fecha}</div><div>Oportunidad: ${esc(p.oportunidad||'—')}</div><div>ID: ${esc(p.crm||'—')}</div><div>Válida por: ${num((S.comercial&&S.comercial.validez))||15} días</div></div>
       </div>
       <div style="text-align:center;font-size:11px;color:#777;line-height:1.55;margin-top:6px">
         <div style="font-weight:600">SIPNOLOGY SA de CV - RFC: SIP1111119C9</div>
@@ -1527,7 +1562,7 @@ async function buildQuotePDF(){
   doc.setFontSize(8.5);doc.setTextColor(120);doc.setFont(undefined,'normal');doc.text(`${p.oficina} · ${off.city}`,M,yy+16.5);
   doc.setFontSize(17);doc.setTextColor(BR[0],BR[1],BR[2]);doc.setFont(undefined,'bold');doc.text('COTIZACIÓN',pw-M,yy+4,{align:'right'});
   doc.setFontSize(9);doc.setTextColor(90);doc.setFont(undefined,'normal');
-  doc.text('Fecha: '+p.fecha,pw-M,yy+9,{align:'right'});doc.text('Oportunidad: '+(p.oportunidad||'—'),pw-M,yy+13,{align:'right'});doc.text('ID: '+(p.crm||'—'),pw-M,yy+17,{align:'right'});doc.text('Válida por: 15 días',pw-M,yy+21,{align:'right'});
+  doc.text('Fecha: '+p.fecha,pw-M,yy+9,{align:'right'});doc.text((p.oportunidad||'—'),pw-M,yy+13,{align:'right'});doc.text('ID: '+(p.crm||'—'),pw-M,yy+17,{align:'right'});doc.text('Válida por: '+(num((S.comercial&&S.comercial.validez))||15)+' días',pw-M,yy+21,{align:'right'});
   doc.setFontSize(7.5);doc.setTextColor(120);doc.setFont(undefined,'normal');
   doc.text('SIPNOLOGY SA de CV - RFC: SIP1111119C9',pw/2,yy+24,{align:'center'});
   doc.text('Manuel Lopez Cotilla No 1032 int 2A, Col. Del Valle Centro, Benito Juarez, CP 03100, CDMX',pw/2,yy+28,{align:'center'});
@@ -1589,14 +1624,17 @@ async function graphTokenScopes(scopeArr){
 async function autoOpenFromLink(){
   try{
     const params=new URLSearchParams(location.search);
-    const fname=params.get('open'); if(!fname)return;
+    const relRaw=params.get('open'); if(!relRaw)return;
+    const rel=relRaw;                                   // puede incluir carpeta del cliente: "Cliente/archivo.json"
+    const baseName=rel.split('/').pop();
     const token=await graphTokenSilent(); if(!token)return;   // requiere sesión iniciada
     const H={Authorization:'Bearer '+token};
     const drive=await catalogDriveId(H);
-    const meta=await (await fetch('https://graph.microsoft.com/v1.0/drives/'+drive+'/root:/'+encodeURIComponent(fname),{headers:H})).json();
-    const url=meta['@microsoft.graph.downloadUrl']; if(!url){alert('No se encontró la cotización enlazada: '+fname);return;}
+    const meta=await (await fetch('https://graph.microsoft.com/v1.0/drives/'+drive+'/root:/'+graphEncPath(rel),{headers:H})).json();
+    const url=meta['@microsoft.graph.downloadUrl']; if(!url){alert('No se encontró la cotización enlazada: '+rel);return;}
     const j=JSON.parse(await (await fetch(url)).text());
-    applyLoaded(j);localFileHandle=null;openedFileName=fname;hasFile=true;pushToInputs();recompute();updateSaveButtons();
+    applyLoaded(j);localFileHandle=null;openedFileName=baseName;hasFile=true;pushToInputs();recompute();updateSaveButtons();
+    logEvent('Abrir','Enlace de correo · '+rel);
     showView('cotizacion');
     try{history.replaceState({},'',location.pathname);}catch(e){}   // limpiar el parámetro para no reabrir al refrescar
   }catch(e){console.error('autoOpenFromLink',e);}
@@ -1611,7 +1649,7 @@ function enviarEjecutivo(){
   const to=am?am.email:'';
   const cc='';   // CC vacío por defecto (evita envíos no autorizados al cliente)
   const asunto='Cotización '+(p.empresa||'')+(p.oportunidad?(' - '+p.oportunidad):'')+(p.version?(' ('+p.version+')'):'');
-  const cuerpo='Hola,\n\nAdjunto la cotización'+(p.oportunidad?(' "'+p.oportunidad+'"'):'')+(p.empresa?(' para '+p.empresa):'')+', junto con su archivo de configuración.\n\nQuedo atento a cualquier comentario.\n\nSaludos,\n'+(am?am.nombre:'');
+  const cuerpo='Hola,\n\nAdjunto la cotización'+(p.oportunidad?(' "'+p.oportunidad+'"'):'')+(p.empresa?(' para '+p.empresa):'')+', junto con su archivo de configuración.\n\nQuedo atento a cualquier comentario.\n\nSaludos.';
   $('modal').innerHTML=`<h3>Enviar cotización al ejecutivo</h3>
     <div class="grid" style="gap:10px">
       <div><label class="f">Para</label><input id="em_to" value="${esc(to)}" placeholder="correo@dominio.com"></div>
@@ -1638,7 +1676,8 @@ async function doEnviarEjecutivo(){
     const jsonB64=btoa(unescape(encodeURIComponent(JSON.stringify(projectPayload(),null,2))));  // 3) .json
     const base=costeoBaseName();
     const fname=openedFileName||(base+'.json');
-    const link=APP_PUBLIC_URL+'?open='+encodeURIComponent(fname);   // enlace que abre y carga la cotización
+    const rel=repoRelPath(fname);
+    const link=APP_PUBLIC_URL+'?open='+encodeURIComponent(rel);   // enlace que abre y carga la cotización (incluye carpeta del cliente)
     const msgHtml=esc(msg).replace(/\n/g,'<br>');
     const bodyHtml='<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;line-height:1.5">'
       +'<div>'+msgHtml+'</div>'
@@ -1654,6 +1693,7 @@ async function doEnviarEjecutivo(){
       ]},saveToSentItems:true};
     const r=await fetch('https://graph.microsoft.com/v1.0/me/sendMail',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!r.ok){const t=await r.text();throw new Error('HTTP '+r.status+' — '+t.slice(0,180));}
+    logEvent('Enviar correo','Para: '+to+(ccRaw?(' · CC: '+ccRaw):''));
     closeModal();
     alert('✅ Cotización enviada a: '+to+(ccRaw?('\nCC: '+ccRaw):'')+'\nProyecto guardado.');
   }catch(e){if(btn){btn.disabled=false;btn.textContent='📧 Enviar';}alert('No se pudo enviar el correo: '+((e&&e.message)||e));console.error(e);}
@@ -1704,7 +1744,7 @@ async function exportExcel(){
     q.mergeCells('D1:F1');q.getCell('D1').value='COTIZACIÓN';q.getCell('D1').font={bold:true,size:18,color:{argb:ORANGE}};q.getCell('D1').alignment={horizontal:'right'};
     q.mergeCells('D2:F2');q.getCell('D2').value='Fecha: '+p.fecha;
     q.mergeCells('D3:F3');q.getCell('D3').value='ID: '+(p.crm||'—');
-    q.mergeCells('D4:F4');q.getCell('D4').value='Válida por: 15 días';
+    q.mergeCells('D4:F4');q.getCell('D4').value='Válida por: '+(num((S.comercial&&S.comercial.validez))||15)+' días';
     ['D2','D3','D4'].forEach(a=>{q.getCell(a).alignment={horizontal:'right'};q.getCell(a).font={size:10,color:{argb:'FF666666'}};});
     q.getCell('A5').value=p.oficina+' · '+(off?off.city:'');q.getCell('A5').font={size:9,color:{argb:'FF888888'}};
     for(let ci=1;ci<=6;ci++){q.getCell(5,ci).border={bottom:{style:'medium',color:{argb:ORANGE}}};}
@@ -1928,6 +1968,7 @@ async function importBulk(tag,ev){
     if(hadData && !confirm(`Se cargarán ${rows.length} filas y se REEMPLAZARÁN las filas actuales de ${nombre}. ¿Continuar?`))return;
     St.rows=rows;
     recompute();
+    logEvent('Importar plantilla',nombre+': '+rows.length+' filas');
     let msg=`Cargadas ${rows.length} filas en ${nombre}. Descuento y Margen quedaron con valores por defecto (editables por fila).`;
     const cap=tag==='mat'?21:19;
     if(rows.length>cap)msg+=`\n\nNota: el Excel exportado solo admite ${cap} filas para ${nombre}; las filas extra se muestran en la app pero se recortan al exportar.`;
@@ -2114,6 +2155,7 @@ function savePerson(kind,mode){
     arr.push({nombre,email,telefono});
     if(isPv)S.proyecto.preventa=nombre;else S.proyecto.ejecutivo=nombre;
   }
+  logEvent(mode==='edit'?'Editar catálogo':'Alta catálogo',(isPv?'Preventa: ':'Ejecutivo: ')+nombre);
   closeModal();if(isPv)refreshPreventaSelect();else refreshEjecutivoSelect();renderQuote();
 }
 function openClientEditModal(){
@@ -2202,6 +2244,7 @@ function saveClient(){
   DB_CLIENTS.push({pais:$('m_pais').value,empresa:emp,direccion:$('m_dir').value.trim(),
     contactos:[{nombre:$('m_nombre').value.trim(),email:$('m_email').value.trim(),telefono:$('m_tel').value.trim()}]});
   S.proyecto.empresa=emp;S.proyecto.contacto=$('m_nombre').value.trim();
+  logEvent('Alta catálogo','Cliente: '+emp);
   closeModal();refreshClienteSelect();refreshContactoSelect();renderQuote();
 }
 function openContactModal(){
@@ -2224,6 +2267,7 @@ function saveContact(){
   cli.contactos.push({nombre,email:$('mc_email').value.trim(),telefono:$('mc_tel').value.trim()});
   const dir=$('mc_dir').value.trim(); if(dir&&!cli.direccion)cli.direccion=dir;
   S.proyecto.contacto=nombre;
+  logEvent('Alta catálogo','Contacto: '+nombre+(cli&&cli.empresa?(' ('+cli.empresa+')'):''));
   closeModal();refreshContactoSelect();renderQuote();
 }
 
@@ -2258,7 +2302,7 @@ function pushToInputs(){
   const p=S.proyecto,t=S.tecnico;
   $('p_pais').value=p.pais;
   $('p_oportunidad').value=p.oportunidad;$('p_crm').value=p.crm;
-  $('p_fecha').value=p.fecha;updateFechaPH();setVersion(p.version||'v1');renderHistorial();updateSaveButtons();
+  $('p_fecha').value=p.fecha;updateFechaPH();setVersion(p.version||'v1');renderHistorial();renderBitacora();updateSaveButtons();
   const o=DIR.oficinas.find(x=>x.name===p.oficina);$('p_ciudad').value=o?o.city:'';
   refreshOficinaSelect();refreshClienteSelect();refreshContactoSelect();refreshPreventaSelect();refreshEjecutivoSelect();
   $('t_sector').value=t.sector;$('t_tipoimpl').value=t.tipoimpl;$('t_soporte').value=t.soporte;$('t_despliegue').value=t.despliegue;
@@ -2274,7 +2318,7 @@ function pushToInputs(){
   $('mat_discG').value=(num(S.mat.disc)*100).toFixed(2);$('mat_marginG').value=(num(S.mat.margin)*100).toFixed(2);$('mat_fx').value=num(S.mat.fx||19);
   $('con_discG').value=(num(S.con.disc)*100).toFixed(2);$('con_marginG').value=(num(S.con.margin)*100).toFixed(2);$('con_fx').value=num(S.con.fx||19);
   if(!S.comercial)S.comercial={notas:'',condiciones:DEFAULT_CONDICIONES};
-  $('c_notas').value=S.comercial.notas||'';$('c_cond').value=S.comercial.condiciones||'';
+  $('c_notas').value=S.comercial.notas||'';$('c_cond').value=S.comercial.condiciones||'';if($('c_validez'))$('c_validez').value=(S.comercial.validez!=null?S.comercial.validez:15);
 }
 
 /* ============================ TARIFAS UI ============================ */
@@ -2314,16 +2358,22 @@ async function saveLocalNew(json){const fname=openedFileName||(costeoBaseName()+
   if(window.showSaveFilePicker){try{const h=await window.showSaveFilePicker({suggestedName:fname,types:[{description:'Proyecto Sipnology',accept:{'application/json':['.json']}}]});const w=await h.createWritable();await w.write(json);await w.close();localFileHandle=h;openedFileName=h.name;return true;}catch(e){if(e&&e.name==='AbortError')return false;}}
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));a.download=fname;a.click();openedFileName=fname;return true;}
 async function saveLocalSame(json){if(localFileHandle){try{const w=await localFileHandle.createWritable();await w.write(json);await w.close();return true;}catch(e){}}return saveLocalNew(json);}
-async function repoPutJSON(json,fname){const cfg=getGraphCfg();if(!cfg||!cfg.clientId||!cfg.host||!cfg.sitePath)throw new Error('Configura el repositorio (⚙️).');if(location.protocol==='file:')throw new Error('Requiere la versión publicada (https).');const token=await graphToken(cfg);const H={Authorization:'Bearer '+token};const site=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${cfg.host}:${cfg.sitePath}`,{headers:H})).json();if(!site.id)throw new Error('No se encontró el sitio.');const drv=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:H})).json();const drive=(drv.value||[]).find(d=>d.name===cfg.library)||(drv.value||[])[0];if(!drive)throw new Error('No se encontró la biblioteca.');const up=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive.id}/root:/${encodeURIComponent(fname)}:/content`,{method:'PUT',headers:Object.assign({},H,{'Content-Type':'application/json'}),body:json});if(!up.ok)throw new Error('HTTP '+up.status);return true;}
-async function guardar(){if(hasFile)return;syncFromInputs();if(!S.proyecto.version)setVersion('v1');const json=JSON.stringify(projectPayload(),null,2);const fname=costeoBaseName()+'.json';let okL=false,okR=false,er=[];try{dlLocal(json,fname);okL=true;}catch(e){er.push('Local: '+e.message);}try{okR=await repoPutJSON(json,fname);}catch(e){er.push('Repositorio: '+e.message);}if(okL||okR){hasFile=true;openedFileName=fname;updateSaveButtons();}const cat=await syncCatalogQuiet();alert('Guardado '+(S.proyecto.version||'v1')+'\n'+(okL?'✅ Local (Descargas)':'— Local')+'\n'+(okR?'✅ Repositorio':'— Repositorio')+'\n'+cat+(er.length?('\n\n'+er.join('\n')):''));}
+/* ===== Carpeta por cliente (#4): cada cotización se guarda en una carpeta con el nombre del cliente.
+   Graph crea la carpeta automáticamente al subir (root:/Carpeta/archivo:/content) y NO borra nada existente. ===== */
+function sanitizeFolder(s){return String(s||'').replace(/[\\/:*?"<>|#%]/g,' ').replace(/\s+/g,' ').trim().replace(/[.\s]+$/,'');}
+function clientFolder(){return sanitizeFolder(S&&S.proyecto&&S.proyecto.empresa);}
+function repoRelPath(fname){const f=clientFolder();return f?(f+'/'+fname):fname;}
+function graphEncPath(rel){return String(rel).split('/').map(encodeURIComponent).join('/');}
+async function repoPutJSON(json,relpath){const cfg=getGraphCfg();if(!cfg||!cfg.clientId||!cfg.host||!cfg.sitePath)throw new Error('Configura el repositorio (⚙️).');if(location.protocol==='file:')throw new Error('Requiere la versión publicada (https).');const token=await graphToken(cfg);const H={Authorization:'Bearer '+token};const site=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${cfg.host}:${cfg.sitePath}`,{headers:H})).json();if(!site.id)throw new Error('No se encontró el sitio.');const drv=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:H})).json();const drive=(drv.value||[]).find(d=>d.name===cfg.library)||(drv.value||[])[0];if(!drive)throw new Error('No se encontró la biblioteca.');const up=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive.id}/root:/${graphEncPath(relpath)}:/content`,{method:'PUT',headers:Object.assign({},H,{'Content-Type':'application/json'}),body:json});if(!up.ok)throw new Error('HTTP '+up.status);return true;}
+async function guardar(){if(hasFile)return;syncFromInputs();if(!S.proyecto.version)setVersion('v1');const json=JSON.stringify(projectPayload(),null,2);const fname=costeoBaseName()+'.json';let okL=false,okR=false,er=[];try{dlLocal(json,fname);okL=true;}catch(e){er.push('Local: '+e.message);}try{okR=await repoPutJSON(json,repoRelPath(fname));}catch(e){er.push('Repositorio: '+e.message);}if(okL||okR){hasFile=true;openedFileName=fname;updateSaveButtons();logEvent('Guardar','Cotización creada · '+(S.proyecto.version||'v1')+' · '+fname);}const cat=await syncCatalogQuiet();alert('Guardado '+(S.proyecto.version||'v1')+'\n'+(okL?'✅ Local (Descargas)':'— Local')+'\n'+(okR?('✅ Repositorio'+(clientFolder()?(' 📁 '+clientFolder()):'')):'— Repositorio')+'\n'+cat+(er.length?('\n\n'+er.join('\n')):''));}
 function guardarCambios(){if(!hasFile){alert('Primero usa "Guardar" para crear el archivo.');return;}syncFromInputs();
   $('modal').innerHTML=`<h3>Guardar cambios</h3><div class="hint">Se sobrescribe el mismo archivo (local + repositorio) y se incrementa la versión.</div>
     <div style="margin-top:10px"><label class="f">Tipo de cambio</label><div class="row" style="gap:18px;margin-top:4px"><label class="row" style="gap:6px"><input type="radio" name="verkind" value="menor" checked> Menor <b>${bumpVersion(S.proyecto.version,false)}</b></label><label class="row" style="gap:6px"><input type="radio" name="verkind" value="mayor"> Mayor <b>${bumpVersion(S.proyecto.version,true)}</b></label></div></div>
     <div style="margin-top:10px"><label class="f">Resumen del cambio (opcional)</label><textarea id="chg_resumen" class="ta" rows="2"></textarea></div>
     <div class="row" style="margin-top:14px"><button class="btn" onclick="doGuardarCambios()">Guardar cambios</button><button class="btn sec" onclick="closeModal()">Cancelar</button></div>`;
   $('overlay').classList.add('on');}
-async function doGuardarCambios(){const major=((document.querySelector('input[name=verkind]:checked')||{}).value)==='mayor';const resumen=($('chg_resumen')?$('chg_resumen').value:'').trim();const nv=bumpVersion(S.proyecto.version,major);setVersion(nv);if(!Array.isArray(S.historial))S.historial=[];const d=new Date();S.historial.unshift({fecha:d.toISOString().slice(0,10),hora:d.toTimeString().slice(0,5),version:nv,resumen:resumen});closeModal();renderHistorial();renderQuote();
-  const json=JSON.stringify(projectPayload(),null,2);const fname=costeoBaseName()+'.json';openedFileName=fname;let okL=false,okR=false,er=[];try{dlLocal(json,fname);okL=true;}catch(e){er.push('Local: '+e.message);}try{okR=await repoPutJSON(json,fname);}catch(e){er.push('Repositorio: '+e.message);}const cat=await syncCatalogQuiet();alert('Versión '+nv+'\n'+(okL?'✅ Local (Descargas)':'— Local')+'\n'+(okR?'✅ Repositorio':'— Repositorio')+'\n'+cat+(er.length?('\n\n'+er.join('\n')):''));}
+async function doGuardarCambios(){const major=((document.querySelector('input[name=verkind]:checked')||{}).value)==='mayor';const resumen=($('chg_resumen')?$('chg_resumen').value:'').trim();const nv=bumpVersion(S.proyecto.version,major);setVersion(nv);if(!Array.isArray(S.historial))S.historial=[];const d=new Date();S.historial.unshift({fecha:d.toISOString().slice(0,10),hora:d.toTimeString().slice(0,5),version:nv,resumen:resumen});logEvent('Guardar cambios',nv+(resumen?(' · '+resumen):''));closeModal();renderHistorial();renderQuote();
+  const json=JSON.stringify(projectPayload(),null,2);const fname=costeoBaseName()+'.json';openedFileName=fname;let okL=false,okR=false,er=[];try{dlLocal(json,fname);okL=true;}catch(e){er.push('Local: '+e.message);}try{okR=await repoPutJSON(json,repoRelPath(fname));}catch(e){er.push('Repositorio: '+e.message);}const cat=await syncCatalogQuiet();alert('Versión '+nv+'\n'+(okL?'✅ Local (Descargas)':'— Local')+'\n'+(okR?('✅ Repositorio'+(clientFolder()?(' 📁 '+clientFolder()):'')):'— Repositorio')+'\n'+cat+(er.length?('\n\n'+er.join('\n')):''));}
 /* Guardado automático antes de descargar el PDF (evita perder el trabajo) */
 async function guardarRapido(){
   syncFromInputs();
@@ -2333,20 +2383,25 @@ async function guardarRapido(){
   const fname=openedFileName||(costeoBaseName()+'.json');
   let okL=false,okR=false,er=[];
   try{dlLocal(json,fname);okL=true;}catch(e){er.push('Local: '+e.message);}
-  try{okR=await repoPutJSON(json,fname);}catch(e){er.push('Repositorio: '+e.message);}
+  try{okR=await repoPutJSON(json,repoRelPath(fname));}catch(e){er.push('Repositorio: '+e.message);}
   openedFileName=fname;
-  alert('💾 Trabajo guardado ('+(S.proyecto.version||'v1')+')\n'+(okL?'✅ Local (Descargas)':'— Local')+'\n'+(okR?'✅ Repositorio':'— Repositorio')+(er.length?('\n\n'+er.join('\n')):''));
+  alert('💾 Trabajo guardado ('+(S.proyecto.version||'v1')+')\n'+(okL?'✅ Local (Descargas)':'— Local')+'\n'+(okR?('✅ Repositorio'+(clientFolder()?(' 📁 '+clientFolder()):'')):'— Repositorio')+(er.length?('\n\n'+er.join('\n')):''));
 }
 async function downloadPDF(){
   try{await guardarRapido();}catch(e){console.error(e);}
   await exportPDFnative();
 }
-function applyLoaded(j){if(j.state){S=j.state;mergeCatalog(j.dirs,j.clients);}else{S=j;}if(!Array.isArray(S.historial))S.historial=[];if(!S.proyecto.version)S.proyecto.version='v1';
+function applyLoaded(j){if(j.state){S=j.state;mergeCatalog(j.dirs,j.clients);}else{S=j;}if(!Array.isArray(S.historial))S.historial=[];if(!Array.isArray(S.bitacora))S.bitacora=[];if(!S.proyecto.version)S.proyecto.version='v1';
   if(S.ing&&S.ing.subc&&!S.ing.subc.moneda){S.ing.subc.moneda='MXN';S.ing.subc.fx=S.ing.subc.fx||20;}
   if(S.sa&&!S.sa.sacalc)S.sa.sacalc={moneda:'MXN',fx:20,rows:[{concepto:'',cant:1,costo:0,margin:0,nota:''}]};}
-async function abrirLocal(){if(window.showOpenFilePicker){try{const [h]=await window.showOpenFilePicker({types:[{description:'Proyecto Sipnology',accept:{'application/json':['.json']}}]});const file=await h.getFile();const j=JSON.parse(await file.text());applyLoaded(j);localFileHandle=h;openedFileName=h.name;hasFile=true;pushToInputs();recompute();updateSaveButtons();alert('Proyecto abierto: '+h.name);return;}catch(e){if(e&&e.name==='AbortError')return;}}$('fileInput').click();}
+async function abrirLocal(){if(window.showOpenFilePicker){try{const [h]=await window.showOpenFilePicker({types:[{description:'Proyecto Sipnology',accept:{'application/json':['.json']}}]});const file=await h.getFile();const j=JSON.parse(await file.text());applyLoaded(j);localFileHandle=h;openedFileName=h.name;hasFile=true;pushToInputs();recompute();updateSaveButtons();logEvent('Abrir',h.name);alert('Proyecto abierto: '+h.name);return;}catch(e){if(e&&e.name==='AbortError')return;}}$('fileInput').click();}
 function renderHistorial(){const b=$('hist_body');if(!b)return;const h=(S&&Array.isArray(S.historial))?S.historial:[];b.innerHTML=h.length?h.map((r,i)=>`<tr><td class="fitc" style="text-align:center">${esc(r.fecha||'')}</td><td class="fitc" style="text-align:center;color:#E8632A;font-weight:700">${esc(r.version||'')}</td><td class="fitc" style="text-align:center">${esc(r.hora||'')}</td><td class="l"><textarea class="ta" rows="1" data-hist="${i}" style="width:100%">${esc(r.resumen||'')}</textarea></td></tr>`).join(''):`<tr><td colspan="4" class="l" style="color:#999">Sin cambios registrados aún.</td></tr>`;
   b.querySelectorAll('[data-hist]').forEach(el=>{el.oninput=()=>{S.historial[+el.dataset.hist].resumen=el.value;autoGrow(el);};});}
+/* ===== Bitácora de actividad (eventos clave) ===== */
+const LOG_CAP=200;
+function currentUserName(){try{const acc=(typeof _msalApp!=='undefined'&&_msalApp)?_msalApp.getAllAccounts()[0]:null;return acc?(acc.name||acc.username||'Usuario'):'Usuario';}catch(_){return 'Usuario';}}
+function logEvent(evento,detalle){try{if(!S)return;if(!Array.isArray(S.bitacora))S.bitacora=[];const d=new Date();S.bitacora.unshift({fecha:d.toISOString().slice(0,10),hora:d.toTimeString().slice(0,8),evento:String(evento||''),detalle:String(detalle||''),usuario:currentUserName()});if(S.bitacora.length>LOG_CAP)S.bitacora.length=LOG_CAP;renderBitacora();}catch(_){}}
+function renderBitacora(){const b=$('log_body');if(!b)return;const h=(S&&Array.isArray(S.bitacora))?S.bitacora:[];b.innerHTML=h.length?h.map(r=>`<tr><td class="fitc" style="text-align:center;white-space:nowrap">${esc(r.fecha||'')}</td><td class="fitc" style="text-align:center;white-space:nowrap">${esc(r.hora||'')}</td><td class="l" style="font-weight:600">${esc(r.evento||'')}</td><td class="l" style="color:#556">${esc(r.detalle||'')}</td><td class="l" style="color:#556">${esc(r.usuario||'')}</td></tr>`).join(''):`<tr><td colspan="5" class="l" style="color:#999">Sin actividad registrada aún.</td></tr>`;}
 
 /* ===== Repositorio M365 (SharePoint vía Microsoft Graph / Entra ID) ===== */
 const GRAPH_KEY='sip_graph_cfg';
@@ -2396,10 +2451,11 @@ async function repoSave(){
     const drive=(drv.value||[]).find(d=>d.name===cfg.library)||(drv.value||[])[0];
     if(!drive)throw new Error('No se encontró la biblioteca "'+cfg.library+'".');
     const payload={state:S,clients:DB_CLIENTS,dirs:{preventa:DIR.preventa,ejecutivos:DIR.ejecutivos,oficinas:DIR.oficinas}};
-    const fname=costeoBaseName()+'.json';
-    const up=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive.id}/root:/${encodeURIComponent(fname)}:/content`,{method:'PUT',headers:Object.assign({},H,{'Content-Type':'application/json'}),body:JSON.stringify(payload,null,2)});
+    const fname=costeoBaseName()+'.json';const rel=repoRelPath(fname);
+    const up=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive.id}/root:/${graphEncPath(rel)}:/content`,{method:'PUT',headers:Object.assign({},H,{'Content-Type':'application/json'}),body:JSON.stringify(payload,null,2)});
     if(!up.ok)throw new Error('Error al subir el archivo (HTTP '+up.status+').');
-    alert('✅ Guardado en el repositorio SharePoint como: '+fname);
+    logEvent('Guardar','SharePoint · '+rel);
+    alert('✅ Guardado en el repositorio SharePoint en: '+rel);
   }catch(e){alert('No se pudo guardar en el repositorio: '+e.message);console.error(e);}
 }
 async function repoOpen(){
@@ -2509,15 +2565,15 @@ async function repoOpenFile(itemId){
     if(!url)throw new Error('No se obtuvo la URL de descarga.');
     const j=JSON.parse(await (await fetch(url)).text());
     applyLoaded(j);localFileHandle=null;openedFileName=(meta&&meta.name)||openedFileName;hasFile=true;
-    closeModal();pushToInputs();recompute();updateSaveButtons();alert('✅ Proyecto abierto desde el repositorio: '+(openedFileName||''));
+    closeModal();pushToInputs();recompute();updateSaveButtons();logEvent('Abrir','Repositorio · '+(openedFileName||''));alert('✅ Proyecto abierto desde el repositorio: '+(openedFileName||''));
   }catch(e){alert('No se pudo abrir el archivo: '+e.message);console.error(e);}
 }
 function loadProject(ev){
   const f=ev.target.files[0];if(!f)return;const rd=new FileReader();
-  rd.onload=()=>{try{const j=JSON.parse(rd.result);applyLoaded(j);localFileHandle=null;openedFileName=f.name;hasFile=true;pushToInputs();recompute();updateSaveButtons();alert('Proyecto abierto: '+f.name);}catch(e){alert('Archivo inválido');}};
+  rd.onload=()=>{try{const j=JSON.parse(rd.result);applyLoaded(j);localFileHandle=null;openedFileName=f.name;hasFile=true;pushToInputs();recompute();updateSaveButtons();logEvent('Abrir',f.name);alert('Proyecto abierto: '+f.name);}catch(e){alert('Archivo inválido');}};
   rd.readAsText(f);
 }
-function newProject(){if(confirm('¿Empezar un proyecto nuevo en blanco? Se perderán los datos no guardados.')){S=blankState();localFileHandle=null;openedFileName=null;hasFile=false;pushToInputs();recompute();updateSaveButtons();showView('proyecto');}}
+function newProject(){if(confirm('¿Empezar un proyecto nuevo en blanco? Se perderán los datos no guardados.')){S=blankState();localFileHandle=null;openedFileName=null;hasFile=false;pushToInputs();recompute();updateSaveButtons();logEvent('Crear','Nueva cotización en blanco');showView('proyecto');}}
 
 /* ===== Persistencia: guardar datos capturados como base ===== */
 const BASE_KEY='sip_costeo_base';
@@ -2547,7 +2603,19 @@ function fcInitDrag(){const el=$('floatCalc'),h=$('fcHead');if(!el||!h)return;le
   h.addEventListener('touchstart',e=>{const t=e.touches[0];start(t.clientX,t.clientY);},{passive:true});
   document.addEventListener('touchmove',e=>{if(!drag)return;const t=e.touches[0];move(t.clientX,t.clientY);},{passive:false});
   document.addEventListener('touchend',()=>{drag=false;});
-  el.querySelectorAll('.fck').forEach(b=>b.addEventListener('click',()=>fcPress(b.dataset.k)));}
+  el.querySelectorAll('.fck').forEach(b=>b.addEventListener('click',()=>fcPress(b.dataset.k)));
+  const cp=$('fcCopy'),ps=$('fcPaste');
+  if(cp)cp.addEventListener('click',()=>{try{navigator.clipboard.writeText($('fcDisp').value);cp.textContent='✓';setTimeout(()=>cp.textContent='⧉',800);}catch(e){}});
+  if(ps)ps.addEventListener('click',()=>{if(navigator.clipboard&&navigator.clipboard.readText)navigator.clipboard.readText().then(fcSetFromText).catch(()=>{});});
+  document.addEventListener('keydown',(e)=>{
+    if(!el||el.style.display==='none')return;
+    const t=document.activeElement, inField=t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+    if(inField)return;
+    const key=(e.key||'').toLowerCase();
+    if((e.metaKey||e.ctrlKey)&&key==='c'){try{navigator.clipboard.writeText($('fcDisp').value);}catch(_){}}
+    if((e.metaKey||e.ctrlKey)&&key==='v'){e.preventDefault();if(navigator.clipboard&&navigator.clipboard.readText)navigator.clipboard.readText().then(fcSetFromText).catch(()=>{});}
+  });}
+function fcSetFromText(t){const s=String(t==null?'':t).replace(/,/g,'').replace(/[^0-9+\-*/().]/g,'').trim();if(!s)return;fcExpr=s;const d=$('fcDisp');if(d)d.value=s;}
 
 /* ============================ TABS ============================ */
 const VIEWS=[['proyecto','Registro Proyecto'],['ingenieria','Calculadora Ingeniería'],['sa','Calculadora Serv. Admin'],['materiales','Materiales y Contratos'],['comercial','Condiciones comerciales'],['resumen','Resumen Financiero'],['cotizacion','Cotización'],['tarifas','Tarifas']];
