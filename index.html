@@ -1307,7 +1307,7 @@ function renderBOMtable(tag){
     const c=calc[i];
     const tr=document.createElement('tr');tr.dataset.dndg=tag;tr.dataset.dndi=i;
     tr.innerHTML=`
-      <td class="l"><div style="display:flex;align-items:center;gap:3px">${grip(tag,i)}<textarea class="ta" rows="1" data-b2="${tag}" data-i="${i}" data-k="prov" style="flex:1;min-width:0">${esc(row.prov)}</textarea></div></td>
+      <td class="l"><div style="display:flex;align-items:center;gap:3px">${grip(tag,i)}<textarea class="ta" rows="1" data-b2="${tag}" data-i="${i}" data-k="prov" style="flex:1;min-width:78px;white-space:nowrap">${esc(row.prov)}</textarea></div></td>
       <td class="l"><textarea class="ta" rows="1" data-b2="${tag}" data-i="${i}" data-k="marca">${esc(row.marca)}</textarea></td>
       <td class="fit" style="text-align:center"><input class="autow" type="text" data-b2="${tag}" data-i="${i}" data-k="item" value="${esc(row.item!=null&&row.item!==''?row.item:(i+1))}"></td>
       <td class="l"><textarea class="ta" rows="1" data-b2="${tag}" data-i="${i}" data-k="sku">${esc(row.sku)}</textarea></td>
