@@ -1409,6 +1409,24 @@ function renderResumen(){
 }
 
 /* ============================ QUOTE / PDF ============================ */
+/* Moneda por sección de la cotización (según la moneda de cada apartado). */
+function quoteSectionCur(){return {
+  serv:(S.ing.moneda==='USD')?'USD':'MXN',
+  mesa:(S.sa.moneda==='USD')?'USD':'MXN',
+  mat:(S.mat.moneda==='USD')?'USD':'MXN',
+  con:(S.con.moneda==='USD')?'USD':'MXN'
+};}
+/* Agrupa los totales por moneda: si hay USD y MXN -> totales separados; si hay una sola -> todo en esa moneda. */
+function quoteTotalsByCur(R){
+  const cu=quoteSectionCur();
+  const secs=[{t:R.prop.priceTotal,c:cu.serv},{t:R.sacot.priceTotal,c:cu.mesa},{t:R.mat.price,c:cu.mat},{t:R.con.price,c:cu.con}];
+  const byCur={};
+  secs.forEach(s=>{if(s.t>0)byCur[s.c]=(byCur[s.c]||0)+s.t;});
+  let curs=Object.keys(byCur);
+  if(curs.length===0){curs=[(S.ing.moneda==='USD')?'USD':'MXN'];byCur[curs[0]]=0;}
+  curs.sort((a,b)=>a==='MXN'?-1:(b==='MXN'?1:0));
+  return {byCur,curs,cu};
+}
 function renderQuote(){
   const R=LAST,cur=S.ing.moneda,p=S.proyecto;
   const off=DIR.oficinas.find(o=>o.name===p.oficina)||{city:''};
@@ -1435,7 +1453,11 @@ function renderQuote(){
   S.con.rows.forEach((row,i)=>{const c=R.con.conCalc[i];if(num(row.qty)>0){conRows+=`<tr><td>${esc(row.item||ci)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;ci++;}});
   if(!conRows)conRows=`<tr><td colspan="6" class="l" style="color:#999">Sin contratos</td></tr>`;
   const conTotal=R.con.price;
-  const subtotal=servTotal+mesaTotal+matTotal+conTotal, iva=subtotal*0.16, total=subtotal+iva;
+  const QG=quoteTotalsByCur(R);
+  const totalsHtml=QG.curs.map(c=>{const sub=QG.byCur[c],iva=sub*0.16,tot=sub+iva;return `<table style="margin-top:16px;width:46%;margin-left:auto">
+      <tr><td class="l">Subtotal</td><td class="nw">${n2(sub)}</td></tr>
+      <tr><td class="l">Impuesto (16%)</td><td class="nw">${n2(iva)}</td></tr>
+      <tr class="tot"><td class="l">TOTAL (${c})</td><td class="nw">${n2(tot)}</td></tr></table>`;}).join('');
   const co=S.comercial||{notas:'',condiciones:''};
   $('quoteDoc').innerHTML=`
     <div class="qhead" style="flex-direction:column;align-items:stretch">
@@ -1454,20 +1476,17 @@ function renderQuote(){
     </tr></table>
     <h3>Servicios profesionales</h3>
     <table><thead><tr><th class="fitc">Partida</th><th class="l" style="text-align:center">Descripción</th><th class="fitc">Cantidad</th><th class="fitc">Precio unitario</th><th class="fitc">Precio total</th></tr></thead>
-      <tbody>${servRows}</tbody><tfoot><tr class="tot"><td colspan="4" class="l">Total servicios profesionales</td><td class="nw">${n2(servTotal)}</td></tr></tfoot></table>
+      <tbody>${servRows}</tbody><tfoot><tr class="tot"><td colspan="4" class="l">Total servicios profesionales (${QG.cu.serv})</td><td class="nw">${n2(servTotal)}</td></tr></tfoot></table>
     <h3>Mesa de ayuda / Recursos en sitio</h3>
     <table><thead><tr><th class="fitc">Partida</th><th class="l" style="text-align:center">Descripción</th><th class="fitc">Cantidad</th><th class="fitc">Precio unitario</th><th class="fitc">Precio total</th></tr></thead>
-      <tbody>${mesaRows}</tbody><tfoot><tr class="tot"><td colspan="4" class="l">Total mesa de ayuda / recursos</td><td class="nw">${n2(mesaTotal)}</td></tr></tfoot></table>
+      <tbody>${mesaRows}</tbody><tfoot><tr class="tot"><td colspan="4" class="l">Total mesa de ayuda / recursos (${QG.cu.mesa})</td><td class="nw">${n2(mesaTotal)}</td></tr></tfoot></table>
     <h3>Materiales</h3>
     <table><thead><tr><th class="fitc">No. Item</th><th class="l" style="text-align:center">No. Parte</th><th class="l" style="text-align:center">Descripción</th><th class="fitc">Cantidad</th><th class="fitc">Precio unitario</th><th class="fitc">Precio total</th></tr></thead>
-      <tbody>${matRows}</tbody><tfoot><tr class="tot"><td colspan="5" class="l">Total materiales</td><td class="nw">${n2(matTotal)}</td></tr></tfoot></table>
+      <tbody>${matRows}</tbody><tfoot><tr class="tot"><td colspan="5" class="l">Total materiales (${QG.cu.mat})</td><td class="nw">${n2(matTotal)}</td></tr></tfoot></table>
     <h3>Contratos de soporte / renovación</h3>
     <table><thead><tr><th class="fitc">No. Item</th><th class="l" style="text-align:center">No. Parte</th><th class="l" style="text-align:center">Descripción</th><th class="fitc">Cantidad</th><th class="fitc">Precio unitario</th><th class="fitc">Precio total</th></tr></thead>
-      <tbody>${conRows}</tbody><tfoot><tr class="tot"><td colspan="5" class="l">Total contratos</td><td class="nw">${n2(conTotal)}</td></tr></tfoot></table>
-    <table style="margin-top:16px;width:46%;margin-left:auto">
-      <tr><td class="l">Subtotal</td><td class="nw">${n2(subtotal)}</td></tr>
-      <tr><td class="l">Impuesto (16%)</td><td class="nw">${n2(iva)}</td></tr>
-      <tr class="tot"><td class="l">TOTAL (${S.ing.moneda})</td><td class="nw">${n2(total)}</td></tr></table>
+      <tbody>${conRows}</tbody><tfoot><tr class="tot"><td colspan="5" class="l">Total contratos (${QG.cu.con})</td><td class="nw">${n2(conTotal)}</td></tr></tfoot></table>
+    ${totalsHtml}
     ${co.notas?`<h3>Notas</h3><div class="cond">${esc(co.notas)}</div>`:''}
     <h3>Condiciones comerciales</h3>
     <div class="cond">${esc(co.condiciones||'')}</div>
@@ -1553,6 +1572,7 @@ async function buildQuotePDF(){
   const doc=new jsPDF('p','mm','a4');
   if(typeof doc.autoTable!=='function'){alert('No se cargó jspdf-autotable (requiere internet).');return;}
   syncFromInputs(); const R=compute(), p=S.proyecto, cur=S.ing.moneda;
+  const QG=quoteTotalsByCur(R);
   const off=DIR.oficinas.find(o=>o.name===p.oficina)||{city:''};
   const cli=findClient(p.empresa), cont=cli?cli.contactos.find(c=>c.nombre===p.contacto):null, am=DIR.ejecutivos.find(x=>x.nombre===p.ejecutivo);
   const BR=[232,99,42], TOT=[251,233,223], LN=[232,214,202], INFO=[253,243,236];
@@ -1587,20 +1607,23 @@ async function buildQuotePDF(){
     yy=doc.lastAutoTable.finalY+4;
   };
   const serv=[];((S.ing.prop&&S.ing.prop.rows)||[]).forEach((r,i)=>{const c=R.prop.rows[i];if(num(r.cant)>0)serv.push([String(r.partida||(i+1)),htmlToText(r.concepto||''),String(num(r.cant)),n2(c.pUnit),n2(c.pTot)]);});
-  sect('Servicios profesionales',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],serv,R.prop.priceTotal,'Total servicios profesionales',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
+  sect('Servicios profesionales',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],serv,R.prop.priceTotal,'Total servicios profesionales ('+QG.cu.serv+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
   const mesa=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((r,i)=>{const c=R.sacot.rows[i];if(num(r.cant)>0)mesa.push([String(r.partida||(i+1)),htmlToText(r.desc||''),String(num(r.cant)),n2(c.pUnit),n2(c.pTot)]);});
-  sect('Mesa de ayuda / Recursos en sitio',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesa,R.sacot.priceTotal,'Total mesa de ayuda / recursos',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
+  sect('Mesa de ayuda / Recursos en sitio',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesa,R.sacot.priceTotal,'Total mesa de ayuda / recursos ('+QG.cu.mesa+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
   const mat=[];S.mat.rows.forEach((row,i)=>{const c=R.mat.matCalc[i];if(num(row.qty)>0)mat.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);});
-  sect('Materiales',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],mat,R.mat.price,'Total materiales',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
+  sect('Materiales',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],mat,R.mat.price,'Total materiales ('+QG.cu.mat+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
   const con=[];S.con.rows.forEach((row,i)=>{const c=R.con.conCalc[i];if(num(row.qty)>0)con.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);});
-  sect('Contratos de soporte / renovación',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],con,R.con.price,'Total contratos',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
-  const sub=R.prop.priceTotal+R.sacot.priceTotal+R.mat.price+R.con.price, iva=sub*0.16, tot=sub+iva;
+  sect('Contratos de soporte / renovación',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],con,R.con.price,'Total contratos ('+QG.cu.con+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
   if(yy>ph-34){doc.addPage();yy=M;}
-  doc.autoTable({startY:yy,theme:'grid',
-    body:[['Subtotal',n2(sub)],['Impuesto (16%)',n2(iva)],[{content:'TOTAL ('+cur+')',styles:{fontStyle:'bold',fillColor:TOT}},{content:n2(tot),styles:{fontStyle:'bold',fillColor:TOT}}]],
-    styles:{fontSize:9,lineColor:LN,lineWidth:0.2},columnStyles:{0:{halign:'right',cellWidth:38},1:{halign:'right',cellWidth:34}},
-    margin:{left:pw-M-72,right:M}});
-  yy=doc.lastAutoTable.finalY+5;
+  /* Totales por moneda: un bloque por cada moneda presente (USD/MXN). Si sólo hay una, un solo bloque. */
+  QG.curs.forEach(c=>{const sub=QG.byCur[c],iva=sub*0.16,tot=sub+iva;
+    if(yy>ph-34){doc.addPage();yy=M;}
+    doc.autoTable({startY:yy,theme:'grid',
+      body:[['Subtotal',n2(sub)],['Impuesto (16%)',n2(iva)],[{content:'TOTAL ('+c+')',styles:{fontStyle:'bold',fillColor:TOT}},{content:n2(tot),styles:{fontStyle:'bold',fillColor:TOT}}]],
+      styles:{fontSize:9,lineColor:LN,lineWidth:0.2},columnStyles:{0:{halign:'right',cellWidth:38},1:{halign:'right',cellWidth:34}},
+      margin:{left:pw-M-72,right:M}});
+    yy=doc.lastAutoTable.finalY+3;});
+  yy+=2;
   const co=S.comercial||{};
   const addTxt=(title,txt)=>{if(!txt)return;if(yy>ph-24){doc.addPage();yy=M;}doc.setFontSize(11);doc.setTextColor(BR[0],BR[1],BR[2]);doc.setFont(undefined,'bold');doc.text(title,M,yy);yy+=5;doc.setFontSize(8.5);doc.setTextColor(51);doc.setFont(undefined,'normal');doc.splitTextToSize(txt,cw).forEach(ln=>{if(yy>ph-14){doc.addPage();yy=M;}doc.text(ln,M,yy);yy+=4;});yy+=3;};
   if(co.notas)addTxt('Notas',co.notas);
