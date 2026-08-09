@@ -208,13 +208,21 @@ tr.subtot td{background:#0c2033;font-weight:700}
     </div>
     <div class="card">
       <h2>Bitácora de actividad</h2>
-      <div class="hint">Registro automático de eventos clave (crear, abrir, guardar, correo, conversión de moneda, prorrateo, catálogo, plantilla). Se conservan los <b id="log_cap">200</b> más recientes.</div>
+      <div class="hint">Registro central de eventos clave (crear, abrir, guardar, correo, conversión de moneda, prorrateo, catálogo, plantilla) guardado en SharePoint (carpeta <b>Sistema</b>). Histórico <b>indefinido</b> y visible para cualquier usuario.</div>
+      <div class="row" style="gap:14px;align-items:center;margin:8px 0;flex-wrap:wrap">
+        <label class="row" style="gap:6px;align-items:center">Mostrar
+          <select id="log_size" onchange="bitSetSize(this.value)" style="width:auto"><option>5</option><option selected>10</option><option>25</option><option>50</option></select>
+          registros</label>
+        <button class="btn sec" onclick="loadCentralLog()" title="Vuelve a leer la bitácora desde SharePoint">↻ Refrescar</button>
+        <span id="log_count" class="small" style="color:#889"></span>
+      </div>
       <div style="overflow-x:auto">
         <table id="log_table">
           <thead><tr><th class="fitc">Fecha</th><th class="fitc">Hora</th><th class="l">Evento</th><th class="l">Detalle</th><th class="l">Usuario</th></tr></thead>
           <tbody id="log_body"></tbody>
         </table>
       </div>
+      <div class="row" id="log_pager" style="gap:6px;justify-content:center;margin-top:8px"></div>
     </div>
   </section>
 
@@ -2080,6 +2088,8 @@ function mergeCatalog(dirs,clients){
 }
 /* ===== Catálogo CENTRAL compartido (archivo en el repositorio SharePoint) ===== */
 const CATALOG_FILE='_catalogo_sipnology.json';
+const SYS_DIR='Sistema';                     // carpeta en SharePoint para catálogo + bitácora central
+const LOG_FILE='_bitacora_sipnology.json';   // bitácora central (histórico indefinido)
 let _catReady=false, _catPushT=null;
 async function graphTokenSilent(){
   try{const cfg=getGraphCfg();if(!cfg||!cfg.clientId||typeof msal==='undefined')return null;
@@ -2093,13 +2103,49 @@ async function catalogDriveId(H){const cfg=getGraphCfg();
   const drv=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:H})).json();
   const drive=(drv.value||[]).find(d=>d.name===cfg.library)||(drv.value||[])[0];if(!drive)throw new Error('No se encontró la biblioteca.');return drive.id;}
 async function catalogRepoGet(H){const drive=await catalogDriveId(H);
-  const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive}/root:/${encodeURIComponent(CATALOG_FILE)}`,{headers:H});
-  if(r.status===404)return null;const m=await r.json();const url=m['@microsoft.graph.downloadUrl'];if(!url)return null;
-  return JSON.parse(await (await fetch(url)).text());}
+  const paths=[SYS_DIR+'/'+CATALOG_FILE, CATALOG_FILE];   // Sistema/ (nuevo) con respaldo a la raíz (legado)
+  for(const p of paths){
+    const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive}/root:/${graphEncPath(p)}`,{headers:H});
+    if(r.status===404)continue;
+    const m=await r.json();const url=m['@microsoft.graph.downloadUrl'];if(!url)continue;
+    return JSON.parse(await (await fetch(url)).text());
+  }
+  return null;}
 async function catalogRepoPut(H){const drive=await catalogDriveId(H);
   const body=JSON.stringify({oficinas:DIR.oficinas,preventa:DIR.preventa,ejecutivos:DIR.ejecutivos,clients:DB_CLIENTS},null,2);
-  const up=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive}/root:/${encodeURIComponent(CATALOG_FILE)}:/content`,{method:'PUT',headers:Object.assign({},H,{'Content-Type':'application/json'}),body});
+  const up=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive}/root:/${graphEncPath(SYS_DIR+'/'+CATALOG_FILE)}:/content`,{method:'PUT',headers:Object.assign({},H,{'Content-Type':'application/json'}),body});
   if(!up.ok)throw new Error('HTTP '+up.status);}
+/* ===== Bitácora central en SharePoint (Sistema/_bitacora_sipnology.json) — histórico indefinido, visible para todos ===== */
+async function logRepoGet(H){const drive=await catalogDriveId(H);
+  const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive}/root:/${graphEncPath(SYS_DIR+'/'+LOG_FILE)}`,{headers:H});
+  if(r.status===404)return [];const m=await r.json();const url=m['@microsoft.graph.downloadUrl'];if(!url)return [];
+  try{const j=JSON.parse(await (await fetch(url)).text());return Array.isArray(j)?j:[];}catch(_){return [];}}
+async function logRepoPut(H,arr){const drive=await catalogDriveId(H);
+  const up=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive}/root:/${graphEncPath(SYS_DIR+'/'+LOG_FILE)}:/content`,{method:'PUT',headers:Object.assign({},H,{'Content-Type':'application/json'}),body:JSON.stringify(arr)});
+  if(!up.ok)throw new Error('HTTP '+up.status);}
+let _bitLog=[];              // log central en memoria (más reciente primero)
+let _bitPage=1, _bitSize=10; // paginación
+let _logQueue=Promise.resolve();
+function centralLogPush(entry){
+  _bitLog.unshift(entry); _bitPage=1; renderBitacora();   // feedback inmediato
+  if(location.protocol==='file:')return;                  // modo local: no hay repositorio
+  _logQueue=_logQueue.then(async()=>{
+    const t=await graphTokenSilent(); if(!t)return;
+    const H={Authorization:'Bearer '+t};
+    let arr=await logRepoGet(H); if(!Array.isArray(arr))arr=[];
+    arr.push(entry);                                       // el archivo va en orden cronológico
+    await logRepoPut(H,arr);
+    _bitLog=arr.slice().reverse();                         // UI: más reciente primero
+    renderBitacora();
+  }).catch(()=>{});
+}
+async function loadCentralLog(){
+  try{ if(location.protocol==='file:')return;
+    const t=await graphTokenSilent(); if(!t)return;
+    const arr=await logRepoGet({Authorization:'Bearer '+t});
+    _bitLog=(Array.isArray(arr)?arr:[]).slice().reverse();
+    _bitPage=1; renderBitacora();
+  }catch(_){}}
 function mergeCatalogRemote(cat){if(!cat)return;
   const upd=(tgt,inc,kf,fields)=>{if(!Array.isArray(inc)||!Array.isArray(tgt))return;inc.forEach(it=>{if(!it)return;const ex=tgt.find(t=>kf(t)===kf(it));if(!ex)tgt.push(it);else fields.forEach(f=>{if(it[f]!==undefined)ex[f]=it[f];});});};
   upd(DIR.oficinas,cat.oficinas,x=>x.name,['name','city']);
@@ -2449,8 +2495,25 @@ function renderHistorial(){const b=$('hist_body');if(!b)return;const h=(S&&Array
 /* ===== Bitácora de actividad (eventos clave) ===== */
 const LOG_CAP=200;
 function currentUserName(){try{const acc=(typeof _msalApp!=='undefined'&&_msalApp)?_msalApp.getAllAccounts()[0]:null;return acc?(acc.name||acc.username||'Usuario'):'Usuario';}catch(_){return 'Usuario';}}
-function logEvent(evento,detalle){try{if(!S)return;if(!Array.isArray(S.bitacora))S.bitacora=[];const d=new Date();S.bitacora.unshift({fecha:d.toISOString().slice(0,10),hora:d.toTimeString().slice(0,8),evento:String(evento||''),detalle:String(detalle||''),usuario:currentUserName()});if(S.bitacora.length>LOG_CAP)S.bitacora.length=LOG_CAP;renderBitacora();}catch(_){}}
-function renderBitacora(){const b=$('log_body');if(!b)return;const h=(S&&Array.isArray(S.bitacora))?S.bitacora:[];b.innerHTML=h.length?h.map(r=>`<tr><td class="fitc" style="text-align:center;white-space:nowrap">${esc(r.fecha||'')}</td><td class="fitc" style="text-align:center;white-space:nowrap">${esc(r.hora||'')}</td><td class="l" style="font-weight:600">${esc(r.evento||'')}</td><td class="l" style="color:#556">${esc(r.detalle||'')}</td><td class="l" style="color:#556">${esc(r.usuario||'')}</td></tr>`).join(''):`<tr><td colspan="5" class="l" style="color:#999">Sin actividad registrada aún.</td></tr>`;}
+function logEvent(evento,detalle){try{const d=new Date();const entry={fecha:d.toISOString().slice(0,10),hora:d.toTimeString().slice(0,8),evento:String(evento||''),detalle:String(detalle||''),usuario:currentUserName()};if(S){if(!Array.isArray(S.bitacora))S.bitacora=[];S.bitacora.unshift(entry);if(S.bitacora.length>LOG_CAP)S.bitacora.length=LOG_CAP;}centralLogPush(entry);}catch(_){}}
+function renderBitacora(){const b=$('log_body');if(!b)return;
+  const all=Array.isArray(_bitLog)?_bitLog:[];const size=_bitSize||10;const total=all.length;const pages=Math.max(1,Math.ceil(total/size));
+  if(_bitPage>pages)_bitPage=pages; if(_bitPage<1)_bitPage=1;
+  const start=(_bitPage-1)*size;const rows=all.slice(start,start+size);
+  b.innerHTML=rows.length?rows.map(r=>`<tr><td class="fitc" style="text-align:center;white-space:nowrap">${esc(r.fecha||'')}</td><td class="fitc" style="text-align:center;white-space:nowrap">${esc(r.hora||'')}</td><td class="l" style="font-weight:600">${esc(r.evento||'')}</td><td class="l" style="color:#556">${esc(r.detalle||'')}</td><td class="l" style="color:#556">${esc(r.usuario||'')}</td></tr>`).join(''):`<tr><td colspan="5" class="l" style="color:#999">Sin actividad registrada aún.</td></tr>`;
+  const cnt=$('log_count');if(cnt)cnt.textContent=total?(total+' registro(s) · página '+_bitPage+' de '+pages):'';
+  renderBitPager(pages);}
+function renderBitPager(pages){const p=$('log_pager');if(!p)return;if(pages<=1){p.innerHTML='';return;}
+  let h=`<button class="mini" ${_bitPage<=1?'disabled':''} onclick="bitGoto(${_bitPage-1})">‹</button>`;
+  const from=Math.max(1,_bitPage-2),to=Math.min(pages,_bitPage+2);const win=[];
+  if(from>1)win.push(1); if(from>2)win.push('…');
+  for(let i=from;i<=to;i++)win.push(i);
+  if(to<pages-1)win.push('…'); if(to<pages)win.push(pages);
+  win.forEach(x=>{h+=(x==='…')?`<span class="small" style="padding:0 4px;color:#889">…</span>`:`<button class="mini ${x===_bitPage?'add':''}" onclick="bitGoto(${x})">${x}</button>`;});
+  h+=`<button class="mini" ${_bitPage>=pages?'disabled':''} onclick="bitGoto(${_bitPage+1})">›</button>`;
+  p.innerHTML=h;}
+function bitGoto(n){_bitPage=n;renderBitacora();}
+function bitSetSize(v){_bitSize=Math.max(1,parseInt(v,10)||10);_bitPage=1;renderBitacora();}
 
 /* ===== Repositorio M365 (SharePoint vía Microsoft Graph / Entra ID) ===== */
 const GRAPH_KEY='sip_graph_cfg';
@@ -2688,7 +2751,7 @@ function unlockApp(mode){
   const g=$('authGate'); if(g)g.style.display='none';
   if(mode==='local'){
     document.querySelectorAll('[data-reqonline]').forEach(b=>{b.disabled=true;b.style.opacity='.4';b.style.cursor='not-allowed';b.title='No disponible en modo local (sin conexión / sin iniciar sesión)';});
-  }else if(mode==='full'){ startSessionTimer(); try{catalogPullSilent();}catch(e){} try{autoOpenFromLink();}catch(e){} }
+  }else if(mode==='full'){ startSessionTimer(); try{catalogPullSilent();}catch(e){} try{loadCentralLog();}catch(e){} try{autoOpenFromLink();}catch(e){} }
 }
 function relock(){
   clearInterval(_sessTimer); authState='locked';
