@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cotizador · Sipnology</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.7.1/lib/msal-browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js" integrity="sha512-dlPw+ytv/6JyepmelABrgeYgHI0O+frEwgfnPdXDTOIZz+eDgfW07QXG02/O8COfivBdGNINy+Vex+lYmJ5rxw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" integrity="sha512-2/YdOMV+YNpanLCF5MdQwaoFRVbTmrJ4u4EpqS/USXAQNUDgI5uwYi6J98WVtJKcfe1AbgerygzDFToxAlOGEQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.7.1/lib/msal-browser.min.js" integrity="sha512-8f1B0uYZWsPXgEOUvCgakFCDtk3HXnTcCmjba2B/SCSxZGMymVIv1ciagOL7vDUnPxqmb2G5fKt3sfSG/8ZJ+A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
 :root{
   --bg:#0f172a; --panel:#111c33; --card:#16213e; --line:#26314f;
@@ -743,13 +743,39 @@ function money(v,cur){cur=cur||'MXN';return (v<0?'-':'')+cur+' '+Math.abs(v).toL
 function n2(v){return (v<0?'-':'')+Math.abs(num(v)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function itemVal(v,i){if(v==null||String(v).trim()==='')return i+1;const s=String(v).replace(/,/g,'');const n=Number(s);return isNaN(n)?v:n;}
 function pct(v){return (v*100).toFixed(2)+'%';}
-function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
-function conceptoToHtml(v){v=String(v==null?'':v);if(/<[a-z!/][\s\S]*>/i.test(v))return v;return esc(v).replace(/\n/g,'<br>');}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+/* Sanitizador de HTML enriquecido: solo conserva etiquetas de formato SIN atributos.
+   Elimina script/style/img/a/iframe/etc. y cualquier atributo (on*, style, href, src), neutralizando XSS almacenado
+   (p. ej. al abrir una cotización .json manipulada o datos del repositorio con <img onerror=...>). */
+function sanitizeHtml(html){
+  const ALLOW={B:1,STRONG:1,I:1,EM:1,U:1,UL:1,OL:1,LI:1,BR:1,P:1,SPAN:1};
+  const DROP={SCRIPT:1,STYLE:1,IFRAME:1,OBJECT:1,EMBED:1,LINK:1,META:1,SVG:1,MATH:1,IMG:1,VIDEO:1,AUDIO:1,SOURCE:1,FORM:1,INPUT:1,BUTTON:1,A:1,BASE:1,TEMPLATE:1};
+  const tpl=document.createElement('template');
+  tpl.innerHTML=String(html==null?'':html);
+  const clean=root=>{
+    [...root.childNodes].forEach(n=>{
+      if(n.nodeType===8){n.remove();return;}          // comentarios
+      if(n.nodeType!==1)return;                         // texto: se conserva
+      const tag=n.tagName;
+      if(DROP[tag]){n.remove();return;}                 // se elimina por completo
+      clean(n);                                         // limpiar hijos primero
+      if(!ALLOW[tag]){                                  // etiqueta desconocida: se "desenvuelve" (queda su texto)
+        const parent=n.parentNode;
+        while(n.firstChild)parent.insertBefore(n.firstChild,n);
+        parent.removeChild(n);return;
+      }
+      [...n.attributes].forEach(a=>n.removeAttribute(a.name)); // quitar TODOS los atributos
+    });
+  };
+  clean(tpl.content);
+  return tpl.innerHTML;
+}
+function conceptoToHtml(v){v=String(v==null?'':v);if(/<[a-z!/][\s\S]*>/i.test(v))return sanitizeHtml(v);return esc(v).replace(/\n/g,'<br>');}
 function htmlToText(html){let s=String(html==null?'':html);if(!/[<]/.test(s))return s;s=s.replace(/<\s*br\s*\/?>/gi,'\n').replace(/<\s*li[^>]*>/gi,'- ').replace(/<\/\s*(li|p|div|tr|h[1-6])\s*>/gi,'\n').replace(/<[^>]+>/g,'');const d=document.createElement('textarea');d.innerHTML=s;s=d.value;return s.replace(/\n{3,}/g,'\n\n').replace(/[ \t]+\n/g,'\n').trim();}
 /* Editor de texto enriquecido reutilizable (barra + contenteditable) */
 const RTE_TARGETS={prop:{arr:()=>(S.ing.prop&&S.ing.prop.rows),field:'concepto'},sacot:{arr:()=>(S.sa.cotiz&&S.sa.cotiz.rows),field:'desc'}};
 function rteBar(g,i){return `<div class="rtebar"><button type="button" data-rtecmd="bold" title="Negrita"><b>B</b></button><button type="button" data-rtecmd="italic" title="Cursiva"><i>I</i></button><button type="button" data-rtecmd="underline" title="Subrayado"><u>U</u></button><button type="button" data-rtecmd="insertUnorderedList" title="Viñetas">•</button></div><div class="rte" contenteditable="true" data-rteg="${g}" data-rtei="${i}"></div>`;}
-function rteStore(g,i,html){const t=RTE_TARGETS[g];if(!t)return;const a=t.arr();if(a&&a[i])a[i][t.field]=html;}
+function rteStore(g,i,html){const t=RTE_TARGETS[g];if(!t)return;const a=t.arr();if(a&&a[i])a[i][t.field]=sanitizeHtml(html);}
 function rteFill(){document.querySelectorAll('.rte[data-rteg]').forEach(ed=>{const t=RTE_TARGETS[ed.dataset.rteg];if(!t)return;const a=t.arr();const i=+ed.dataset.rtei;ed.innerHTML=conceptoToHtml(a&&a[i]?a[i][t.field]:'');});}
 function bindRTE(){
   document.querySelectorAll('.rte[data-rteg]').forEach(ed=>{ed.oninput=()=>{rteStore(ed.dataset.rteg,+ed.dataset.rtei,ed.innerHTML);renderQuote();};
@@ -2643,8 +2669,13 @@ function fcSetFromText(t){const s=String(t==null?'':t).replace(/,/g,'').replace(
 /* ============================ TABS ============================ */
 const VIEWS=[['proyecto','Registro Proyecto'],['ingenieria','Calculadora Ingeniería'],['sa','Calculadora Serv. Admin'],['materiales','Materiales y Contratos'],['comercial','Condiciones comerciales'],['resumen','Resumen Financiero'],['cotizacion','Cotización'],['tarifas','Tarifas']];
 function buildTabs(){$('tabs').innerHTML=VIEWS.map(v=>`<div class="tab" data-t="${v[0]}" onclick="showView('${v[0]}')">${v[1]}</div>`).join('')+`<div class="tab" onclick="repoConfig()" title="Configurar repositorio M365" style="cursor:pointer">⚙️ Config</div>`;}
-let tarifasUnlocked=false;
-function showView(v){if(v==='tarifas'&&!tarifasUnlocked){const p=prompt('Pestaña restringida. Ingresa la contraseña de administrador:');if(p!=='Sipnology123!'){if(p!==null)alert('Contraseña incorrecta.');return;}tarifasUnlocked=true;}document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.dataset.view===v));document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.t===v));requestAnimationFrame(growAll);}
+/* Acceso a "Tarifas" restringido por IDENTIDAD O365 (ya no por contraseña compartida).
+   Se verifica el correo del usuario autenticado con MSAL en CADA apertura (no se cachea),
+   comparando contra la lista blanca. Sin sesión (modo local/sin conexión) queda denegado. */
+const TARIFAS_ALLOWED=['leonardo.montes@sipnology.com.mx','fernando.fernandez@sipnology.com.mx'];
+function currentUserEmails(){try{const acc=(typeof _msalApp!=='undefined'&&_msalApp)?_msalApp.getAllAccounts()[0]:null;if(!acc)return [];const c=acc.idTokenClaims||{};return [acc.username,c.preferred_username,c.email,c.upn].filter(Boolean).map(s=>String(s).trim().toLowerCase());}catch(_){return [];}}
+function tarifasAllowed(){const e=currentUserEmails();return TARIFAS_ALLOWED.some(a=>e.indexOf(a)!==-1);}
+function showView(v){if(v==='tarifas'&&!tarifasAllowed()){alert('Acceso restringido: la pestaña "Tarifas" solo está disponible para usuarios autorizados, con su cuenta de Microsoft 365 de la organización.');return;}document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.dataset.view===v));document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.t===v));requestAnimationFrame(growAll);}
 
 /* ============================ CANDADO DE INICIO DE SESIÓN (M365) ============================ */
 let authState='locked', _sessTimer=null;
