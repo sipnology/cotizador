@@ -1500,22 +1500,22 @@ function renderQuote(){
   // Servicios profesionales <- Propuesta Ingeniería
   let servRows='';
   ((S.ing.prop&&S.ing.prop.rows)?S.ing.prop.rows:[]).forEach((r,i)=>{const c=R.prop.rows[i];if(c&&(c.pTot>0||num(r.costo)>0)){servRows+=`<tr><td>${esc(r.partida||(i+1))}</td><td class="l"><div class="rich">${conceptoToHtml(r.concepto||'')}</div></td><td>${esc(r.cant)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;}});
-  if(!servRows)servRows=`<tr><td colspan="5" class="l" style="color:#999">Sin partidas</td></tr>`;
+  const hasServ=servRows!=='';if(!servRows)servRows=`<tr><td colspan="5" class="l" style="color:#999">Sin partidas</td></tr>`;
   const servTotal=R.prop.priceTotal;
   // Mesa de ayuda / Recursos en sitio <- Propuesta de Soporte
   let mesaRows='';
   ((S.sa.cotiz&&S.sa.cotiz.rows)?S.sa.cotiz.rows:[]).forEach((r,i)=>{const c=R.sacot.rows[i];if(c&&(c.pTot>0||num(r.costo)>0)){mesaRows+=`<tr><td>${esc(r.partida||(i+1))}</td><td class="l"><div class="rich">${conceptoToHtml(r.desc||'')}</div></td><td>${esc(r.cant)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;}});
-  if(!mesaRows)mesaRows=`<tr><td colspan="5" class="l" style="color:#999">Sin partidas</td></tr>`;
+  const hasMesa=mesaRows!=='';if(!mesaRows)mesaRows=`<tr><td colspan="5" class="l" style="color:#999">Sin partidas</td></tr>`;
   const mesaTotal=R.sacot.priceTotal;
   // Materiales <- BOM
   let matRows='',mi=1;
   S.mat.rows.forEach((row,i)=>{const c=R.mat.matCalc[i];if(num(row.qty)>0){matRows+=`<tr><td>${esc(row.item||mi)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;mi++;}});
-  if(!matRows)matRows=`<tr><td colspan="6" class="l" style="color:#999">Sin materiales</td></tr>`;
+  const hasMat=matRows!=='';if(!matRows)matRows=`<tr><td colspan="6" class="l" style="color:#999">Sin materiales</td></tr>`;
   const matTotal=R.mat.price;
   // Contratos de soporte / renovación <- Contratos
   let conRows='',ci=1;
   S.con.rows.forEach((row,i)=>{const c=R.con.conCalc[i];if(num(row.qty)>0){conRows+=`<tr><td>${esc(row.item||ci)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;ci++;}});
-  if(!conRows)conRows=`<tr><td colspan="6" class="l" style="color:#999">Sin contratos</td></tr>`;
+  const hasCon=conRows!=='';if(!conRows)conRows=`<tr><td colspan="6" class="l" style="color:#999">Sin contratos</td></tr>`;
   const conTotal=R.con.price;
   const QG=quoteTotalsByCur(R);
   const totalsHtml=QG.curs.map(c=>{const sub=QG.byCur[c],iva=sub*0.16,tot=sub+iva;return `<table style="margin-top:16px;width:46%;margin-left:auto">
@@ -1538,18 +1538,18 @@ function renderQuote(){
       <td class="l" style="width:52%"><b>Cliente:</b> ${esc(p.empresa||'—')}<br><b>Nombre:</b> ${esc(cont?cont.nombre:'—')}<br><b>E-mail:</b> ${esc(cont?cont.email:'—')}<br><b>Teléfono:</b> ${esc(cont?cont.telefono:'—')}<br><b>Dirección:</b> ${esc(cli?cli.direccion:'—')}</td>
       <td class="l"><b>Ejecutivo de cuenta</b><br><b>Nombre:</b> ${esc(p.ejecutivo||'—')}<br><b>E-mail:</b> ${esc(am?am.email:'—')}<br><b>Teléfono:</b> ${esc(am?am.telefono:'—')}</td>
     </tr></table>
-    <h3>Servicios profesionales</h3>
+    ${hasServ?`<h3>Servicios profesionales</h3>
     <table><thead><tr><th class="fitc">Partida</th><th class="l" style="text-align:center">Descripción</th><th class="fitc">Cantidad</th><th class="fitc">Precio unitario</th><th class="fitc">Precio total</th></tr></thead>
-      <tbody>${servRows}</tbody><tfoot><tr class="tot"><td colspan="4" class="l">Total servicios profesionales (${QG.cu.serv})</td><td class="nw">${n2(servTotal)}</td></tr></tfoot></table>
-    <h3>Mesa de ayuda / Recursos en sitio</h3>
+      <tbody>${servRows}</tbody><tfoot><tr class="tot"><td colspan="4" class="l">Total servicios profesionales (${QG.cu.serv})</td><td class="nw">${n2(servTotal)}</td></tr></tfoot></table>`:''}
+    ${hasMesa?`<h3>Mesa de ayuda / Recursos en sitio</h3>
     <table><thead><tr><th class="fitc">Partida</th><th class="l" style="text-align:center">Descripción</th><th class="fitc">Cantidad</th><th class="fitc">Precio unitario</th><th class="fitc">Precio total</th></tr></thead>
-      <tbody>${mesaRows}</tbody><tfoot><tr class="tot"><td colspan="4" class="l">Total mesa de ayuda / recursos (${QG.cu.mesa})</td><td class="nw">${n2(mesaTotal)}</td></tr></tfoot></table>
-    <h3>Materiales</h3>
+      <tbody>${mesaRows}</tbody><tfoot><tr class="tot"><td colspan="4" class="l">Total mesa de ayuda / recursos (${QG.cu.mesa})</td><td class="nw">${n2(mesaTotal)}</td></tr></tfoot></table>`:''}
+    ${hasMat?`<h3>Materiales</h3>
     <table><thead><tr><th class="fitc">No. Item</th><th class="l" style="text-align:center">No. Parte</th><th class="l" style="text-align:center">Descripción</th><th class="fitc">Cantidad</th><th class="fitc">Precio unitario</th><th class="fitc">Precio total</th></tr></thead>
-      <tbody>${matRows}</tbody><tfoot><tr class="tot"><td colspan="5" class="l">Total materiales (${QG.cu.mat})</td><td class="nw">${n2(matTotal)}</td></tr></tfoot></table>
-    <h3>Contratos de soporte / renovación</h3>
+      <tbody>${matRows}</tbody><tfoot><tr class="tot"><td colspan="5" class="l">Total materiales (${QG.cu.mat})</td><td class="nw">${n2(matTotal)}</td></tr></tfoot></table>`:''}
+    ${hasCon?`<h3>Contratos de soporte / renovación</h3>
     <table><thead><tr><th class="fitc">No. Item</th><th class="l" style="text-align:center">No. Parte</th><th class="l" style="text-align:center">Descripción</th><th class="fitc">Cantidad</th><th class="fitc">Precio unitario</th><th class="fitc">Precio total</th></tr></thead>
-      <tbody>${conRows}</tbody><tfoot><tr class="tot"><td colspan="5" class="l">Total contratos (${QG.cu.con})</td><td class="nw">${n2(conTotal)}</td></tr></tfoot></table>
+      <tbody>${conRows}</tbody><tfoot><tr class="tot"><td colspan="5" class="l">Total contratos (${QG.cu.con})</td><td class="nw">${n2(conTotal)}</td></tr></tfoot></table>`:''}
     ${totalsHtml}
     ${co.notas?`<h3>Notas</h3><div class="cond">${esc(co.notas)}</div>`:''}
     <h3>Condiciones comerciales</h3>
@@ -1671,13 +1671,13 @@ async function buildQuotePDF(){
     yy=doc.lastAutoTable.finalY+4;
   };
   const serv=[];((S.ing.prop&&S.ing.prop.rows)||[]).forEach((r,i)=>{const c=R.prop.rows[i];if(num(r.cant)>0)serv.push([String(r.partida||(i+1)),htmlToText(r.concepto||''),String(num(r.cant)),n2(c.pUnit),n2(c.pTot)]);});
-  sect('Servicios profesionales',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],serv,R.prop.priceTotal,'Total servicios profesionales ('+QG.cu.serv+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
+  if(serv.length)sect('Servicios profesionales',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],serv,R.prop.priceTotal,'Total servicios profesionales ('+QG.cu.serv+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
   const mesa=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((r,i)=>{const c=R.sacot.rows[i];if(num(r.cant)>0)mesa.push([String(r.partida||(i+1)),htmlToText(r.desc||''),String(num(r.cant)),n2(c.pUnit),n2(c.pTot)]);});
-  sect('Mesa de ayuda / Recursos en sitio',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesa,R.sacot.priceTotal,'Total mesa de ayuda / recursos ('+QG.cu.mesa+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
+  if(mesa.length)sect('Mesa de ayuda / Recursos en sitio',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesa,R.sacot.priceTotal,'Total mesa de ayuda / recursos ('+QG.cu.mesa+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
   const mat=[];S.mat.rows.forEach((row,i)=>{const c=R.mat.matCalc[i];if(num(row.qty)>0)mat.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);});
-  sect('Materiales',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],mat,R.mat.price,'Total materiales ('+QG.cu.mat+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
+  if(mat.length)sect('Materiales',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],mat,R.mat.price,'Total materiales ('+QG.cu.mat+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
   const con=[];S.con.rows.forEach((row,i)=>{const c=R.con.conCalc[i];if(num(row.qty)>0)con.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);});
-  sect('Contratos de soporte / renovación',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],con,R.con.price,'Total contratos ('+QG.cu.con+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
+  if(con.length)sect('Contratos de soporte / renovación',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],con,R.con.price,'Total contratos ('+QG.cu.con+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
   if(yy>ph-34){doc.addPage();yy=M;}
   /* Totales por moneda: un bloque por cada moneda presente (USD/MXN). Si sólo hay una, un solo bloque. */
   QG.curs.forEach(c=>{const sub=QG.byCur[c],iva=sub*0.16,tot=sub+iva;
