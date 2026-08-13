@@ -150,7 +150,7 @@ tr.subtot td{background:#0c2033;font-weight:700}
   <div style="display:flex;align-items:center;gap:11px">
     <span id="hlogo" style="display:inline-flex;align-items:center"></span>
     <span style="color:#E8632A;font-size:20px;font-weight:800;letter-spacing:.5px">SIPNOLOGY</span>
-    <span style="color:#93a0bd;font-size:18px;font-weight:600">·</span>
+    <span style="width:2px;height:22px;background:#3a4a68;border-radius:1px;display:inline-block"></span>
     <span style="color:#E8632A;font-size:18px;font-weight:800;letter-spacing:.5px">COTIZADOR</span>
   </div>
   <div id="userBox" class="userbox"></div>
@@ -2569,7 +2569,10 @@ function renderUserBadge(){const el=$('userBox');if(!el)return;
   el.innerHTML=`<div style="text-align:right;line-height:1.25">
     <div style="color:#e8edf7;font-weight:700;font-size:13px">${esc(nombre)}</div>
     <div style="color:#93a0bd;font-size:11px">${esc(correo)} <span class="rolechip" style="background:${admin?'#7c3aed':'#475569'}">${admin?'ADMIN':'USUARIO'}</span></div>
-  </div>`;}
+  </div>
+  <button class="btn sec" onclick="logout()" style="font-size:13px;padding:8px 16px" title="Cerrar sesión en el aplicativo">Salir</button>`;}
+/* Cerrar sesión: bloquea el aplicativo y exige volver a iniciar sesión con M365. */
+function logout(){try{setAuthAt(0);}catch(e){}try{clearInterval(_tarTimer);}catch(e){}try{const ub=$('userBox');if(ub)ub.innerHTML='';}catch(e){}try{relock();}catch(e){}const m=$('authMsg');if(m)m.textContent='Sesión cerrada. Inicia sesión con tu cuenta de Microsoft 365 para continuar.';}
 function logEvent(evento,detalle){try{const d=new Date();const entry={fecha:d.toISOString().slice(0,10),hora:d.toTimeString().slice(0,8),evento:String(evento||''),detalle:String(detalle||''),usuario:currentUserName()};if(S){if(!Array.isArray(S.bitacora))S.bitacora=[];S.bitacora.unshift(entry);if(S.bitacora.length>LOG_CAP)S.bitacora.length=LOG_CAP;}centralLogPush(entry);}catch(_){}}
 function renderBitacora(){const b=$('log_body');if(!b)return;
   const all=Array.isArray(_bitLog)?_bitLog:[];const size=_bitSize||10;const total=all.length;const pages=Math.max(1,Math.ceil(total/size));
