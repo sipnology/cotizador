@@ -29,6 +29,9 @@ header .sub{color:var(--mut);font-size:11px}
 #hlogo img{height:32px;width:auto;display:block}
 #authLogo img{height:44px;width:auto;display:block}
 .userbox{margin-left:auto;display:flex;align-items:center;gap:10px}
+.fxbar{margin:0 0 12px;padding:8px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;font-size:12px;color:var(--mut);display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center}
+.fxbar b{color:var(--ink)}
+.fxbar .mini{white-space:nowrap}
 .rolechip{font-size:10px;font-weight:800;letter-spacing:.5px;padding:1px 8px;border-radius:10px;color:#fff;vertical-align:middle}
 .wrap{max-width:1250px;margin:0 auto;padding:16px}
 .view{display:none}
@@ -158,6 +161,7 @@ tr.subtot td{background:#0c2033;font-weight:700}
 </header>
 
 <div class="wrap">
+  <div id="fxbar" class="fxbar"></div>
   <div class="row" style="margin-bottom:12px;flex-wrap:nowrap;gap:8px;overflow-x:auto;justify-content:center">
     <button class="btn sec vbtn" data-reqonline="1" onclick="syncCatalog()" title="Sincronizar el catálogo (oficinas, clientes, preventa, ejecutivos) con el repositorio central compartido"><span class="bic">🔄</span><span>Catálogo</span></button>
     <div style="width:1px;height:52px;background:var(--line);flex:0 0 auto;align-self:center;margin:0 6px"></div>
@@ -1367,7 +1371,7 @@ function renderBOMtable(tag){
   St.rows.forEach((row,i)=>{
     if(row.sep){
       const trs=document.createElement('tr');trs.dataset.dndg=tag;trs.dataset.dndi=i;trs.className='sep-row';
-      trs.innerHTML=`<td class="l" style="background:#0c1730"><div style="display:flex;align-items:center;gap:6px">${grip(tag,i)}<span style="color:#E8632A;font-weight:800">▸</span><input type="text" data-sep="${tag}" data-i="${i}" value="${esc(row.label||'')}" placeholder="Grupo (ej. Switches LAN)" style="flex:1;min-width:0;background:transparent;border:none;color:#E8632A;font-weight:700;font-size:13px;outline:none"></div></td><td colspan="14" style="background:#0c1730"></td><td class="fit" style="text-align:center;background:#0c1730"><button class="mini del" data-delb2="${tag}.${i}">✕</button></td>`;
+      trs.innerHTML=`<td class="l" colspan="15" style="background:#0c1730"><div style="display:flex;align-items:center;gap:6px">${grip(tag,i)}<span style="color:#E8632A;font-weight:800">▸</span><input type="text" data-sep="${tag}" data-i="${i}" value="${esc(row.label||'')}" placeholder="Grupo (ej. Switches LAN)" style="flex:1;min-width:0;width:100%;background:transparent;border:none;color:#E8632A;font-weight:700;font-size:13px;outline:none"></div></td><td class="fit" style="text-align:center;background:#0c1730"><button class="mini del" data-delb2="${tag}.${i}">✕</button></td>`;
       body.appendChild(trs);return;
     }
     const c=calc[i];
@@ -1510,13 +1514,13 @@ function renderQuote(){
   const hasMesa=mesaRows!=='';if(!mesaRows)mesaRows=`<tr><td colspan="5" class="l" style="color:#999">Sin partidas</td></tr>`;
   const mesaTotal=R.sacot.priceTotal;
   // Materiales <- BOM
-  let matRows='',mi=1;
-  S.mat.rows.forEach((row,i)=>{const c=R.mat.matCalc[i];if(num(row.qty)>0){matRows+=`<tr><td>${esc(row.item||mi)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;mi++;}});
+  let matRows='',mi=1,pmat=null;
+  S.mat.rows.forEach((row,i)=>{if(row.sep){pmat=(row.label||'').trim();return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmat){matRows+=`<tr><td colspan="6" class="l" style="font-weight:700;color:#E8632A;background:#fff3ec">${esc(pmat)}</td></tr>`;pmat=null;}matRows+=`<tr><td>${esc(row.item||mi)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;mi++;}});
   const hasMat=matRows!=='';if(!matRows)matRows=`<tr><td colspan="6" class="l" style="color:#999">Sin materiales</td></tr>`;
   const matTotal=R.mat.price;
   // Contratos de soporte / renovación <- Contratos
-  let conRows='',ci=1;
-  S.con.rows.forEach((row,i)=>{const c=R.con.conCalc[i];if(num(row.qty)>0){conRows+=`<tr><td>${esc(row.item||ci)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;ci++;}});
+  let conRows='',ci=1,pcon=null;
+  S.con.rows.forEach((row,i)=>{if(row.sep){pcon=(row.label||'').trim();return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pcon){conRows+=`<tr><td colspan="6" class="l" style="font-weight:700;color:#E8632A;background:#fff3ec">${esc(pcon)}</td></tr>`;pcon=null;}conRows+=`<tr><td>${esc(row.item||ci)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;ci++;}});
   const hasCon=conRows!=='';if(!conRows)conRows=`<tr><td colspan="6" class="l" style="color:#999">Sin contratos</td></tr>`;
   const conTotal=R.con.price;
   const QG=quoteTotalsByCur(R);
@@ -1676,9 +1680,9 @@ async function buildQuotePDF(){
   if(serv.length)sect('Servicios profesionales',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],serv,R.prop.priceTotal,'Total servicios profesionales ('+QG.cu.serv+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
   const mesa=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((r,i)=>{const c=R.sacot.rows[i];if(num(r.cant)>0)mesa.push([String(r.partida||(i+1)),htmlToText(r.desc||''),String(num(r.cant)),n2(c.pUnit),n2(c.pTot)]);});
   if(mesa.length)sect('Mesa de ayuda / Recursos en sitio',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesa,R.sacot.priceTotal,'Total mesa de ayuda / recursos ('+QG.cu.mesa+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
-  const mat=[];S.mat.rows.forEach((row,i)=>{const c=R.mat.matCalc[i];if(num(row.qty)>0)mat.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);});
+  const mat=[];let pmatP=null;S.mat.rows.forEach((row,i)=>{if(row.sep){pmatP=(row.label||'').trim();return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmatP){mat.push([{content:pmatP,colSpan:6,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'left'}}]);pmatP=null;}mat.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);}});
   if(mat.length)sect('Materiales',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],mat,R.mat.price,'Total materiales ('+QG.cu.mat+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
-  const con=[];S.con.rows.forEach((row,i)=>{const c=R.con.conCalc[i];if(num(row.qty)>0)con.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);});
+  const con=[];let pconP=null;S.con.rows.forEach((row,i)=>{if(row.sep){pconP=(row.label||'').trim();return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pconP){con.push([{content:pconP,colSpan:6,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'left'}}]);pconP=null;}con.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);}});
   if(con.length)sect('Contratos de soporte / renovación',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],con,R.con.price,'Total contratos ('+QG.cu.con+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
   if(yy>ph-34){doc.addPage();yy=M;}
   /* Totales por moneda: un bloque por cada moneda presente (USD/MXN). Si sólo hay una, un solo bloque. */
@@ -2767,7 +2771,27 @@ function loadProject(ev){
   rd.onload=()=>{try{const j=JSON.parse(rd.result);applyLoaded(j);localFileHandle=null;openedFileName=f.name;hasFile=true;pushToInputs();recompute();updateSaveButtons();logEvent('Abrir',f.name);alert('Proyecto abierto: '+f.name);}catch(e){alert('Archivo inválido');}};
   rd.readAsText(f);
 }
-function newProject(){if(confirm('¿Empezar un proyecto nuevo en blanco? Se perderán los datos no guardados.')){S=blankState();S.tarifas=cloneTar(LIVE_TARIFAS);loadTarIntoCFG(S.tarifas);localFileHandle=null;openedFileName=null;hasFile=false;pushToInputs();recompute();updateSaveButtons();logEvent('Crear','Nueva cotización en blanco');showView('proyecto');}}
+/* ===== Tipo de cambio automático (fuente pública sin token) editable por sección ===== */
+let LIVE_FX=null;
+async function fetchLiveFX(){
+  try{const r=await fetch('https://open.er-api.com/v6/latest/USD');const j=await r.json();const mx=j&&j.rates&&j.rates.MXN;
+    if(mx)LIVE_FX={rate:Math.round(mx*10000)/10000,date:(j.time_last_update_utc||'').replace(/^[A-Za-z]{3},\s*/,'').replace(/\s+\d{2}:\d{2}:\d{2}.*$/,''),source:'exchangerate-api.com'};}
+  catch(_){}
+  renderFXbar();
+}
+function renderFXbar(){const el=$('fxbar');if(!el)return;
+  if(LIVE_FX){el.innerHTML='Tipo de cambio USD→MXN: <b>$'+LIVE_FX.rate.toFixed(4)+'</b> · Fuente: '+esc(LIVE_FX.source)+' · '+esc(LIVE_FX.date)+' &nbsp;<button class="mini add" onclick="applyLiveFX(true)" title="Coloca este tipo de cambio en las 6 secciones (sigue siendo editable en cada una)">Aplicar a todas las secciones</button>&nbsp;<span style="color:#7c89a6">· editable por sección</span>';}
+  else{el.innerHTML='<span style="color:#7c89a6">Tipo de cambio automático no disponible (sin conexión). Captúralo manualmente en cada sección.</span>';}
+}
+function applyLiveFX(ask){if(!LIVE_FX)return;
+  if(ask&&!confirm('¿Aplicar el tipo de cambio $'+LIVE_FX.rate.toFixed(4)+' a las 6 secciones? Cambiará los importes capturados en USD.'))return;
+  const v=LIVE_FX.rate;
+  S.ing.fx=v; if(S.ing.subc)S.ing.subc.fx=v; S.sa.fx=v; if(S.sa.sacalc)S.sa.sacalc.fx=v; S.mat.fx=v; S.con.fx=v;
+  ['ing_fx','subc_fx','sa_fx','sacalc_fx','mat_fx','con_fx'].forEach(id=>{const el=$(id);if(el)el.value=v;});
+  recompute();
+  if(ask)logEvent('Tipo de cambio','Aplicado '+v+' ('+LIVE_FX.source+') a todas las secciones');
+}
+function newProject(){if(confirm('¿Empezar un proyecto nuevo en blanco? Se perderán los datos no guardados.')){S=blankState();S.tarifas=cloneTar(LIVE_TARIFAS);loadTarIntoCFG(S.tarifas);if(LIVE_FX){const v=LIVE_FX.rate;S.ing.fx=v;if(S.ing.subc)S.ing.subc.fx=v;S.sa.fx=v;if(S.sa.sacalc)S.sa.sacalc.fx=v;S.mat.fx=v;S.con.fx=v;}localFileHandle=null;openedFileName=null;hasFile=false;pushToInputs();recompute();updateSaveButtons();logEvent('Crear','Nueva cotización en blanco');showView('proyecto');}}
 
 /* ===== Persistencia: guardar datos capturados como base ===== */
 const BASE_KEY='sip_costeo_base';
@@ -2833,7 +2857,7 @@ function unlockApp(mode){
   const g=$('authGate'); if(g)g.style.display='none';
   if(mode==='local'){
     document.querySelectorAll('[data-reqonline]').forEach(b=>{b.disabled=true;b.style.opacity='.4';b.style.cursor='not-allowed';b.title='No disponible en modo local (sin conexión / sin iniciar sesión)';});
-  }else if(mode==='full'){ startSessionTimer(); try{renderUserBadge();}catch(e){} try{catalogPullSilent();}catch(e){} try{loadCentralLog();}catch(e){} try{pullTarifasSilent();}catch(e){} try{clearInterval(_tarTimer);_tarTimer=setInterval(pullTarifasSilent,5*60*1000);}catch(e){} try{autoOpenFromLink();}catch(e){} }
+  }else if(mode==='full'){ startSessionTimer(); try{renderUserBadge();}catch(e){} try{catalogPullSilent();}catch(e){} try{loadCentralLog();}catch(e){} try{pullTarifasSilent();}catch(e){} try{clearInterval(_tarTimer);_tarTimer=setInterval(pullTarifasSilent,5*60*1000);}catch(e){} try{fetchLiveFX();}catch(e){} try{autoOpenFromLink();}catch(e){} }
 }
 function relock(){
   clearInterval(_sessTimer); authState='locked';
@@ -2871,6 +2895,7 @@ function init(){
   fcInitDrag();
   recompute();
   catalogPullSilent();
+  try{fetchLiveFX();}catch(e){}
   initAuthGate();
 }
 window.addEventListener('DOMContentLoaded',init);
