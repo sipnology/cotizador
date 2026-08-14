@@ -666,6 +666,8 @@ let DB_CLIENTS = [
   {pais:'México',empresa:'Vivaro',direccion:'',contactos:[{nombre:'J. F. Rodríguez',email:'jfrodriguez@vivaro.com',telefono:''}]}
 ];
 function findClient(emp){return DB_CLIENTS.find(c=>c.empresa===emp);}
+/* Dirección efectiva: la del contacto si la tiene (distintas oficinas del mismo cliente), si no la del cliente. */
+function contactDir(cli,cont){return (cont&&cont.direccion&&String(cont.direccion).trim())?cont.direccion:((cli&&cli.direccion)||'');}
 
 /* Logo Sipnology (SVG vectorial, naranja de marca) */
 const BRAND='#E8632A';
@@ -1535,7 +1537,7 @@ function renderQuote(){
       </div>
     </div>
     <table class="infobox" style="margin-bottom:16px"><tr>
-      <td class="l" style="width:52%"><b>Cliente:</b> ${esc(p.empresa||'—')}<br><b>Nombre:</b> ${esc(cont?cont.nombre:'—')}<br><b>E-mail:</b> ${esc(cont?cont.email:'—')}<br><b>Teléfono:</b> ${esc(cont?cont.telefono:'—')}<br><b>Dirección:</b> ${esc(cli?cli.direccion:'—')}</td>
+      <td class="l" style="width:52%"><b>Cliente:</b> ${esc(p.empresa||'—')}<br><b>Nombre:</b> ${esc(cont?cont.nombre:'—')}<br><b>E-mail:</b> ${esc(cont?cont.email:'—')}<br><b>Teléfono:</b> ${esc(cont?cont.telefono:'—')}<br><b>Dirección:</b> ${esc(contactDir(cli,cont)||'—')}</td>
       <td class="l"><b>Ejecutivo de cuenta</b><br><b>Nombre:</b> ${esc(p.ejecutivo||'—')}<br><b>E-mail:</b> ${esc(am?am.email:'—')}<br><b>Teléfono:</b> ${esc(am?am.telefono:'—')}</td>
     </tr></table>
     ${hasServ?`<h3>Servicios profesionales</h3>
@@ -1652,7 +1654,7 @@ async function buildQuotePDF(){
   doc.text('Manuel Lopez Cotilla No 1032 int 2A, Col. Del Valle Centro, Benito Juarez, CP 03100, CDMX',pw/2,yy+28,{align:'center'});
   yy+=32;doc.setDrawColor(BR[0],BR[1],BR[2]);doc.setLineWidth(0.7);doc.line(M,yy,pw-M,yy);yy+=4;
   doc.autoTable({startY:yy,theme:'grid',body:[[
-    `Cliente: ${p.empresa||'—'}\nNombre: ${cont?cont.nombre:'—'}\nE-mail: ${cont?cont.email:'—'}\nTeléfono: ${cont?cont.telefono:'—'}\nDirección: ${cli?cli.direccion:'—'}`,
+    `Cliente: ${p.empresa||'—'}\nNombre: ${cont?cont.nombre:'—'}\nE-mail: ${cont?cont.email:'—'}\nTeléfono: ${cont?cont.telefono:'—'}\nDirección: ${contactDir(cli,cont)||'—'}`,
     `Ejecutivo de cuenta\nNombre: ${p.ejecutivo||'—'}\nE-mail: ${am?am.email:'—'}\nTeléfono: ${am?am.telefono:'—'}`]],
     styles:{fontSize:8.5,cellPadding:3,fillColor:INFO,textColor:40,lineColor:LN,lineWidth:0.2,valign:'top'},
     columnStyles:{0:{cellWidth:cw*0.56},1:{cellWidth:cw*0.44}},margin:{left:M,right:M}});
@@ -1813,7 +1815,7 @@ async function exportExcel(){
     let pr=5; title(pj,pr,'Registro del proyecto');pr++;
     pr=kv(pj,pr,'País',p.pais);pr=kv(pj,pr,'Oficina / Filial',p.oficina);pr=kv(pj,pr,'Ciudad',off?off.city:'—');
     pr=kv(pj,pr,'Cliente',p.empresa);pr=kv(pj,pr,'Contacto',p.contacto);pr=kv(pj,pr,'E-mail contacto',cont?cont.email:'—');
-    pr=kv(pj,pr,'Teléfono contacto',cont?cont.telefono:'—');pr=kv(pj,pr,'Dirección',cli?cli.direccion:'—');
+    pr=kv(pj,pr,'Teléfono contacto',cont?cont.telefono:'—');pr=kv(pj,pr,'Dirección',contactDir(cli,cont)||'—');
     pr=kv(pj,pr,'Oportunidad',p.oportunidad);pr=kv(pj,pr,'ID CRM',p.crm);
     pr=kv(pj,pr,'Ingeniero de Preventa',p.preventa);pr=kv(pj,pr,'Ejecutivo de Cuenta',p.ejecutivo);
     pr=kv(pj,pr,'E-mail ejecutivo',am?am.email:'—');pr=kv(pj,pr,'Teléfono ejecutivo',am?am.telefono:'—');
@@ -1837,7 +1839,7 @@ async function exportExcel(){
     for(let ci=1;ci<=6;ci++){q.getCell(5,ci).border={bottom:{style:'medium',color:{argb:ORANGE}}};}
     q.mergeCells('A7:C11');q.mergeCells('D7:F11');
     const cliCell=q.getCell('A7'), exeCell=q.getCell('D7');
-    cliCell.value={richText:[{font:{bold:true},text:'Cliente: '},{text:(p.empresa||'—')+'\n'},{font:{bold:true},text:'Nombre: '},{text:(cont?cont.nombre:'—')+'\n'},{font:{bold:true},text:'E-mail: '},{text:(cont?cont.email:'—')+'\n'},{font:{bold:true},text:'Teléfono: '},{text:(cont?cont.telefono:'—')+'\n'},{font:{bold:true},text:'Dirección: '},{text:(cli?cli.direccion:'—')}]};
+    cliCell.value={richText:[{font:{bold:true},text:'Cliente: '},{text:(p.empresa||'—')+'\n'},{font:{bold:true},text:'Nombre: '},{text:(cont?cont.nombre:'—')+'\n'},{font:{bold:true},text:'E-mail: '},{text:(cont?cont.email:'—')+'\n'},{font:{bold:true},text:'Teléfono: '},{text:(cont?cont.telefono:'—')+'\n'},{font:{bold:true},text:'Dirección: '},{text:(contactDir(cli,cont)||'—')}]};
     exeCell.value={richText:[{font:{bold:true,color:{argb:ORANGE}},text:'Ejecutivo de cuenta\n'},{font:{bold:true},text:'Nombre: '},{text:(p.ejecutivo||'—')+'\n'},{font:{bold:true},text:'E-mail: '},{text:(am?am.email:'—')+'\n'},{font:{bold:true},text:'Teléfono: '},{text:(am?am.telefono:'—')}]};
     [cliCell,exeCell].forEach(c=>{c.alignment={vertical:'top',wrapText:true};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFDF3EC'}};c.border={top:{style:'thin',color:{argb:LINE}},left:{style:'thin',color:{argb:LINE}},right:{style:'thin',color:{argb:LINE}},bottom:{style:'thin',color:{argb:LINE}}};});
     let r=13;
@@ -1953,7 +1955,7 @@ async function exportExcelTemplate(){
     set('Registro Proyecto','C24',S.proyecto.fecha);set('Registro Proyecto','C25',S.proyecto.version);
     // Registro Clientes (volcar BD: pais,empresa,nombre,direccion,email,telefono)
     let rc=3; const flat=[];
-    DB_CLIENTS.forEach(c=>c.contactos.forEach(k=>flat.push([c.pais,c.empresa,k.nombre,c.direccion,k.email,k.telefono])));
+    DB_CLIENTS.forEach(c=>c.contactos.forEach(k=>flat.push([c.pais,c.empresa,k.nombre,(k.direccion||c.direccion),k.email,k.telefono])));
     flat.forEach(row=>{['A','B','C','D','E','F'].forEach((col,ix)=>set('Registro Clientes',col+rc,row[ix]));rc++;});
     // Resumen Tecnico
     set('Resumen Tecnico','F4',S.tecnico.sector);set('Resumen Tecnico','F10',S.tecnico.tipoimpl);
@@ -2084,7 +2086,7 @@ function updateClientInfo(){
   const cli=findClient(S.proyecto.empresa);
   const cont=cli?cli.contactos.find(c=>c.nombre===S.proyecto.contacto):null;
   if(!cli){box.innerHTML='';return;}
-  box.innerHTML=dataBox('DATOS DEL CLIENTE',[['Domicilio',cli.direccion,true],['Contacto',cont?cont.nombre:''],['E-mail',cont?cont.email:''],['Teléfono',cont?cont.telefono:'']],"openClientEditModal()");
+  box.innerHTML=dataBox('DATOS DEL CLIENTE',[['Domicilio',contactDir(cli,cont),true],['Contacto',cont?cont.nombre:''],['E-mail',cont?cont.email:''],['Teléfono',cont?cont.telefono:'']],"openClientEditModal()");
   box.querySelectorAll('textarea.ta').forEach(autoGrow);
 }
 function updatePreventaInfo(){
@@ -2181,7 +2183,7 @@ function mergeCatalogRemote(cat){if(!cat)return;
   upd(DIR.oficinas,cat.oficinas,x=>x.name,['name','city']);
   upd(DIR.preventa,cat.preventa,x=>x.nombre,['nombre','email','telefono']);
   upd(DIR.ejecutivos,cat.ejecutivos,x=>x.nombre,['nombre','email','telefono']);
-  if(Array.isArray(cat.clients))cat.clients.forEach(c=>{if(!c)return;let ex=DB_CLIENTS.find(x=>x.empresa===c.empresa);if(!ex){DB_CLIENTS.push(c);}else{if(c.direccion!==undefined)ex.direccion=c.direccion;if(!Array.isArray(ex.contactos))ex.contactos=[];if(Array.isArray(c.contactos))c.contactos.forEach(ct=>{if(!ct)return;const ec=ex.contactos.find(e=>e.nombre===ct.nombre);if(!ec)ex.contactos.push(ct);else{ec.email=ct.email;ec.telefono=ct.telefono;}});}});}
+  if(Array.isArray(cat.clients))cat.clients.forEach(c=>{if(!c)return;let ex=DB_CLIENTS.find(x=>x.empresa===c.empresa);if(!ex){DB_CLIENTS.push(c);}else{if(c.direccion!==undefined)ex.direccion=c.direccion;if(!Array.isArray(ex.contactos))ex.contactos=[];if(Array.isArray(c.contactos))c.contactos.forEach(ct=>{if(!ct)return;const ec=ex.contactos.find(e=>e.nombre===ct.nombre);if(!ec)ex.contactos.push(ct);else{ec.email=ct.email;ec.telefono=ct.telefono;if(ct.direccion!==undefined)ec.direccion=ct.direccion;}});}});}
 function refreshAllDir(){refreshOficinaSelect();refreshClienteSelect();refreshContactoSelect();refreshPreventaSelect();refreshEjecutivoSelect();}
 function scheduleCatalogPush(){if(!_catReady||location.protocol==='file:')return;clearTimeout(_catPushT);_catPushT=setTimeout(async()=>{try{const t=await graphTokenSilent();if(!t)return;await catalogRepoPut({Authorization:'Bearer '+t});}catch(e){}},1500);}
 async function catalogPullSilent(){try{if(location.protocol!=='file:'){const t=await graphTokenSilent();if(t){const remote=await catalogRepoGet({Authorization:'Bearer '+t});if(remote){mergeCatalogRemote(remote);refreshAllDir();}}}}catch(e){}finally{_catReady=true;}}
@@ -2288,11 +2290,12 @@ function openClientEditModal(){
   const cont=cli.contactos.find(c=>c.nombre===S.proyecto.contacto);
   $('modal').innerHTML=`<h3>Editar cliente <span style="color:var(--acc)">${esc(cli.empresa)}</span></h3>
     <div class="grid g2">
-      <div style="grid-column:1/-1"><label class="f">Domicilio</label><input id="ce_dir" value="${esc(cli.direccion||'')}"></div>
+      <div style="grid-column:1/-1"><label class="f">Domicilio del cliente (por defecto)</label><input id="ce_dir" value="${esc(cli.direccion||'')}"></div>
       <div style="grid-column:1/-1"><h3 style="margin:8px 0 2px">Contacto seleccionado</h3></div>
       <div><label class="f">Nombre</label><input id="ce_nombre" value="${esc(cont?cont.nombre:'')}" ${cont?'':'disabled'}></div>
       <div><label class="f">Teléfono</label><input id="ce_tel" value="${esc(cont?cont.telefono:'')}" ${cont?'':'disabled'}></div>
       <div style="grid-column:1/-1"><label class="f">E-mail</label><input id="ce_email" value="${esc(cont?cont.email:'')}" ${cont?'':'disabled'}></div>
+      <div style="grid-column:1/-1"><label class="f">Domicilio del contacto (si difiere del cliente — p. ej. otra oficina)</label><input id="ce_cdir" value="${esc(cont?(cont.direccion||''):'')}" ${cont?'':'disabled'} placeholder="Vacío = usa el domicilio del cliente"></div>
     </div>
     <div class="row" style="margin-top:14px"><button class="btn" onclick="saveClientEdit()">Guardar</button><button class="btn sec" onclick="closeModal()">Cancelar</button></div>`;
   $('overlay').classList.add('on');
@@ -2304,7 +2307,7 @@ function saveClientEdit(){
   if(cont){
     const nn=$('ce_nombre').value.trim();
     if(nn&&nn!==orig&&cli.contactos.some(c=>c.nombre===nn)){alert('Ya existe otro contacto con ese nombre.');return;}
-    if(nn)cont.nombre=nn;cont.email=$('ce_email').value.trim();cont.telefono=$('ce_tel').value.trim();
+    if(nn)cont.nombre=nn;cont.email=$('ce_email').value.trim();cont.telefono=$('ce_tel').value.trim();cont.direccion=$('ce_cdir').value.trim();
     if(S.proyecto.contacto===orig)S.proyecto.contacto=cont.nombre;
   }
   closeModal();refreshClienteSelect();refreshContactoSelect();renderQuote();
@@ -2389,8 +2392,9 @@ function saveContact(){
   const nombre=$('mc_nombre').value.trim();
   if(!nombre){alert('El nombre del contacto es obligatorio.');return;}
   if(cli.contactos.some(c=>c.nombre===nombre)){alert('Ese contacto ya existe para este cliente.');return;}
-  cli.contactos.push({nombre,email:$('mc_email').value.trim(),telefono:$('mc_tel').value.trim()});
-  const dir=$('mc_dir').value.trim(); if(dir&&!cli.direccion)cli.direccion=dir;
+  const dir=$('mc_dir').value.trim();
+  cli.contactos.push({nombre,email:$('mc_email').value.trim(),telefono:$('mc_tel').value.trim(),direccion:dir});
+  if(dir&&!cli.direccion)cli.direccion=dir;
   S.proyecto.contacto=nombre;
   logEvent('Alta catálogo','Contacto: '+nombre+(cli&&cli.empresa?(' ('+cli.empresa+')'):''));
   closeModal();refreshContactoSelect();renderQuote();
