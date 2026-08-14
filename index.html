@@ -528,7 +528,7 @@ tr.subtot td{background:#0c2033;font-weight:700}
     <div class="card">
       <div class="row"><h2 style="margin:0">Vista previa de cotización</h2>
         <div class="right row" style="gap:8px;flex-wrap:nowrap">
-          <button class="btn sec" data-reqonline="1" onclick="enviarEjecutivo()">📧 Enviar al ejecutivo</button>
+          <button class="btn sec" data-reqonline="1" onclick="enviarEjecutivo()">📧 Enviar por correo</button>
           <button class="btn" onclick="downloadPDF()">⬇️ Descargar PDF</button>
         </div>
       </div>
@@ -1515,12 +1515,12 @@ function renderQuote(){
   const mesaTotal=R.sacot.priceTotal;
   // Materiales <- BOM
   let matRows='',mi=1,pmat=null;
-  S.mat.rows.forEach((row,i)=>{if(row.sep){pmat=(row.label||'').trim();return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmat){matRows+=`<tr><td colspan="6" class="l" style="font-weight:700;color:#E8632A;background:#fff3ec">${esc(pmat)}</td></tr>`;pmat=null;}matRows+=`<tr><td>${esc(row.item||mi)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;mi++;}});
+  S.mat.rows.forEach((row,i)=>{if(row.sep){pmat=(row.label||'').trim();return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmat){matRows+=`<tr><td colspan="6" style="font-weight:700;color:#E8632A;background:#fff3ec;text-align:center">${esc(pmat)}</td></tr>`;pmat=null;}matRows+=`<tr><td>${esc(row.item||mi)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;mi++;}});
   const hasMat=matRows!=='';if(!matRows)matRows=`<tr><td colspan="6" class="l" style="color:#999">Sin materiales</td></tr>`;
   const matTotal=R.mat.price;
   // Contratos de soporte / renovación <- Contratos
   let conRows='',ci=1,pcon=null;
-  S.con.rows.forEach((row,i)=>{if(row.sep){pcon=(row.label||'').trim();return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pcon){conRows+=`<tr><td colspan="6" class="l" style="font-weight:700;color:#E8632A;background:#fff3ec">${esc(pcon)}</td></tr>`;pcon=null;}conRows+=`<tr><td>${esc(row.item||ci)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;ci++;}});
+  S.con.rows.forEach((row,i)=>{if(row.sep){pcon=(row.label||'').trim();return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pcon){conRows+=`<tr><td colspan="6" style="font-weight:700;color:#E8632A;background:#fff3ec;text-align:center">${esc(pcon)}</td></tr>`;pcon=null;}conRows+=`<tr><td>${esc(row.item||ci)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;ci++;}});
   const hasCon=conRows!=='';if(!conRows)conRows=`<tr><td colspan="6" class="l" style="color:#999">Sin contratos</td></tr>`;
   const conTotal=R.con.price;
   const QG=quoteTotalsByCur(R);
@@ -1680,9 +1680,9 @@ async function buildQuotePDF(){
   if(serv.length)sect('Servicios profesionales',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],serv,R.prop.priceTotal,'Total servicios profesionales ('+QG.cu.serv+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
   const mesa=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((r,i)=>{const c=R.sacot.rows[i];if(num(r.cant)>0)mesa.push([String(r.partida||(i+1)),htmlToText(r.desc||''),String(num(r.cant)),n2(c.pUnit),n2(c.pTot)]);});
   if(mesa.length)sect('Mesa de ayuda / Recursos en sitio',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesa,R.sacot.priceTotal,'Total mesa de ayuda / recursos ('+QG.cu.mesa+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
-  const mat=[];let pmatP=null;S.mat.rows.forEach((row,i)=>{if(row.sep){pmatP=(row.label||'').trim();return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmatP){mat.push([{content:pmatP,colSpan:6,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'left'}}]);pmatP=null;}mat.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);}});
+  const mat=[];let pmatP=null;S.mat.rows.forEach((row,i)=>{if(row.sep){pmatP=(row.label||'').trim();return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmatP){mat.push([{content:pmatP,colSpan:6,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'center'}}]);pmatP=null;}mat.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);}});
   if(mat.length)sect('Materiales',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],mat,R.mat.price,'Total materiales ('+QG.cu.mat+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
-  const con=[];let pconP=null;S.con.rows.forEach((row,i)=>{if(row.sep){pconP=(row.label||'').trim();return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pconP){con.push([{content:pconP,colSpan:6,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'left'}}]);pconP=null;}con.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);}});
+  const con=[];let pconP=null;S.con.rows.forEach((row,i)=>{if(row.sep){pconP=(row.label||'').trim();return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pconP){con.push([{content:pconP,colSpan:6,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'center'}}]);pconP=null;}con.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);}});
   if(con.length)sect('Contratos de soporte / renovación',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],con,R.con.price,'Total contratos ('+QG.cu.con+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
   if(yy>ph-34){doc.addPage();yy=M;}
   /* Totales por moneda: un bloque por cada moneda presente (USD/MXN). Si sólo hay una, un solo bloque. */
@@ -1743,17 +1743,19 @@ function enviarEjecutivo(){
   const cc='';   // CC vacío por defecto (evita envíos no autorizados al cliente)
   const asunto='Cotización '+(p.empresa||'')+(p.oportunidad?(' - '+p.oportunidad):'')+(p.version?(' ('+p.version+')'):'');
   const cuerpo='Hola,\n\nAdjunto la cotización'+(p.oportunidad?(' "'+p.oportunidad+'"'):'')+(p.empresa?(' para '+p.empresa):'')+', junto con su archivo de configuración.\n\nQuedo atento a cualquier comentario.\n\nSaludos.';
-  $('modal').innerHTML=`<h3>Enviar cotización al ejecutivo</h3>
+  $('modal').innerHTML=`<h3>Enviar cotización por correo</h3>
     <div class="grid" style="gap:10px">
       <div><label class="f">Para</label><input id="em_to" value="${esc(to)}" placeholder="correo@dominio.com"></div>
       <div><label class="f">Con copia (CC) — separa varios con coma</label><input id="em_cc" value="${esc(cc)}" placeholder="opcional"></div>
       <div><label class="f">Asunto</label><input id="em_subj" value="${esc(asunto)}"></div>
       <div><label class="f">Mensaje</label><textarea id="em_msg" class="ta" rows="7" style="min-height:130px">${esc(cuerpo)}</textarea></div>
+      <div><label class="f">Adjuntos adicionales (opcional)</label><input type="file" id="em_files" multiple></div>
     </div>
-    <div class="hint" style="margin-top:8px">Se adjuntará el PDF y el archivo de configuración (.json). Al enviar también se guardará el proyecto (local + repositorio) y se sincronizará el catálogo.</div>
+    <div class="hint" style="margin-top:8px">Se adjuntará el PDF y el archivo de configuración (.json), más los archivos que agregues aquí. Al enviar también se guardará el proyecto (local + repositorio) y se sincronizará el catálogo. Límite total del correo ≈ 3.5 MB.</div>
     <div class="row" style="margin-top:14px"><button class="btn" id="em_send" onclick="doEnviarEjecutivo()">📧 Enviar</button><button class="btn sec" onclick="closeModal()">Cancelar</button></div>`;
   $('overlay').classList.add('on');
 }
+function readFileB64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const s=String(r.result||'');const i=s.indexOf('base64,');res(i>=0?s.slice(i+7):'');};r.onerror=rej;r.readAsDataURL(file);});}
 async function doEnviarEjecutivo(){
   const to=(($('em_to')||{}).value||'').trim();
   if(!to){alert('Indica al menos un correo en "Para".');return;}
@@ -1777,13 +1779,17 @@ async function doEnviarEjecutivo(){
       +'<p style="margin:18px 0 6px"><a href="'+link+'" style="display:inline-block;background:#E8632A;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:bold">Abrir Configuración</a></p>'
       +'<p style="font-size:12px;color:#888;margin-top:4px">Este enlace abre el Cotizador Sipnology y carga automáticamente esta cotización (requiere iniciar sesión con tu cuenta de la organización).</p>'
       +'</div>';
+    const extra=[];                              // 3b) adjuntos adicionales que agregó el usuario
+    const fl=($('em_files')&&$('em_files').files)?Array.from($('em_files').files):[];
+    for(const f of fl){const b64=await readFileB64(f);if(b64)extra.push({'@odata.type':'#microsoft.graph.fileAttachment',name:f.name,contentType:f.type||'application/octet-stream',contentBytes:b64});}
+    if((pdfB64.length+jsonB64.length+extra.reduce((a,x)=>a+x.contentBytes.length,0))>3.5e6)throw new Error('Los adjuntos superan el límite (~3.5 MB). Quita archivos o compártelos por otro medio.');
     const token=await graphTokenScopes(['Mail.Send']);   // 4) token con permiso de envío
     const rec=s=>s.split(',').map(x=>x.trim()).filter(Boolean).map(a=>({emailAddress:{address:a}}));
     const body={message:{subject:subj,body:{contentType:'HTML',content:bodyHtml},toRecipients:rec(to),ccRecipients:rec(ccRaw),
       attachments:[
         {'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.pdf',contentType:'application/pdf',contentBytes:pdfB64},
         {'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.json',contentType:'application/json',contentBytes:jsonB64}
-      ]},saveToSentItems:true};
+      ].concat(extra)},saveToSentItems:true};
     const r=await fetch('https://graph.microsoft.com/v1.0/me/sendMail',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!r.ok){const t=await r.text();throw new Error('HTTP '+r.status+' — '+t.slice(0,180));}
     logEvent('Enviar correo','Para: '+to+(ccRaw?(' · CC: '+ccRaw):''));
