@@ -1754,18 +1754,30 @@ function enviarEjecutivo(){
         <div id="em_filelist" class="small" style="margin-top:6px;color:#7c89a6"></div>
       </div>
     </div>
-    <div class="hint" style="margin-top:8px">Se adjuntará el PDF y el archivo de configuración (.json), más los archivos que agregues aquí. Al enviar también se guardará el proyecto (local + repositorio) y se sincronizará el catálogo. Límite total del correo ≈ 3.5 MB.</div>
+    <div class="hint" style="margin-top:8px">Se adjuntará el PDF y el archivo de configuración (.json), más los archivos que agregues aquí. Al enviar también se guardará el proyecto (local + repositorio) y se sincronizará el catálogo. Recibirás una <b>copia (CCO)</b> en tu bandeja. Límite total del correo ≈ 3.5 MB.</div>
     <div class="row" style="margin-top:14px"><button class="btn" id="em_send" onclick="doEnviarEjecutivo()">📧 Enviar</button><button class="btn sec" onclick="closeModal()">Cancelar</button></div>`;
   $('modal').style.width='690px';   // ventana de envío más ancha (se restablece en closeModal)
   $('overlay').classList.add('on');
   emInitDrop();
 }
 /* Zona de adjuntos: arrastrar-soltar + clic para elegir. Fusiona con lo ya seleccionado (sin duplicar). */
+function emRenderFiles(){
+  const inp=$('em_files'), list=$('em_filelist'); if(!inp||!list)return;
+  const fs=Array.from(inp.files||[]);
+  list.innerHTML=fs.length?fs.map((f,i)=>`<span style="display:inline-flex;align-items:center;gap:6px;background:#0f1a30;border:1px solid #26314f;border-radius:6px;padding:3px 8px;margin:2px 5px 2px 0;font-size:11px">📎 ${esc(f.name)} (${Math.max(1,Math.round(f.size/1024))} KB) <span data-emdel="${i}" title="Quitar adjunto" style="cursor:pointer;color:#e57373;font-weight:800">✕</span></span>`).join(''):'';
+  list.querySelectorAll('[data-emdel]').forEach(x=>x.onclick=()=>emRemoveFile(+x.dataset.emdel));
+}
+function emRemoveFile(i){
+  const inp=$('em_files'); if(!inp)return;
+  const dt=new DataTransfer();
+  Array.from(inp.files||[]).forEach((f,idx)=>{if(idx!==i)dt.items.add(f);});
+  try{inp.files=dt.files;}catch(_){}
+  emRenderFiles();
+}
 function emInitDrop(){
-  const dz=$('em_drop'), inp=$('em_files'), list=$('em_filelist'); if(!dz||!inp)return;
-  const render=()=>{const fs=Array.from(inp.files||[]);list.innerHTML=fs.length?('📎 '+fs.map(f=>esc(f.name)+' ('+Math.max(1,Math.round(f.size/1024))+' KB)').join(' · ')):'';};
+  const dz=$('em_drop'), inp=$('em_files'); if(!dz||!inp)return;
   dz.onclick=e=>{if(e.target!==inp)inp.click();};
-  inp.onchange=render;
+  inp.onchange=emRenderFiles;
   const stop=e=>{e.preventDefault();e.stopPropagation();};
   ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{stop(e);dz.style.borderColor='var(--acc)';dz.style.background='rgba(59,130,246,.08)';}));
   ['dragleave','dragend'].forEach(ev=>dz.addEventListener(ev,e=>{stop(e);dz.style.borderColor='';dz.style.background='';}));
@@ -1774,7 +1786,7 @@ function emInitDrop(){
     const seen=new Set(), merged=new DataTransfer();
     [...Array.from(inp.files||[]),...dropped].forEach(f=>{const k=f.name+'|'+f.size;if(!seen.has(k)){seen.add(k);merged.items.add(f);}});
     try{inp.files=merged.files;}catch(_){}
-    render();
+    emRenderFiles();
   });
 }
 function readFileB64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const s=String(r.result||'');const i=s.indexOf('base64,');res(i>=0?s.slice(i+7):'');};r.onerror=rej;r.readAsDataURL(file);});}
@@ -1806,8 +1818,9 @@ async function doEnviarEjecutivo(){
     for(const f of fl){const b64=await readFileB64(f);if(b64)extra.push({'@odata.type':'#microsoft.graph.fileAttachment',name:f.name,contentType:f.type||'application/octet-stream',contentBytes:b64});}
     if((pdfB64.length+jsonB64.length+extra.reduce((a,x)=>a+x.contentBytes.length,0))>3.5e6)throw new Error('Los adjuntos superan el límite (~3.5 MB). Quita archivos o compártelos por otro medio.');
     const token=await graphTokenScopes(['Mail.Send']);   // 4) token con permiso de envío
-    const rec=s=>s.split(',').map(x=>x.trim()).filter(Boolean).map(a=>({emailAddress:{address:a}}));
-    const body={message:{subject:subj,body:{contentType:'HTML',content:bodyHtml},toRecipients:rec(to),ccRecipients:rec(ccRaw),
+    const rec=s=>String(s||'').split(',').map(x=>x.trim()).filter(Boolean).map(a=>({emailAddress:{address:a}}));
+    const sender=(()=>{try{const a=(typeof _msalApp!=='undefined'&&_msalApp)?_msalApp.getAllAccounts()[0]:null;return a?(a.username||''):'';}catch(_){return '';}})();  // copia (CCO) al remitente
+    const body={message:{subject:subj,body:{contentType:'HTML',content:bodyHtml},toRecipients:rec(to),ccRecipients:rec(ccRaw),bccRecipients:rec(sender),
       attachments:[
         {'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.pdf',contentType:'application/pdf',contentBytes:pdfB64},
         {'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.json',contentType:'application/json',contentBytes:jsonB64}
@@ -2047,13 +2060,15 @@ async function downloadTemplate(tag){
     ws.getRow(1).values=['Proveedor','Marca','No. Item','SKU','Descripción','PL unit.','Cant.'];
     ws.getRow(1).height=24;
     ws.getRow(1).eachCell(c=>{c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0F2B5B'}};c.font={bold:true,color:{argb:'FFFFFFFF'}};c.alignment={horizontal:'center',vertical:'middle',wrapText:true};c.border=xlBorder();});
-    const ex=[['INGRAM','Cisco',1,'C9200-24T-E','Catalyst 9200 24-port switch (EJEMPLO - borrar)',1850.00,4],
+    ws.getCell('A1').note='Para crear un SEPARADOR (grupo): escribe la palabra SEPARADOR en la columna Proveedor y el nombre del grupo en Descripción; deja vacías las demás columnas.';
+    const ex=[['SEPARADOR','','','','Switches LAN (EJEMPLO - borrar)','',''],
+              ['INGRAM','Cisco',1,'C9200-24T-E','Catalyst 9200 24-port switch (EJEMPLO - borrar)',1850.00,4],
               ['CT INTERNACIONAL','Fortinet',2,'FG-100F','FortiGate 100F Firewall (EJEMPLO - borrar)',3200.50,2]];
     ex.forEach(r=>ws.addRow(r));
     for(let r=2;r<=30;r++){
       const row=ws.getRow(r);
       for(let c=1;c<=7;c++){const cell=row.getCell(c);cell.border=xlBorder();cell.alignment={horizontal:([3,6,7].includes(c)?'center':'left'),vertical:'middle'};}
-      if(r<=3)row.eachCell(c=>{c.font={italic:true,color:{argb:'FF8A8F99'}};});
+      if(r<=4)row.eachCell(c=>{c.font={italic:true,color:{argb:'FF8A8F99'}};});
       row.getCell(6).numFmt='#,##0.00';row.getCell(7).numFmt='0';
     }
     ws.views=[{state:'frozen',ySplit:1}];
@@ -2078,6 +2093,7 @@ async function importBulk(tag,ev){
             item=String(cellText(row.getCell(3).value)).trim(),
             sku=String(cellText(row.getCell(4).value)).trim(),desc=String(cellText(row.getCell(5).value)).trim();
       const pl=num(cellText(row.getCell(6).value)),qty=num(cellText(row.getCell(7).value));
+      if(prov.toUpperCase()==='SEPARADOR'){if(!/ejemplo\s*-\s*borrar/i.test(desc))rows.push({sep:true,label:(desc||marca||'').trim()});return;}
       if(!prov&&!marca&&!item&&!sku&&!desc&&!pl&&!qty)return;
       if(/ejemplo\s*-\s*borrar/i.test(desc))return;
       rows.push({prov,marca,item,sku,desc,pl,qty,disc:0.15,margin:tag==='mat'?0.15:0.20});
