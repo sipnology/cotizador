@@ -155,6 +155,8 @@ tr.subtot td{background:#0c2033;font-weight:700}
     <span style="color:#E8632A;font-size:20px;font-weight:800;letter-spacing:.5px">SIPNOLOGY</span>
     <span style="width:2px;height:22px;background:#3a4a68;border-radius:1px;display:inline-block"></span>
     <span style="color:#E8632A;font-size:18px;font-weight:800;letter-spacing:.5px">COTIZADOR</span>
+    <span id="hquote_sep" style="width:2px;height:22px;background:#3a4a68;border-radius:1px;display:none"></span>
+    <span id="hquote" style="color:#93a0bd;font-size:14px;font-weight:600;max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
   </div>
   <div id="userBox" class="userbox"></div>
   <div class="tabs" id="tabs"></div>
@@ -1497,7 +1499,16 @@ function quoteTotalsByCur(R){
   curs.sort((a,b)=>a==='MXN'?-1:(b==='MXN'?1:0));
   return {byCur,curs,cu};
 }
+/* Título de la cotización en el encabezado (gris): archivo abierto, o Cliente + Oportunidad + versión. */
+function currentQuoteTitle(){try{
+  if(typeof openedFileName!=='undefined' && openedFileName)return String(openedFileName).replace(/\.json$/i,'');
+  const p=S&&S.proyecto;
+  if(p&&(p.empresa||p.oportunidad))return ((p.empresa||'')+(p.oportunidad?(' - '+p.oportunidad):'')+(p.version?(' ('+p.version+')'):'')).trim();
+  return '';
+}catch(_){return '';}}
+function renderHeaderQuoteTitle(){const el=$('hquote'),sep=$('hquote_sep');if(!el)return;const t=currentQuoteTitle()||'(nueva cotización)';el.textContent=t;el.title=t;if(sep)sep.style.display='inline-block';}
 function renderQuote(){
+  renderHeaderQuoteTitle();
   const R=LAST,cur=S.ing.moneda,p=S.proyecto;
   const off=DIR.oficinas.find(o=>o.name===p.oficina)||{city:''};
   const cli=findClient(p.empresa);
