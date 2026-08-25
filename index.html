@@ -1501,9 +1501,8 @@ function quoteTotalsByCur(R){
 }
 /* Título de la cotización en el encabezado (gris): archivo abierto, o Cliente + Oportunidad + versión. */
 function currentQuoteTitle(){try{
-  if(typeof openedFileName!=='undefined' && openedFileName)return String(openedFileName).replace(/\.json$/i,'');
   const p=S&&S.proyecto;
-  if(p&&(p.empresa||p.oportunidad))return ((p.empresa||'')+(p.oportunidad?(' - '+p.oportunidad):'')+(p.version?(' ('+p.version+')'):'')).trim();
+  if(p&&((p.empresa&&p.empresa.trim())||(p.oportunidad&&p.oportunidad.trim())))return costeoBaseName();  // en vivo: refleja nombre nuevo y cambios de versión
   return '';
 }catch(_){return '';}}
 function renderHeaderQuoteTitle(){const el=$('hquote'),sep=$('hquote_sep');if(!el)return;const t=currentQuoteTitle()||'(nueva cotización)';el.textContent=t;el.title=t;if(sep)sep.style.display='inline-block';}
@@ -1764,10 +1763,12 @@ function enviarEjecutivo(){
         <div id="em_drop" style="border:1.5px dashed var(--line);border-radius:8px;padding:16px;text-align:center;color:var(--mut);font-size:12px;cursor:pointer;transition:border-color .12s,background .12s">Arrastra archivos aquí o <b style="color:var(--acc)">haz clic para elegir</b><input type="file" id="em_files" multiple style="display:none"></div>
         <div id="em_filelist" class="small" style="margin-top:6px;color:#7c89a6"></div>
       </div>
+      <div><label class="row" style="gap:8px;align-items:center;font-size:12px;color:#cbd5e1;cursor:pointer"><input type="checkbox" id="em_json" checked style="width:auto"> Incluir configuración interna (.json + enlace de edición) — <b>desmárcalo para enviar directo al cliente</b></label></div>
     </div>
-    <div class="hint" style="margin-top:8px">Se adjuntará el PDF y el archivo de configuración (.json), más los archivos que agregues aquí. Al enviar también se guardará el proyecto (local + repositorio) y se sincronizará el catálogo. Recibirás una <b>copia (CCO)</b> en tu bandeja. Límite total del correo ≈ 3.5 MB.</div>
+    <div class="hint" style="margin-top:8px">Siempre se adjunta el <b>PDF</b> y los archivos que agregues. El <b>.json</b> de configuración y el enlace de edición se incluyen solo si marcas la casilla (envíos internos). También se guardará el proyecto y se sincronizará el catálogo, y recibirás una <b>copia (CCO)</b>. Límite total ≈ 3.5 MB.</div>
     <div class="row" style="margin-top:14px"><button class="btn" id="em_send" onclick="doEnviarEjecutivo()">📧 Enviar</button><button class="btn sec" onclick="closeModal()">Cancelar</button></div>`;
   $('modal').style.width='690px';   // ventana de envío más ancha (se restablece en closeModal)
+  _modalNoDismiss=true;             // no cerrar por clic fuera (evita perder el borrador)
   $('overlay').classList.add('on');
   emInitDrop();
 }
@@ -1818,24 +1819,25 @@ async function doEnviarEjecutivo(){
     const fname=openedFileName||(base+'.json');
     const rel=repoRelPath(fname);
     const link=APP_PUBLIC_URL+'?open='+encodeURIComponent(rel);   // enlace que abre y carga la cotización (incluye carpeta del cliente)
+    const inclJson=$('em_json')?$('em_json').checked:true;   // incluir .json + enlace (interno) o no (envío directo al cliente)
     const msgHtml=esc(msg).replace(/\n/g,'<br>');
+    const linkHtml=inclJson
+      ?('<p style="margin:18px 0 6px"><a href="'+link+'" style="display:inline-block;background:#E8632A;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:bold">Abrir Configuración</a></p>'
+        +'<p style="font-size:12px;color:#888;margin-top:4px">Este enlace abre el Cotizador Sipnology y carga automáticamente esta cotización (requiere iniciar sesión con tu cuenta de la organización).</p>')
+      :'';
     const bodyHtml='<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;line-height:1.5">'
-      +'<div>'+msgHtml+'</div>'
-      +'<p style="margin:18px 0 6px"><a href="'+link+'" style="display:inline-block;background:#E8632A;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:bold">Abrir Configuración</a></p>'
-      +'<p style="font-size:12px;color:#888;margin-top:4px">Este enlace abre el Cotizador Sipnology y carga automáticamente esta cotización (requiere iniciar sesión con tu cuenta de la organización).</p>'
-      +'</div>';
+      +'<div>'+msgHtml+'</div>'+linkHtml+'</div>';
     const extra=[];                              // 3b) adjuntos adicionales que agregó el usuario
     const fl=($('em_files')&&$('em_files').files)?Array.from($('em_files').files):[];
     for(const f of fl){const b64=await readFileB64(f);if(b64)extra.push({'@odata.type':'#microsoft.graph.fileAttachment',name:f.name,contentType:f.type||'application/octet-stream',contentBytes:b64});}
-    if((pdfB64.length+jsonB64.length+extra.reduce((a,x)=>a+x.contentBytes.length,0))>3.5e6)throw new Error('Los adjuntos superan el límite (~3.5 MB). Quita archivos o compártelos por otro medio.');
-    const token=await graphTokenScopes(['Mail.Send']);   // 4) token con permiso de envío
+    const atts=[{'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.pdf',contentType:'application/pdf',contentBytes:pdfB64}];
+    if(inclJson)atts.push({'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.json',contentType:'application/json',contentBytes:jsonB64});
+    extra.forEach(x=>atts.push(x));
+    if(atts.reduce((a,x)=>a+x.contentBytes.length,0)>3.5e6)throw new Error('Los adjuntos superan el límite (~3.5 MB). Quita archivos o compártelos por otro medio.');
+    const token=await graphTokenScopes(['Mail.Send']);   // token con permiso de envío
     const rec=s=>String(s||'').split(',').map(x=>x.trim()).filter(Boolean).map(a=>({emailAddress:{address:a}}));
     const sender=(()=>{try{const a=(typeof _msalApp!=='undefined'&&_msalApp)?_msalApp.getAllAccounts()[0]:null;return a?(a.username||''):'';}catch(_){return '';}})();  // copia (CCO) al remitente
-    const body={message:{subject:subj,body:{contentType:'HTML',content:bodyHtml},toRecipients:rec(to),ccRecipients:rec(ccRaw),bccRecipients:rec(sender),
-      attachments:[
-        {'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.pdf',contentType:'application/pdf',contentBytes:pdfB64},
-        {'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.json',contentType:'application/json',contentBytes:jsonB64}
-      ].concat(extra)},saveToSentItems:true};
+    const body={message:{subject:subj,body:{contentType:'HTML',content:bodyHtml},toRecipients:rec(to),ccRecipients:rec(ccRaw),bccRecipients:rec(sender),attachments:atts},saveToSentItems:true};
     const r=await fetch('https://graph.microsoft.com/v1.0/me/sendMail',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!r.ok){const t=await r.text();throw new Error('HTTP '+r.status+' — '+t.slice(0,180));}
     logEvent('Enviar correo','Para: '+to+(ccRaw?(' · CC: '+ccRaw):''));
@@ -2409,7 +2411,8 @@ function onContactoChange(){
     openContactModal();return;}
   S.proyecto.contacto=v;updateClientInfo();renderQuote();
 }
-function closeModal(){$('overlay').classList.remove('on');$('modal').innerHTML='';$('modal').style.width='';}
+let _modalNoDismiss=false;   // modales con formulario (guardar/correo) no se cierran por clic fuera
+function closeModal(){$('overlay').classList.remove('on');$('modal').innerHTML='';$('modal').style.width='';_modalNoDismiss=false;}
 function openClientModal(){
   $('modal').innerHTML=`<h3>Agregar nuevo cliente</h3>
     <div class="grid g2">
@@ -2595,6 +2598,7 @@ function guardarCambios(){if(!hasFile){alert('Primero usa "Guardar" para crear e
     <div style="margin-top:10px"><label class="f">Tipo de cambio</label><div class="row" style="gap:18px;margin-top:4px"><label class="row" style="gap:6px"><input type="radio" name="verkind" value="menor" checked> Menor <b>${bumpVersion(S.proyecto.version,false)}</b></label><label class="row" style="gap:6px"><input type="radio" name="verkind" value="mayor"> Mayor <b>${bumpVersion(S.proyecto.version,true)}</b></label></div></div>
     <div style="margin-top:10px"><label class="f">Resumen del cambio (opcional)</label><textarea id="chg_resumen" class="ta" rows="2"></textarea></div>
     <div class="row" style="margin-top:14px"><button class="btn" onclick="doGuardarCambios()">Guardar cambios</button><button class="btn sec" onclick="closeModal()">Cancelar</button></div>`;
+  _modalNoDismiss=true;
   $('overlay').classList.add('on');}
 async function doGuardarCambios(){const major=((document.querySelector('input[name=verkind]:checked')||{}).value)==='mayor';const resumen=($('chg_resumen')?$('chg_resumen').value:'').trim();const nv=bumpVersion(S.proyecto.version,major);setVersion(nv);if(!Array.isArray(S.historial))S.historial=[];const d=new Date();S.historial.unshift({fecha:d.toISOString().slice(0,10),hora:d.toTimeString().slice(0,5),version:nv,resumen:resumen});logEvent('Guardar cambios',nv+(resumen?(' · '+resumen):''));closeModal();renderHistorial();renderQuote();
   const json=JSON.stringify(projectPayload(),null,2);const fname=costeoBaseName()+'.json';openedFileName=fname;let okL=false,okR=false,er=[];try{dlLocal(json,fname);okL=true;}catch(e){er.push('Local: '+e.message);}try{okR=await repoPutJSON(json,repoRelPath(fname));}catch(e){er.push('Repositorio: '+e.message);}const cat=await syncCatalogQuiet();alert('Versión '+nv+'\n'+(okL?'✅ Local (Descargas)':'— Local')+'\n'+(okR?('✅ Repositorio'+(clientFolder()?(' 📁 '+clientFolder()):'')):'— Repositorio')+'\n'+cat+(er.length?('\n\n'+er.join('\n')):''));}
@@ -2946,7 +2950,7 @@ function init(){
   buildTabs();showView('proyecto');
   try{const _lm='<img src="'+LOGO_MARK+'" alt="Sipnology">';if($('hlogo'))$('hlogo').innerHTML=_lm;if($('authLogo'))$('authLogo').innerHTML=_lm;}catch(e){}
   loadCatalog();fillDirectories();loadBase();applyQuoteTarifas();pushToInputs();bindHeaderInputs();renderTarifas();
-  $('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
+  $('overlay').addEventListener('click',e=>{if(e.target.id==='overlay'&&!_modalNoDismiss)closeModal();});
   fcInitDrag();
   recompute();
   catalogPullSilent();
