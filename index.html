@@ -94,7 +94,9 @@ tr.subtot td{background:#0c2033;font-weight:700}
 .rtebar{display:flex;gap:3px;margin-bottom:3px}
 .rtebar button{width:24px;height:22px;border:1px solid var(--line);background:var(--chip);color:#cfd8e6;border-radius:5px;cursor:pointer;font-size:12px;padding:0;line-height:1}
 .rtebar button:hover{background:#22314f}
-.rte{min-height:34px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:5px 7px;background:#0c1730;color:#e8eefc;font-size:12px;line-height:1.35}
+.rte{min-height:34px;max-height:220px;width:100%;box-sizing:border-box;overflow-x:auto;overflow-y:auto;overflow-wrap:normal;word-break:normal;white-space:normal;border:1px solid var(--line);border-radius:6px;padding:5px 7px;background:#0c1730;color:#e8eefc;font-size:12px;line-height:1.35}
+td.rtecell{width:40%;max-width:0}
+td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
 .rte *{color:#e8eefc !important;background-color:transparent !important}
 .rte:focus{outline:1px solid #E8632A}
 .rte ul,.rte ol{margin:3px 0;padding-left:18px}
@@ -782,9 +784,11 @@ function defaultTrips(){return [
 /* ============================ HELPERS ============================ */
 const $=id=>document.getElementById(id);
 function evalFormula(str){try{const e=String(str).replace(/^\s*=/,'').replace(/,/g,'').replace(/[^0-9+\-*/().\s]/g,'');if(!e.trim())return null;const r=Function('"use strict";return('+e+')')();return (typeof r==='number'&&isFinite(r))?r:null;}catch(_){return null;}}
-const num=v=>{if(typeof v==='string'){const t=v.trim();if(t.charAt(0)==='='){const r=evalFormula(t);return r==null?0:r;}}const n=parseFloat(String(v).replace(/,/g,''));return isNaN(n)?0:n;};
+const num=v=>{if(typeof v==='string'){const t=v.trim();if(t.charAt(0)==='='){const r=evalFormula(t);return r==null?0:r;}}const n=parseFloat(String(v).replace(/[^0-9.\-]/g,''));return isNaN(n)?0:n;};
 /* Al salir de una celda numérica, si escribiste una fórmula (=2+3*4) muestra el resultado */
 document.addEventListener('focusout',function(e){const el=e.target;if(!el||el.tagName!=='INPUT')return;const im=el.getAttribute('inputmode');if(im!=='decimal'&&im!=='numeric')return;const v=(el.value||'').trim();if(v.charAt(0)==='='){const r=evalFormula(v);if(r!=null)el.value=String(r);}},true);
+/* En celdas numéricas: quita en vivo el símbolo $ (y espacios/moneda) al escribir o pegar, sin esperar a salir de la celda. No toca fórmulas que empiezan con '='. */
+document.addEventListener('input',function(e){const el=e.target;if(!el||el.tagName!=='INPUT')return;const im=el.getAttribute('inputmode');if(im!=='decimal'&&im!=='numeric')return;const val=el.value||'';if((val.trim().charAt(0))==='=')return;if(/[$ \s]|[A-Za-z]/.test(val)){const before=(el.selectionStart||0);const cleaned=val.replace(/[$ \sA-Za-z]/g,'');const removed=val.length-cleaned.length;el.value=cleaned;try{el.setSelectionRange(Math.max(0,before-removed),Math.max(0,before-removed));}catch(_){}}},true);
 function money(v,cur){cur=cur||'MXN';return (v<0?'-':'')+cur+' '+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function n2(v){return (v<0?'-':'')+Math.abs(num(v)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function itemVal(v,i){if(v==null||String(v).trim()==='')return i+1;const s=String(v).replace(/,/g,'');const n=Number(s);return isNaN(n)?v:n;}
@@ -1187,7 +1191,7 @@ function renderIng(){
     const c=R.prop.rows[i];
     const tr=document.createElement('tr');tr.dataset.dndg='prop';tr.dataset.dndi=i;
     tr.innerHTML=`<td class="fit"><div style="display:flex;align-items:center;gap:3px">${grip('prop',i)}<input class="num" type="text" inputmode="decimal" data-prop="${i}" data-k="partida" value="${esc(r.partida||'')}" style="text-align:center;flex:1;min-width:0"></div></td>
-      <td class="l">${rteBar('prop',i)}</td>
+      <td class="l rtecell">${rteBar('prop',i)}</td>
       <td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-prop="${i}" data-k="cant" value="${r.cant}"></td>
       <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-prop="${i}" data-k="costo" value="${n2(r.costo)}"></td>
       <td class="calc fit tight">${n2(c.pTot)}</td>
@@ -1315,7 +1319,7 @@ function renderSA(){
     const c=R.sacot.rows[i];
     const tr=document.createElement('tr');tr.dataset.dndg='sacot';tr.dataset.dndi=i;
     tr.innerHTML=`<td class="fit"><div style="display:flex;align-items:center;gap:3px">${grip('sacot',i)}<input class="num" type="text" inputmode="decimal" data-cot="${i}" data-k="partida" value="${esc(r.partida||'')}" style="text-align:center;flex:1;min-width:0"></div></td>
-      <td class="l">${rteBar('sacot',i)}</td>
+      <td class="l rtecell">${rteBar('sacot',i)}</td>
       <td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-cot="${i}" data-k="cant" value="${r.cant}"></td>
       <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-cot="${i}" data-k="costo" value="${n2(r.costo)}"></td>
       <td class="calc fit tight">${n2(c.pTot)}</td>
