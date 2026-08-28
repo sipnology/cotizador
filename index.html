@@ -2296,7 +2296,7 @@ function openOficinaModal(mode){
       <div style="grid-column:1/-1"><label class="f">Ciudad *</label><input id="of_city" value="${esc(cur.city)}"></div>
     </div>
     <div class="row" style="margin-top:14px"><button class="btn" onclick="saveOficina('${mode}')">Guardar</button><button class="btn sec" onclick="closeModal()">Cancelar</button></div>`;
-  $('overlay').classList.add('on');setTimeout(()=>{const el=$('of_name');if(el)el.focus();},50);
+  _modalNoDismiss=true;$('overlay').classList.add('on');setTimeout(()=>{const el=$('of_name');if(el)el.focus();},50);
 }
 function saveOficina(mode){
   const name=$('of_name').value.trim();if(!name){alert('El nombre de la oficina es obligatorio.');return;}
@@ -2331,7 +2331,7 @@ function openPersonModal(kind,mode){
       <div style="grid-column:1/-1"><label class="f">E-mail</label><input id="pm_email" value="${esc(cur.email)}"></div>
     </div>
     <div class="row" style="margin-top:14px"><button class="btn" onclick="savePerson('${kind}','${mode}')">Guardar</button><button class="btn sec" onclick="closeModal()">Cancelar</button></div>`;
-  $('overlay').classList.add('on');setTimeout(()=>{const el=$('pm_nombre');if(el)el.focus();},50);
+  _modalNoDismiss=true;$('overlay').classList.add('on');setTimeout(()=>{const el=$('pm_nombre');if(el)el.focus();},50);
 }
 function savePerson(kind,mode){
   const isPv=kind==='pv';const arr=isPv?DIR.preventa:DIR.ejecutivos;
@@ -2363,7 +2363,7 @@ function openClientEditModal(){
       <div style="grid-column:1/-1"><label class="f">Domicilio del contacto (si difiere del cliente — p. ej. otra oficina)</label><input id="ce_cdir" value="${esc(cont?(cont.direccion||''):'')}" ${cont?'':'disabled'} placeholder="Vacío = usa el domicilio del cliente"></div>
     </div>
     <div class="row" style="margin-top:14px"><button class="btn" onclick="saveClientEdit()">Guardar</button><button class="btn sec" onclick="closeModal()">Cancelar</button></div>`;
-  $('overlay').classList.add('on');
+  _modalNoDismiss=true;$('overlay').classList.add('on');
 }
 function saveClientEdit(){
   const cli=findClient(S.proyecto.empresa);if(!cli)return;
@@ -2429,7 +2429,7 @@ function openClientModal(){
       <div style="grid-column:1/-1"><label class="f">E-mail</label><input id="m_email"></div>
     </div>
     <div class="row" style="margin-top:14px"><button class="btn" onclick="saveClient()">Guardar cliente</button><button class="btn sec" onclick="closeModal()">Cancelar</button></div>`;
-  $('overlay').classList.add('on');setTimeout(()=>$('m_empresa').focus(),50);
+  _modalNoDismiss=true;$('overlay').classList.add('on');setTimeout(()=>$('m_empresa').focus(),50);
 }
 function saveClient(){
   const emp=$('m_empresa').value.trim();
@@ -2451,7 +2451,7 @@ function openContactModal(){
       <div style="grid-column:1/-1"><label class="f">Dirección (opcional; si difiere del cliente)</label><input id="mc_dir" value="${esc(cli.direccion||'')}"></div>
     </div>
     <div class="row" style="margin-top:14px"><button class="btn" onclick="saveContact()">Guardar contacto</button><button class="btn sec" onclick="closeModal()">Cancelar</button></div>`;
-  $('overlay').classList.add('on');setTimeout(()=>$('mc_nombre').focus(),50);
+  _modalNoDismiss=true;$('overlay').classList.add('on');setTimeout(()=>$('mc_nombre').focus(),50);
 }
 function saveContact(){
   const cli=findClient(S.proyecto.empresa);
