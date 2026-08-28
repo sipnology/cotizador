@@ -791,6 +791,11 @@ document.addEventListener('focusout',function(e){const el=e.target;if(!el||el.ta
 document.addEventListener('input',function(e){const el=e.target;if(!el||el.tagName!=='INPUT')return;const im=el.getAttribute('inputmode');if(im!=='decimal'&&im!=='numeric')return;const val=el.value||'';if((val.trim().charAt(0))==='=')return;if(/[$ \s]|[A-Za-z]/.test(val)){const before=(el.selectionStart||0);const cleaned=val.replace(/[$ \sA-Za-z]/g,'');const removed=val.length-cleaned.length;el.value=cleaned;try{el.setSelectionRange(Math.max(0,before-removed),Math.max(0,before-removed));}catch(_){}}},true);
 function money(v,cur){cur=cur||'MXN';return (v<0?'-':'')+cur+' '+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function n2(v){return (v<0?'-':'')+Math.abs(num(v)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+/* Guarda el valor numérico y, si se ingresó una fórmula (empieza con '='), recuerda la fórmula en un campo paralelo <campo>__f para poder mostrarla al enfocar la celda. */
+function setNumF(obj,k,raw){const t=String(raw==null?'':raw).trim();obj[k]=num(t);if(t.charAt(0)==='='){obj[k+'__f']=t;}else if((k+'__f') in obj){delete obj[k+'__f'];}}
+/* Al enfocar una celda de dinero: si guarda una fórmula, muestra la fórmula (=10*1.16); si no, el número plano. Al salir: muestra el resultado formateado. */
+function moneyFocus(el){const f=el.getAttribute('data-f');if(f&&f.trim().charAt(0)==='='){el.value=f;}else{const v=num(el.value);el.value=(v===0?'':String(v));}sizeMoney(el);}
+function moneyBlur(el){const t=(el.value||'').trim();el.setAttribute('data-f',t.charAt(0)==='='?t:'');el.value=n2(num(el.value));sizeMoney(el);}
 function itemVal(v,i){if(v==null||String(v).trim()==='')return i+1;const s=String(v).replace(/,/g,'');const n=Number(s);return isNaN(n)?v:n;}
 function pct(v){return (v*100).toFixed(2)+'%';}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
@@ -798,7 +803,7 @@ function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'
    Elimina script/style/img/a/iframe/etc. y cualquier atributo (on*, style, href, src), neutralizando XSS almacenado
    (p. ej. al abrir una cotización .json manipulada o datos del repositorio con <img onerror=...>). */
 function sanitizeHtml(html){
-  const ALLOW={B:1,STRONG:1,I:1,EM:1,U:1,UL:1,OL:1,LI:1,BR:1,P:1,SPAN:1};
+  const ALLOW={B:1,STRONG:1,I:1,EM:1,U:1,UL:1,OL:1,LI:1,BR:1,P:1,SPAN:1,DIV:1};
   const DROP={SCRIPT:1,STYLE:1,IFRAME:1,OBJECT:1,EMBED:1,LINK:1,META:1,SVG:1,MATH:1,IMG:1,VIDEO:1,AUDIO:1,SOURCE:1,FORM:1,INPUT:1,BUTTON:1,A:1,BASE:1,TEMPLATE:1};
   const tpl=document.createElement('template');
   tpl.innerHTML=String(html==null?'':html);
@@ -1079,7 +1084,7 @@ function renderComis(){
     tr.innerHTML=`<td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-comis="${i}" data-k="partida" value="${esc(r.partida||'')}"></td>
       <td class="l"><textarea class="ta" rows="1" data-comis="${i}" data-k="desc" style="width:100%">${esc(r.desc||'')}</textarea></td>
       <td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-comis="${i}" data-k="cant" value="${r.cant}"></td>
-      <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-comis="${i}" data-k="monto" value="${n2(r.monto)}"></td>
+      <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-comis="${i}" data-k="monto" value="${n2(r.monto)}" data-f="${esc(r.monto__f||'')}"></td>
       <td class="l"><textarea class="ta" rows="1" data-comis="${i}" data-k="nota" style="width:100%">${esc(r.nota||'')}</textarea></td>
       <td><button class="mini del" data-delcomis="${i}">✕</button></td>`;
     cb.appendChild(tr);
@@ -1092,10 +1097,10 @@ function bindComis(){
     if(!S.comercial.comisiones[i])return;
     if(k==='desc'||k==='nota'){S.comercial.comisiones[i][k]=el.value;autoGrow(el);}
     else if(k==='partida'){S.comercial.comisiones[i].partida=el.value;}
-    else {S.comercial.comisiones[i][k]=num(el.value);recompute();}
+    else {setNumF(S.comercial.comisiones[i],k,el.value);recompute();}
   };});
   document.querySelectorAll('[data-delcomis]').forEach(el=>{el.onclick=()=>{S.comercial.comisiones.splice(+el.dataset.delcomis,1);recompute();};});
-  document.querySelectorAll('#comis_body input.numw').forEach(el=>{sizeMoney(el);el.onfocus=()=>{const v=num(el.value);el.value=(v===0?'':String(v));sizeMoney(el);};el.onblur=()=>{el.value=n2(num(el.value));sizeMoney(el);};});
+  document.querySelectorAll('#comis_body input.numw').forEach(el=>{sizeMoney(el);el.onfocus=()=>moneyFocus(el);el.onblur=()=>moneyBlur(el);});
 }
 function addComis(){if(!S.comercial)S.comercial={notas:'',condiciones:'',comisiones:[]};if(!S.comercial.comisiones)S.comercial.comisiones=[];S.comercial.comisiones.push({partida:'',desc:'',cant:1,monto:0,nota:''});recompute();}
 
@@ -1157,7 +1162,7 @@ function renderIng(){
     const tr=document.createElement('tr');tr.dataset.dndg='subc';tr.dataset.dndi=i;
     tr.innerHTML=`<td class="l"><div style="display:flex;align-items:center;gap:3px">${grip('subc',i)}<textarea class="ta" rows="1" data-subc="${i}" data-k="concepto" style="flex:1;min-width:0">${esc(r.concepto)}</textarea></div></td>
       <td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-subc="${i}" data-k="cant" value="${r.cant}"></td>
-      <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-subc="${i}" data-k="costo" value="${n2(r.costo)}"></td>
+      <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-subc="${i}" data-k="costo" value="${n2(r.costo)}" data-f="${esc(r.costo__f||'')}"></td>
       <td class="fit" style="text-align:center"><div class="pctcell"><input class="num" type="text" inputmode="decimal" data-subc="${i}" data-k="margin_pct" value="${(num(r.margin)*100).toFixed(2)}"><span>%</span></div></td>
       <td class="calc fit tight">${n2(c.pUnit)}</td>
       <td class="cost fit tight">${n2(c.cost)}</td>
@@ -1177,7 +1182,7 @@ function renderIng(){
     const tr=document.createElement('tr');tr.dataset.dndg='trip';tr.dataset.dndi=i;
     tr.innerHTML=`<td class="l"><div style="display:flex;align-items:center;gap:3px">${grip('trip',i)}<textarea class="ta" rows="1" data-trip="${i}" data-k="concepto" style="flex:1;min-width:0">${esc(t.concepto)}</textarea></div></td>
       <td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-trip="${i}" data-k="cant" value="${t.cant}"></td>
-      <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-trip="${i}" data-k="costo" value="${n2(t.costo)}"></td>
+      <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-trip="${i}" data-k="costo" value="${n2(t.costo)}" data-f="${esc(t.costo__f||'')}"></td>
       <td class="calc fit tight">${n2(c.price)}</td>
       <td class="l"><textarea class="ta" rows="1" data-trip="${i}" data-k="nota" style="width:100%">${esc(t.nota||'')}</textarea></td>
       <td>${copyBtn('trip',i)}<button class="mini del" data-deltrip="${i}">✕</button></td>`;
@@ -1193,7 +1198,7 @@ function renderIng(){
     tr.innerHTML=`<td class="fit"><div style="display:flex;align-items:center;gap:3px">${grip('prop',i)}<input class="num" type="text" inputmode="decimal" data-prop="${i}" data-k="partida" value="${esc(r.partida||'')}" style="text-align:center;flex:1;min-width:0"></div></td>
       <td class="l rtecell">${rteBar('prop',i)}</td>
       <td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-prop="${i}" data-k="cant" value="${r.cant}"></td>
-      <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-prop="${i}" data-k="costo" value="${n2(r.costo)}"></td>
+      <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-prop="${i}" data-k="costo" value="${n2(r.costo)}" data-f="${esc(r.costo__f||'')}"></td>
       <td class="calc fit tight">${n2(c.pTot)}</td>
       <td class="l"><textarea class="ta" rows="1" data-prop="${i}" data-k="nota" style="width:100%">${esc(r.nota||'')}</textarea></td>
       <td>${copyBtn('prop',i)}<button class="mini del" data-delprop="${i}">✕</button></td>`;
@@ -1236,26 +1241,26 @@ function bindIng(){
   document.querySelectorAll('[data-subc]').forEach(el=>{el.oninput=()=>{const i=+el.dataset.subc,k=el.dataset.k;
     if(k==='concepto'||k==='nota'){S.ing.subc.rows[i][k]=el.value;autoGrow(el);renderQuote();}
     else if(k==='margin_pct'){S.ing.subc.rows[i].margin=num(el.value)/100;recompute();}
-    else {S.ing.subc.rows[i][k]=num(el.value);recompute();}
+    else {setNumF(S.ing.subc.rows[i],k,el.value);recompute();}
   };});
   document.querySelectorAll('[data-delsubc]').forEach(el=>{el.onclick=()=>{S.ing.subc.rows.splice(+el.dataset.delsubc,1);recompute();};});
   document.querySelectorAll('[data-trip]').forEach(el=>{el.oninput=()=>{const i=+el.dataset.trip,k=el.dataset.k;
     if(k==='concepto'||k==='nota'){S.ing.trips[i][k]=el.value;autoGrow(el);renderQuote();}
     else if(k==='margin_pct'){S.ing.trips[i].margin=num(el.value)/100;recompute();}
-    else {S.ing.trips[i][k]=num(el.value);recompute();}
+    else {setNumF(S.ing.trips[i],k,el.value);recompute();}
   };});
   document.querySelectorAll('[data-deltrip]').forEach(el=>{el.onclick=()=>{S.ing.trips.splice(+el.dataset.deltrip,1);recompute();};});
   document.querySelectorAll('[data-prop]').forEach(el=>{el.oninput=()=>{const i=+el.dataset.prop,k=el.dataset.k;
     if(k==='concepto'||k==='nota'){S.ing.prop.rows[i][k]=el.value;autoGrow(el);renderQuote();}
     else if(k==='partida'){S.ing.prop.rows[i].partida=el.value;}
-    else {S.ing.prop.rows[i][k]=num(el.value);recompute();}
+    else {setNumF(S.ing.prop.rows[i],k,el.value);recompute();}
   };});
   document.querySelectorAll('[data-delprop]').forEach(el=>{el.onclick=()=>{S.ing.prop.rows.splice(+el.dataset.delprop,1);recompute();};});
   // Campos de dinero (Costo Unitario): al enfocar muestra el número plano; al salir, formato de moneda sin símbolo; ancho flexible
   document.querySelectorAll('input.numw').forEach(el=>{
     sizeMoney(el);
-    el.onfocus=()=>{const v=num(el.value);el.value=(v===0?'':String(v));sizeMoney(el);};
-    el.onblur=()=>{el.value=n2(num(el.value));sizeMoney(el);};
+    el.onfocus=()=>moneyFocus(el);
+    el.onblur=()=>moneyBlur(el);
   });
 }
 function addTask(){S.ing.tasks.push({name:'Tarea '+S.ing.tasks.length,subs:[sub('Nueva subtarea','L1')]});recompute();}
@@ -1287,7 +1292,7 @@ function renderSA(){
     const tr=document.createElement('tr');tr.dataset.dndg='onsite';tr.dataset.dndi=i;
     tr.innerHTML=`<td class="l"><div style="display:flex;align-items:center;gap:3px">${grip('onsite',i)}<input value="${esc(o.d)}" data-on="${i}" data-k="d" style="flex:1;min-width:0"></div></td>
       <td style="text-align:center"><input class="num" type="text" inputmode="numeric" value="${o.cant}" data-on="${i}" data-k="cant"></td>
-      <td style="text-align:center"><input class="numw" type="text" inputmode="decimal" value="${n2(o.costo)}" data-on="${i}" data-k="costo"></td>
+      <td style="text-align:center"><input class="numw" type="text" inputmode="decimal" value="${n2(o.costo)}" data-on="${i}" data-k="costo" data-f="${esc(o.costo__f||'')}"></td>
       <td style="text-align:center"><div class="pctcell"><input type="text" inputmode="decimal" value="${(num(o.carga)*100).toFixed(2)}" data-on="${i}" data-k="carga_pct"><span>%</span></div></td>
       <td class="cost nw" style="text-align:center">${n2(c.subUnit)}</td>
       <td class="cost nw" style="text-align:center">${n2(c.cost)}</td>
@@ -1308,10 +1313,10 @@ function renderSA(){
     if(k==='d'){S.sa.onsite[i].d=el.value;}
     else if(k==='carga_pct'){S.sa.onsite[i].carga=num(el.value)/100;recompute();}
     else if(k==='margin_pct'){S.sa.onsite[i].margin=num(el.value)/100;recompute();}
-    else{S.sa.onsite[i][k]=num(el.value);recompute();}
+    else{setNumF(S.sa.onsite[i],k,el.value);recompute();}
   };});
   document.querySelectorAll('[data-delon]').forEach(el=>{el.onclick=()=>{S.sa.onsite.splice(+el.dataset.delon,1);recompute();};});
-  document.querySelectorAll('#onsite_body input.numw').forEach(el=>{sizeMoney(el);el.onfocus=()=>{const v=num(el.value);el.value=(v===0?'':String(v));sizeMoney(el);};el.onblur=()=>{el.value=n2(num(el.value));sizeMoney(el);};});
+  document.querySelectorAll('#onsite_body input.numw').forEach(el=>{sizeMoney(el);el.onfocus=()=>moneyFocus(el);el.onblur=()=>moneyBlur(el);});
 
   // Cotización de Soporte / Servicios Administrados (tabla estilo Propuesta Ingeniería)
   const cb=$('sacot_body'); cb.innerHTML='';
@@ -1321,7 +1326,7 @@ function renderSA(){
     tr.innerHTML=`<td class="fit"><div style="display:flex;align-items:center;gap:3px">${grip('sacot',i)}<input class="num" type="text" inputmode="decimal" data-cot="${i}" data-k="partida" value="${esc(r.partida||'')}" style="text-align:center;flex:1;min-width:0"></div></td>
       <td class="l rtecell">${rteBar('sacot',i)}</td>
       <td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-cot="${i}" data-k="cant" value="${r.cant}"></td>
-      <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-cot="${i}" data-k="costo" value="${n2(r.costo)}"></td>
+      <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-cot="${i}" data-k="costo" value="${n2(r.costo)}" data-f="${esc(r.costo__f||'')}"></td>
       <td class="calc fit tight">${n2(c.pTot)}</td>
       <td class="l"><textarea class="ta" rows="1" data-cot="${i}" data-k="nota" style="width:100%">${esc(r.nota||'')}</textarea></td>
       <td>${copyBtn('sacot',i)}<button class="mini del" data-delcot="${i}">✕</button></td>`;
@@ -1331,10 +1336,10 @@ function renderSA(){
   document.querySelectorAll('[data-cot]').forEach(el=>{el.oninput=()=>{const i=+el.dataset.cot,k=el.dataset.k;
     if(k==='desc'||k==='nota'){S.sa.cotiz.rows[i][k]=el.value;autoGrow(el);renderQuote();}
     else if(k==='partida'){S.sa.cotiz.rows[i].partida=el.value;}
-    else {S.sa.cotiz.rows[i][k]=num(el.value);recompute();}
+    else {setNumF(S.sa.cotiz.rows[i],k,el.value);recompute();}
   };});
   document.querySelectorAll('[data-delcot]').forEach(el=>{el.onclick=()=>{S.sa.cotiz.rows.splice(+el.dataset.delcot,1);recompute();};});
-  document.querySelectorAll('#sacot_body input.numw').forEach(el=>{sizeMoney(el);el.onfocus=()=>{const v=num(el.value);el.value=(v===0?'':String(v));sizeMoney(el);};el.onblur=()=>{el.value=n2(num(el.value));sizeMoney(el);};});
+  document.querySelectorAll('#sacot_body input.numw').forEach(el=>{sizeMoney(el);el.onfocus=()=>moneyFocus(el);el.onblur=()=>moneyBlur(el);});
 
   // Calculadora Servicio Administrado (independiente; NO afecta Resumen Financiero)
   if(!S.sa.sacalc)S.sa.sacalc={moneda:'MXN',fx:20,rows:[]};
@@ -1347,7 +1352,7 @@ function renderSA(){
       const tr=document.createElement('tr');tr.dataset.dndg='sacalc';tr.dataset.dndi=i;
       tr.innerHTML=`<td class="l"><div style="display:flex;align-items:center;gap:3px">${grip('sacalc',i)}<textarea class="ta" rows="1" data-sacx="${i}" data-k="concepto" style="flex:1;min-width:0">${esc(r.concepto)}</textarea></div></td>
         <td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-sacx="${i}" data-k="cant" value="${r.cant}"></td>
-        <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-sacx="${i}" data-k="costo" value="${n2(r.costo)}"></td>
+        <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-sacx="${i}" data-k="costo" value="${n2(r.costo)}" data-f="${esc(r.costo__f||'')}"></td>
         <td class="fit" style="text-align:center"><div class="pctcell"><input class="num" type="text" inputmode="decimal" data-sacx="${i}" data-k="margin_pct" value="${(num(r.margin)*100).toFixed(2)}"><span>%</span></div></td>
         <td class="calc fit tight">${n2(c.pUnit)}</td>
         <td class="cost fit tight">${n2(c.cost)}</td>
@@ -1360,10 +1365,10 @@ function renderSA(){
     document.querySelectorAll('[data-sacx]').forEach(el=>{el.oninput=()=>{const i=+el.dataset.sacx,k=el.dataset.k;
       if(k==='concepto'||k==='nota'){S.sa.sacalc.rows[i][k]=el.value;autoGrow(el);}
       else if(k==='margin_pct'){S.sa.sacalc.rows[i].margin=num(el.value)/100;recompute();}
-      else{S.sa.sacalc.rows[i][k]=num(el.value);recompute();}
+      else{setNumF(S.sa.sacalc.rows[i],k,el.value);recompute();}
     };});
     document.querySelectorAll('[data-delsacx]').forEach(el=>{el.onclick=()=>{S.sa.sacalc.rows.splice(+el.dataset.delsacx,1);recompute();};});
-    document.querySelectorAll('#sacalc_body input.numw').forEach(el=>{sizeMoney(el);el.onfocus=()=>{const v=num(el.value);el.value=(v===0?'':String(v));sizeMoney(el);};el.onblur=()=>{el.value=n2(num(el.value));sizeMoney(el);};});
+    document.querySelectorAll('#sacalc_body input.numw').forEach(el=>{sizeMoney(el);el.onfocus=()=>moneyFocus(el);el.onblur=()=>moneyBlur(el);});
   }
 }
 function addCotRow(){if(!S.sa.cotiz)S.sa.cotiz={rows:[]};if(!S.sa.cotiz.rows)S.sa.cotiz.rows=[];S.sa.cotiz.rows.push({partida:'',desc:'',cant:1,costo:0,nota:''});recompute();}
@@ -1388,7 +1393,7 @@ function renderBOMtable(tag){
       <td class="fit" style="text-align:center"><input class="autow" type="text" data-b2="${tag}" data-i="${i}" data-k="item" value="${esc(row.item!=null&&row.item!==''?row.item:(i+1))}"></td>
       <td class="l"><textarea class="ta" rows="1" data-b2="${tag}" data-i="${i}" data-k="sku">${esc(row.sku)}</textarea></td>
       <td class="l"><textarea class="ta" rows="1" data-b2="${tag}" data-i="${i}" data-k="desc" style="min-width:255px">${esc(row.desc)}</textarea></td>
-      <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-b2="${tag}" data-i="${i}" data-k="pl" value="${n2(row.pl)}"></td>
+      <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-b2="${tag}" data-i="${i}" data-k="pl" value="${n2(row.pl)}" data-f="${esc(row.pl__f||'')}"></td>
       <td class="fit" style="text-align:center"><input class="autow" type="text" inputmode="decimal" data-b2="${tag}" data-i="${i}" data-k="qty" value="${row.qty}"></td>
       <td class="fit tight">${money(c.plTot,cur)}</td>
       <td class="fit" style="text-align:center"><div class="pctcell"><input type="text" inputmode="decimal" data-b2="${tag}" data-i="${i}" data-k="disc_pct" value="${(num(row.disc)*100).toFixed(2)}"><span>%</span></div></td>
@@ -1434,12 +1439,12 @@ function bindBOM2(){
     else if(k==='item'){St.rows[i].item=el.value;sizeMoney(el);}
     else if(k==='disc_pct'){St.rows[i].disc=num(el.value)/100;recompute();}
     else if(k==='margin_pct'){St.rows[i].margin=num(el.value)/100;recompute();}
-    else {St.rows[i][k]=num(el.value);sizeMoney(el);recompute();}
+    else {setNumF(St.rows[i],k,el.value);sizeMoney(el);recompute();}
   };});
   document.querySelectorAll('#mat_body input.numw, #mat_body input.autow, #con_body input.numw, #con_body input.autow').forEach(sizeMoney);
   document.querySelectorAll('#mat_body input.numw, #con_body input.numw').forEach(el=>{
-    el.onfocus=()=>{const v=num(el.value);el.value=(v===0?'':String(v));sizeMoney(el);};
-    el.onblur=()=>{el.value=n2(num(el.value));sizeMoney(el);};
+    el.onfocus=()=>moneyFocus(el);
+    el.onblur=()=>moneyBlur(el);
   });
   document.querySelectorAll('[data-sep]').forEach(el=>{el.oninput=()=>{const tag=el.dataset.sep,i=+el.dataset.i;const St=tag==='mat'?S.mat:S.con;if(St.rows[i])St.rows[i].label=el.value;};});
   document.querySelectorAll('[data-delb2]').forEach(el=>{el.onclick=()=>{const p=el.dataset.delb2.split('.'),tag=p[0],i=+p[1];const St=tag==='mat'?S.mat:S.con;if(St.rows.length>1)St.rows.splice(i,1);else alert('Debe quedar al menos una fila.');recompute();};});
