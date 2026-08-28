@@ -794,7 +794,7 @@ function n2(v){return (v<0?'-':'')+Math.abs(num(v)).toLocaleString('en-US',{mini
 /* Guarda el valor numérico y, si se ingresó una fórmula (empieza con '='), recuerda la fórmula en un campo paralelo <campo>__f para poder mostrarla al enfocar la celda. */
 function setNumF(obj,k,raw){const t=String(raw==null?'':raw).trim();obj[k]=num(t);if(t.charAt(0)==='='){obj[k+'__f']=t;}else if((k+'__f') in obj){delete obj[k+'__f'];}}
 /* Al enfocar una celda de dinero: si guarda una fórmula, muestra la fórmula (=10*1.16); si no, el número plano. Al salir: muestra el resultado formateado. */
-function moneyFocus(el){const f=el.getAttribute('data-f');if(f&&f.trim().charAt(0)==='='){el.value=f;}else{const v=num(el.value);el.value=(v===0?'':String(v));}sizeMoney(el);}
+function moneyFocus(el){if(_restoringFocus)return;const f=el.getAttribute('data-f');if(f&&f.trim().charAt(0)==='='){el.value=f;}else{const v=num(el.value);el.value=(v===0?'':String(v));}sizeMoney(el);}
 function moneyBlur(el){const t=(el.value||'').trim();el.setAttribute('data-f',t.charAt(0)==='='?t:'');el.value=n2(num(el.value));sizeMoney(el);}
 function itemVal(v,i){if(v==null||String(v).trim()==='')return i+1;const s=String(v).replace(/,/g,'');const n=Number(s);return isNaN(n)?v:n;}
 function pct(v){return (v*100).toFixed(2)+'%';}
@@ -847,10 +847,11 @@ function growAll(){document.querySelectorAll('textarea.ta').forEach(autoGrow);}
 function setGlobalMargin(v){const m=num(v)/100;S.ing.margin=m;S.ing.tasks.forEach(t=>t.subs.forEach(s=>s.margin=m));recompute();}
 
 /* focus preservation across re-render */
+let _restoringFocus=false;
 function snapFocus(){
   const el=document.activeElement;
   if(!el||!/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName))return null;
-  const attrs={};[...el.attributes].forEach(a=>{if(a.name.startsWith('data-')||a.name==='id')attrs[a.name]=a.value;});
+  const attrs={};[...el.attributes].forEach(a=>{if(a.name==='data-f')return;if(a.name.startsWith('data-')||a.name==='id')attrs[a.name]=a.value;});
   if(Object.keys(attrs).length===0)return null;
   let start=null,end=null;try{start=el.selectionStart;end=el.selectionEnd;}catch(e){}
   return {tag:el.tagName,attrs,start,end,value:el.value};
@@ -859,9 +860,10 @@ function restoreFocus(s){
   if(!s)return;
   const parts=Object.entries(s.attrs).map(([k,v])=>`[${k}="${(window.CSS&&CSS.escape)?CSS.escape(v):v}"]`);
   const el=document.querySelector(s.tag+parts.join(''));
-  if(el){el.focus();
+  if(el){_restoringFocus=true;el.focus();
     if(s.tag!=='SELECT' && 'value' in s && el.value!==s.value){el.value=s.value;if(el.classList&&(el.classList.contains('numw')||el.classList.contains('autow')))sizeMoney(el);}
-    if(s.start!=null){try{el.setSelectionRange(s.start,s.end);}catch(e){}}}
+    if(s.start!=null){try{el.setSelectionRange(s.start,s.end);}catch(e){}}
+    _restoringFocus=false;}
 }
 function sizeMoney(el){if(!el)return;const len=(el.value||'').length;el.style.width=Math.max(7,len+2)+'ch';}
 
