@@ -1782,9 +1782,15 @@ function enviarEjecutivo(){
         <div id="em_drop" style="border:1.5px dashed var(--line);border-radius:8px;padding:16px;text-align:center;color:var(--mut);font-size:12px;cursor:pointer;transition:border-color .12s,background .12s">Arrastra archivos aquí o <b style="color:var(--acc)">haz clic para elegir</b><input type="file" id="em_files" multiple style="display:none"></div>
         <div id="em_filelist" class="small" style="margin-top:6px;color:#7c89a6"></div>
       </div>
-      <div><label class="row" style="gap:8px;align-items:center;font-size:12px;color:#cbd5e1;cursor:pointer"><input type="checkbox" id="em_json" checked style="width:auto"> Incluir configuración interna (.json + enlace de edición) — <b>desmárcalo para enviar directo al cliente</b></label></div>
+      <div style="grid-column:1/-1"><label class="f">¿Qué incluir en el envío?</label>
+        <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:2px">
+          <label class="row" style="gap:6px;align-items:center;font-size:12px;color:#cbd5e1;cursor:pointer"><input type="checkbox" id="em_link" checked style="width:auto"> Enviar liga (botón "Abrir Configuración")</label>
+          <label class="row" style="gap:6px;align-items:center;font-size:12px;color:#cbd5e1;cursor:pointer"><input type="checkbox" id="em_pdf" checked style="width:auto"> Enviar PDF</label>
+          <label class="row" style="gap:6px;align-items:center;font-size:12px;color:#cbd5e1;cursor:pointer"><input type="checkbox" id="em_json" checked style="width:auto"> Enviar archivo .json</label>
+        </div>
+      </div>
     </div>
-    <div class="hint" style="margin-top:8px">Siempre se adjunta el <b>PDF</b> y los archivos que agregues. El <b>.json</b> de configuración y el enlace de edición se incluyen solo si marcas la casilla (envíos internos). También se guardará el proyecto y se sincronizará el catálogo, y recibirás una <b>copia (CCO)</b>. Límite total ≈ 3.5 MB.</div>
+    <div class="hint" style="margin-top:8px">El <b>mensaje</b> y los archivos que agregues siempre se envían. Con las casillas eliges de forma independiente si va la <b>liga</b> (botón "Abrir Configuración"), el <b>PDF</b> y el <b>.json</b> de configuración. También se guardará el proyecto y se sincronizará el catálogo, y recibirás una <b>copia (CCO)</b>. Límite total ≈ 3.5 MB.</div>
     <div class="row" style="margin-top:14px"><button class="btn" id="em_send" onclick="doEnviarEjecutivo()">📧 Enviar</button><button class="btn sec" onclick="closeModal()">Cancelar</button></div>`;
   $('modal').style.width='690px';   // ventana de envío más ancha (se restablece en closeModal)
   _modalNoDismiss=true;             // no cerrar por clic fuera (evita perder el borrador)
@@ -1827,20 +1833,23 @@ async function doEnviarEjecutivo(){
   const ccRaw=(($('em_cc')||{}).value||'').trim();
   const subj=(($('em_subj')||{}).value||'').trim()||'Cotización';
   const msg=($('em_msg')||{}).value||'';
+  const inclLink=$('em_link')?$('em_link').checked:true;   // enviar liga (botón "Abrir Configuración")
+  const inclPdf=$('em_pdf')?$('em_pdf').checked:true;      // enviar PDF
+  const inclJson=$('em_json')?$('em_json').checked:true;   // enviar archivo .json
+  const extraCount=($('em_files')&&$('em_files').files)?$('em_files').files.length:0;
+  if(!inclLink&&!inclPdf&&!inclJson&&extraCount===0){if(!confirm('Vas a enviar solo el mensaje de texto, sin liga, PDF, .json ni adjuntos. ¿Continuar?'))return;}
   const btn=$('em_send'); if(btn){btn.disabled=true;btn.textContent='Guardando y enviando…';}
   try{
     await guardarRapido();                       // 1) guardar el trabajo (local + repositorio + catálogo)
-    const doc=await buildQuotePDF();             // 2) generar el PDF
-    if(!doc)throw new Error('No se pudo generar el PDF.');
-    const pdfB64=doc.output('datauristring').split('base64,')[1];
-    const jsonB64=btoa(unescape(encodeURIComponent(JSON.stringify(projectPayload(),null,2))));  // 3) .json
+    let pdfB64=null;
+    if(inclPdf){const doc=await buildQuotePDF();if(!doc)throw new Error('No se pudo generar el PDF.');pdfB64=doc.output('datauristring').split('base64,')[1];}   // 2) generar el PDF (solo si se envía)
+    const jsonB64=inclJson?btoa(unescape(encodeURIComponent(JSON.stringify(projectPayload(),null,2)))):null;  // 3) .json (solo si se envía)
     const base=costeoBaseName();
     const fname=openedFileName||(base+'.json');
     const rel=repoRelPath(fname);
     const link=APP_PUBLIC_URL+'?open='+encodeURIComponent(rel);   // enlace que abre y carga la cotización (incluye carpeta del cliente)
-    const inclJson=$('em_json')?$('em_json').checked:true;   // incluir .json + enlace (interno) o no (envío directo al cliente)
     const msgHtml=esc(msg).replace(/\n/g,'<br>');
-    const linkHtml=inclJson
+    const linkHtml=inclLink
       ?('<p style="margin:18px 0 6px"><a href="'+link+'" style="display:inline-block;background:#E8632A;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:bold">Abrir Configuración</a></p>'
         +'<p style="font-size:12px;color:#888;margin-top:4px">Este enlace abre el Cotizador Sipnology y carga automáticamente esta cotización (requiere iniciar sesión con tu cuenta de la organización).</p>')
       :'';
@@ -1849,8 +1858,9 @@ async function doEnviarEjecutivo(){
     const extra=[];                              // 3b) adjuntos adicionales que agregó el usuario
     const fl=($('em_files')&&$('em_files').files)?Array.from($('em_files').files):[];
     for(const f of fl){const b64=await readFileB64(f);if(b64)extra.push({'@odata.type':'#microsoft.graph.fileAttachment',name:f.name,contentType:f.type||'application/octet-stream',contentBytes:b64});}
-    const atts=[{'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.pdf',contentType:'application/pdf',contentBytes:pdfB64}];
-    if(inclJson)atts.push({'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.json',contentType:'application/json',contentBytes:jsonB64});
+    const atts=[];
+    if(inclPdf&&pdfB64)atts.push({'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.pdf',contentType:'application/pdf',contentBytes:pdfB64});
+    if(inclJson&&jsonB64)atts.push({'@odata.type':'#microsoft.graph.fileAttachment',name:base+'.json',contentType:'application/json',contentBytes:jsonB64});
     extra.forEach(x=>atts.push(x));
     if(atts.reduce((a,x)=>a+x.contentBytes.length,0)>3.5e6)throw new Error('Los adjuntos superan el límite (~3.5 MB). Quita archivos o compártelos por otro medio.');
     const token=await graphTokenScopes(['Mail.Send']);   // token con permiso de envío
