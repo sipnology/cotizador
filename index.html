@@ -119,6 +119,16 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
 .mono{font-variant-numeric:tabular-nums}
 /* modal */
 .overlay{position:fixed;inset:0;background:rgba(5,10,22,.7);display:none;align-items:center;justify-content:center;z-index:50}
+/* Indicador de "Procesando…" (puntos que rebotan) — sobre un velo oscuro, por encima de todo */
+.busy-ov{position:fixed;inset:0;background:rgba(5,10,22,.62);display:none;align-items:center;justify-content:center;z-index:9999}
+.busy-ov.on{display:flex}
+.busy-box{display:flex;flex-direction:column;align-items:center;gap:14px;padding:26px 34px;background:#0c1730;border:1px solid #22314f;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+.busy-dots{display:flex;gap:9px}
+.busy-dots span{width:13px;height:13px;border-radius:50%;background:#E8632A;animation:busy-bounce 1s ease-in-out infinite}
+.busy-dots span:nth-child(2){animation-delay:.16s}
+.busy-dots span:nth-child(3){animation-delay:.32s}
+@keyframes busy-bounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-10px);opacity:1}}
+.busy-text{font-size:13px;color:#cbd5e1;letter-spacing:.3px;font-family:Arial,Helvetica,sans-serif}
 .overlay.on{display:flex}
 .modal{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;width:460px;max-width:92vw;max-height:90vh;overflow:auto}
 .modal h3{margin:0 0 10px;font-size:14px}
@@ -571,6 +581,7 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
 
 <!-- MODAL -->
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div class="busy-ov" id="busyOverlay" aria-live="polite" aria-hidden="true"><div class="busy-box"><div class="busy-dots"><span></span><span></span><span></span></div><div class="busy-text" id="busyText">Procesando…</div></div></div>
 
 <!-- CALCULADORA FLOTANTE -->
 <style>
@@ -791,6 +802,13 @@ document.addEventListener('focusout',function(e){const el=e.target;if(!el||el.ta
 document.addEventListener('input',function(e){const el=e.target;if(!el||el.tagName!=='INPUT')return;const im=el.getAttribute('inputmode');if(im!=='decimal'&&im!=='numeric')return;const val=el.value||'';if((val.trim().charAt(0))==='=')return;if(/[$ \s]|[A-Za-z]/.test(val)){const before=(el.selectionStart||0);const cleaned=val.replace(/[$ \sA-Za-z]/g,'');const removed=val.length-cleaned.length;el.value=cleaned;try{el.setSelectionRange(Math.max(0,before-removed),Math.max(0,before-removed));}catch(_){}}},true);
 function money(v,cur){cur=cur||'MXN';return (v<0?'-':'')+cur+' '+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function n2(v){return (v<0?'-':'')+Math.abs(num(v)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+/* ===== Indicador "Procesando…" (puntos) — aparece SOLO si la operación tarda más de 1 s ===== */
+let _busyCount=0,_busyTimer=null,_busySilent=0;
+function busyOn(label){_busyCount++;if(_busyCount===1){const t=document.getElementById('busyText');if(t)t.textContent=label||'Procesando…';_busyTimer=setTimeout(function(){_busyTimer=null;if(_busyCount>0){const o=document.getElementById('busyOverlay');if(o){o.classList.add('on');o.setAttribute('aria-hidden','false');}}},1000);}}
+function busyOff(){if(_busyCount>0)_busyCount--;if(_busyCount===0){if(_busyTimer){clearTimeout(_busyTimer);_busyTimer=null;}const o=document.getElementById('busyOverlay');if(o){o.classList.remove('on');o.setAttribute('aria-hidden','true');}}}
+async function withBusy(label,fn){busyOn(label);try{return await fn();}finally{busyOff();}}
+/* Envuelve fetch: cualquier llamada de red enciende el indicador (salvo tareas de fondo silenciosas). */
+(function(){const _rawFetch=window.fetch?window.fetch.bind(window):null;if(!_rawFetch)return;window.fetch=function(){if(_busySilent>0)return _rawFetch.apply(null,arguments);busyOn();return _rawFetch.apply(null,arguments).finally(busyOff);};})();
 /* Guarda el valor numérico y, si se ingresó una fórmula (empieza con '='), recuerda la fórmula en un campo paralelo <campo>__f para poder mostrarla al enfocar la celda. */
 function setNumF(obj,k,raw){const t=String(raw==null?'':raw).trim();obj[k]=num(t);if(t.charAt(0)==='='){obj[k+'__f']=t;}else if((k+'__f') in obj){delete obj[k+'__f'];}}
 /* Al enfocar una celda de dinero: si guarda una fórmula, muestra la fórmula (=10*1.16); si no, el número plano. Al salir: muestra el resultado formateado. */
@@ -1839,6 +1857,7 @@ async function doEnviarEjecutivo(){
   const extraCount=($('em_files')&&$('em_files').files)?$('em_files').files.length:0;
   if(!inclLink&&!inclPdf&&!inclJson&&extraCount===0){if(!confirm('Vas a enviar solo el mensaje de texto, sin liga, PDF, .json ni adjuntos. ¿Continuar?'))return;}
   const btn=$('em_send'); if(btn){btn.disabled=true;btn.textContent='Guardando y enviando…';}
+  busyOn('Guardando y enviando…');
   try{
     await guardarRapido();                       // 1) guardar el trabajo (local + repositorio + catálogo)
     let pdfB64=null;
@@ -1872,12 +1891,13 @@ async function doEnviarEjecutivo(){
     logEvent('Enviar correo','Para: '+to+(ccRaw?(' · CC: '+ccRaw):''));
     closeModal();
     alert('✅ Cotización enviada a: '+to+(ccRaw?('\nCC: '+ccRaw):'')+'\nProyecto guardado.');
-  }catch(e){if(btn){btn.disabled=false;btn.textContent='📧 Enviar';}alert('No se pudo enviar el correo: '+((e&&e.message)||e));console.error(e);}
+  }catch(e){if(btn){btn.disabled=false;btn.textContent='📧 Enviar';}alert('No se pudo enviar el correo: '+((e&&e.message)||e));console.error(e);}finally{busyOff();}
 }
 
 /* ============================ EXCEL EXPORT (branded, todos los datos) ============================ */
 function svgToPng(dataUri,w,h){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{try{const c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);res(c.toDataURL('image/png'));}catch(e){rej(e);}};img.onerror=rej;img.src=dataUri;});}
 async function exportExcel(){
+  busyOn('Generando Excel…');
   try{
     if(typeof ExcelJS==='undefined'){alert('No se pudo cargar ExcelJS (requiere internet).');return;}
     const R=(LAST&&LAST.total)?LAST:compute(), cur=S.ing.moneda, p=S.proyecto;
@@ -2025,9 +2045,10 @@ async function exportExcel(){
     const out=await wb.xlsx.writeBuffer();
     const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=costeoBaseName()+'.xlsx';a.click();
-  }catch(e){alert('Error al exportar Excel: '+e.message);console.error(e);}
+  }catch(e){alert('Error al exportar Excel: '+e.message);console.error(e);}finally{busyOff();}
 }
 async function exportExcelTemplate(){
+  busyOn('Generando Excel…');
   try{
     if(typeof ExcelJS==='undefined'){alert('No se pudo cargar ExcelJS (requiere internet).');return;}
     const bin=atob(TEMPLATE_B64), buf=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);
@@ -2087,7 +2108,7 @@ async function exportExcelTemplate(){
     const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Costeo_${(S.proyecto.empresa||'Proyecto').replace(/[^a-z0-9]/gi,'_')}.xlsx`;a.click();
     if(warns.length)alert('Excel generado con avisos:\n\n- '+[...new Set(warns)].join('\n- '));
-  }catch(e){alert('Error al exportar Excel: '+e.message);console.error(e);}
+  }catch(e){alert('Error al exportar Excel: '+e.message);console.error(e);}finally{busyOff();}
 }
 
 /* ============================ PLANTILLA / CARGA MASIVA (Materiales y Contratos) ============================ */
@@ -2121,6 +2142,7 @@ async function downloadTemplate(tag){
 }
 async function importBulk(tag,ev){
   const f=ev.target.files[0]; if(!f)return; ev.target.value='';
+  busyOn('Cargando plantilla…');
   try{
     if(typeof ExcelJS==='undefined'){alert('No se pudo cargar ExcelJS (requiere internet).');return;}
     const buf=await f.arrayBuffer();
@@ -2152,7 +2174,7 @@ async function importBulk(tag,ev){
     const cap=tag==='mat'?21:19;
     if(rows.length>cap)msg+=`\n\nNota: el Excel exportado solo admite ${cap} filas para ${nombre}; las filas extra se muestran en la app pero se recortan al exportar.`;
     alert(msg);
-  }catch(e){alert('Error al leer la plantilla: '+e.message);console.error(e);}
+  }catch(e){alert('Error al leer la plantilla: '+e.message);console.error(e);}finally{busyOff();}
 }
 
 /* ============================ CLIENTES: dropdowns + modales ============================ */
@@ -2261,13 +2283,13 @@ function centralLogPush(entry){
     renderBitacora();
   }).catch(()=>{});
 }
-async function loadCentralLog(){
+async function loadCentralLog(){_busySilent++;
   try{ if(location.protocol==='file:')return;
     const t=await graphTokenSilent(); if(!t)return;
     const arr=await logRepoGet({Authorization:'Bearer '+t});
     _bitLog=(Array.isArray(arr)?arr:[]).slice().reverse();
     _bitPage=1; renderBitacora();
-  }catch(_){}}
+  }catch(_){}finally{_busySilent--;}}
 function mergeCatalogRemote(cat){if(!cat)return;
   const upd=(tgt,inc,kf,fields)=>{if(!Array.isArray(inc)||!Array.isArray(tgt))return;inc.forEach(it=>{if(!it)return;const ex=tgt.find(t=>kf(t)===kf(it));if(!ex)tgt.push(it);else fields.forEach(f=>{if(it[f]!==undefined)ex[f]=it[f];});});};
   upd(DIR.oficinas,cat.oficinas,x=>x.name,['name','city']);
@@ -2276,7 +2298,7 @@ function mergeCatalogRemote(cat){if(!cat)return;
   if(Array.isArray(cat.clients))cat.clients.forEach(c=>{if(!c)return;let ex=DB_CLIENTS.find(x=>x.empresa===c.empresa);if(!ex){DB_CLIENTS.push(c);}else{if(c.direccion!==undefined)ex.direccion=c.direccion;if(!Array.isArray(ex.contactos))ex.contactos=[];if(Array.isArray(c.contactos))c.contactos.forEach(ct=>{if(!ct)return;const ec=ex.contactos.find(e=>e.nombre===ct.nombre);if(!ec)ex.contactos.push(ct);else{ec.email=ct.email;ec.telefono=ct.telefono;if(ct.direccion!==undefined)ec.direccion=ct.direccion;}});}});}
 function refreshAllDir(){refreshOficinaSelect();refreshClienteSelect();refreshContactoSelect();refreshPreventaSelect();refreshEjecutivoSelect();}
 function scheduleCatalogPush(){if(!_catReady||location.protocol==='file:')return;clearTimeout(_catPushT);_catPushT=setTimeout(async()=>{try{const t=await graphTokenSilent();if(!t)return;await catalogRepoPut({Authorization:'Bearer '+t});}catch(e){}},1500);}
-async function catalogPullSilent(){try{if(location.protocol!=='file:'){const t=await graphTokenSilent();if(t){const remote=await catalogRepoGet({Authorization:'Bearer '+t});if(remote){mergeCatalogRemote(remote);refreshAllDir();}}}}catch(e){}finally{_catReady=true;}}
+async function catalogPullSilent(){_busySilent++;try{if(location.protocol!=='file:'){const t=await graphTokenSilent();if(t){const remote=await catalogRepoGet({Authorization:'Bearer '+t});if(remote){mergeCatalogRemote(remote);refreshAllDir();}}}}catch(e){}finally{_catReady=true;_busySilent--;}}
 async function syncCatalog(){
   const cfg=getGraphCfg();
   if(!cfg||!cfg.clientId){alert('Primero configura el repositorio (⚙️ Config).');return;}
@@ -2571,11 +2593,11 @@ async function tarifasRepoGet(H){const drive=await catalogDriveId(H);
 async function tarifasRepoPut(H){const drive=await catalogDriveId(H);
   const up=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive}/root:/${graphEncPath(SYS_DIR+'/'+TARIFAS_FILE)}:/content`,{method:'PUT',headers:Object.assign({},H,{'Content-Type':'application/json'}),body:JSON.stringify(LIVE_TARIFAS,null,2)});
   if(!up.ok)throw new Error('HTTP '+up.status);}
-async function pullTarifasSilent(){try{ if(location.protocol==='file:')return;
+async function pullTarifasSilent(){_busySilent++;try{ if(location.protocol==='file:')return;
   const t=await graphTokenSilent(); if(!t)return;
   const remote=await tarifasRepoGet({Authorization:'Bearer '+t});
   if(remote&&typeof remote==='object'){ LIVE_TARIFAS=deepMerge(cloneTar(DEFAULT_TARIFAS),remote); if(!_tarDirty)renderTarifas(); }
-}catch(_){}}
+}catch(_){}finally{_busySilent--;}}
 async function saveTarifas(){
   if(!tarifasAllowed()){alert('Solo usuarios autorizados pueden guardar las tarifas vigentes.');return;}
   if(location.protocol==='file:'){alert('Guardar tarifas requiere la versión publicada (https) con sesión iniciada.');return;}
@@ -2645,8 +2667,11 @@ async function guardarRapido(){
   alert('💾 Trabajo guardado ('+(S.proyecto.version||'v1')+')\n'+(okL?'✅ Local (Descargas)':'— Local')+'\n'+(okR?('✅ Repositorio'+(clientFolder()?(' 📁 '+clientFolder()):'')):'— Repositorio')+(er.length?('\n\n'+er.join('\n')):''));
 }
 async function downloadPDF(){
-  try{await guardarRapido();}catch(e){console.error(e);}
-  await exportPDFnative();
+  busyOn('Generando PDF…');
+  try{
+    try{await guardarRapido();}catch(e){console.error(e);}
+    await exportPDFnative();
+  }finally{busyOff();}
 }
 function applyLoaded(j){if(j.state){S=j.state;mergeCatalog(j.dirs,j.clients);}else{S=j;}if(!Array.isArray(S.historial))S.historial=[];if(!Array.isArray(S.bitacora))S.bitacora=[];if(!S.proyecto.version)S.proyecto.version='v1';if(!S.tarifas)S.tarifas=cloneTar(LIVE_TARIFAS);loadTarIntoCFG(S.tarifas);
   if(S.ing&&S.ing.subc&&!S.ing.subc.moneda){S.ing.subc.moneda='MXN';S.ing.subc.fx=S.ing.subc.fx||20;}
@@ -2861,11 +2886,11 @@ function loadProject(ev){
 }
 /* ===== Tipo de cambio automático (fuente pública sin token) editable por sección ===== */
 let LIVE_FX=null;
-async function fetchLiveFX(){
+async function fetchLiveFX(){_busySilent++;
   try{const r=await fetch('https://open.er-api.com/v6/latest/USD');const j=await r.json();const mx=j&&j.rates&&j.rates.MXN;
     if(mx)LIVE_FX={rate:Math.round(mx*10000)/10000,date:(j.time_last_update_utc||'').replace(/^[A-Za-z]{3},\s*/,'').replace(/\s+\d{2}:\d{2}:\d{2}.*$/,''),source:'exchangerate-api.com'};}
   catch(_){}
-  renderFXbar();
+  renderFXbar();_busySilent--;
 }
 function renderFXbar(){const el=$('fxbar');if(!el)return;
   if(LIVE_FX){el.innerHTML='Tipo de cambio USD→MXN: <b>$'+LIVE_FX.rate.toFixed(4)+'</b> · Fuente: '+esc(LIVE_FX.source)+' · '+esc(LIVE_FX.date)+' &nbsp;<button class="mini add" onclick="applyLiveFX(true)" title="Coloca este tipo de cambio en las 6 secciones (sigue siendo editable en cada una)">Aplicar a todas las secciones</button>&nbsp;<span style="color:#7c89a6">· editable por sección</span>';}
