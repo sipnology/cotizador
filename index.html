@@ -842,7 +842,15 @@ function volDisc(n){for(const b of CFG.volume){if(n>=b.lo&&n<=b.hi)return b.d;}r
 function multiDisc(m){m=num(m);for(const b of CFG.multiannual){if(m>=b.lo&&m<=b.hi)return b.d;}return 0;}
 /* auto-ajuste de textareas al contenido */
 function autoGrow(el){if(!el||el.tagName!=='TEXTAREA')return;el.style.height='auto';el.style.height=(el.scrollHeight+2)+'px';}
-function growAll(){document.querySelectorAll('textarea.ta').forEach(autoGrow);}
+/* Ajusta la altura de TODOS los textarea en 3 fases (escribir-auto, leer alturas, escribir alturas)
+   para evitar el "layout thrashing" (un reflow por textarea) que con miles de filas congelaba la página. */
+function growAll(){
+  const els=document.querySelectorAll('textarea.ta');
+  for(let i=0;i<els.length;i++)els[i].style.height='auto';   // fase de escritura
+  const hs=new Array(els.length);
+  for(let i=0;i<els.length;i++)hs[i]=els[i].scrollHeight;     // fase de lectura (un solo reflow)
+  for(let i=0;i<els.length;i++)els[i].style.height=(hs[i]+2)+'px'; // fase de escritura
+}
 /* margen global: aplica a todas las líneas de ingeniería (bulk) */
 function setGlobalMargin(v){const m=num(v)/100;S.ing.margin=m;S.ing.tasks.forEach(t=>t.subs.forEach(s=>s.margin=m));recompute();}
 
