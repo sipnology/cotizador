@@ -2242,8 +2242,22 @@ async function graphTokenSilent(){
     return (await _msalApp.acquireTokenSilent({scopes:['Sites.ReadWrite.All'],account:acc})).accessToken;
   }catch(e){return null;}
 }
+/* Resuelve el sitio de SharePoint con diagnóstico claro: distingue falta de ACCESO (403/401)
+   de ruta inexistente (404), para que el usuario sepa qué hacer (pedir acceso vs. revisar Config). */
+async function graphSite(cfg,H){
+  const r=await fetch(`https://graph.microsoft.com/v1.0/sites/${cfg.host}:${cfg.sitePath}`,{headers:H});
+  if(!r.ok){
+    let code='';try{const j=await r.json();code=(j&&j.error&&(j.error.code||j.error.message))||'';}catch(_){}
+    if(r.status===401||r.status===403)throw new Error('Tu cuenta de Microsoft 365 no tiene acceso al sitio de SharePoint “'+cfg.sitePath+'”. Pide al administrador que te agregue como miembro del sitio o de la biblioteca “'+cfg.library+'”. (HTTP '+r.status+(code?' · '+code:'')+')');
+    if(r.status===404)throw new Error('No se encontró el sitio de SharePoint “'+cfg.host+cfg.sitePath+'”. Verifica la ruta en Config (⚙️) o que tu cuenta tenga acceso. (HTTP 404'+(code?' · '+code:'')+')');
+    throw new Error('No se pudo acceder al sitio de SharePoint (HTTP '+r.status+(code?' · '+code:'')+').');
+  }
+  const site=await r.json();
+  if(!site.id)throw new Error('No se encontró el sitio de SharePoint (respuesta sin id). Revisa el acceso de tu cuenta o la ruta en Config (⚙️).');
+  return site;
+}
 async function catalogDriveId(H){const cfg=getGraphCfg();
-  const site=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${cfg.host}:${cfg.sitePath}`,{headers:H})).json();if(!site.id)throw new Error('No se encontró el sitio.');
+  const site=await graphSite(cfg,H);
   const drv=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:H})).json();
   const drive=(drv.value||[]).find(d=>d.name===cfg.library)||(drv.value||[])[0];if(!drive)throw new Error('No se encontró la biblioteca.');return drive.id;}
 async function catalogRepoGet(H){const drive=await catalogDriveId(H);
@@ -2642,7 +2656,7 @@ function sanitizeFolder(s){return String(s||'').replace(/[\\/:*?"<>|#%]/g,' ').r
 function clientFolder(){return sanitizeFolder(S&&S.proyecto&&S.proyecto.empresa);}
 function repoRelPath(fname){const f=clientFolder();return f?(f+'/'+fname):fname;}
 function graphEncPath(rel){return String(rel).split('/').map(encodeURIComponent).join('/');}
-async function repoPutJSON(json,relpath){const cfg=getGraphCfg();if(!cfg||!cfg.clientId||!cfg.host||!cfg.sitePath)throw new Error('Configura el repositorio (⚙️).');if(location.protocol==='file:')throw new Error('Requiere la versión publicada (https).');const token=await graphToken(cfg);const H={Authorization:'Bearer '+token};const site=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${cfg.host}:${cfg.sitePath}`,{headers:H})).json();if(!site.id)throw new Error('No se encontró el sitio.');const drv=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:H})).json();const drive=(drv.value||[]).find(d=>d.name===cfg.library)||(drv.value||[])[0];if(!drive)throw new Error('No se encontró la biblioteca.');const up=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive.id}/root:/${graphEncPath(relpath)}:/content`,{method:'PUT',headers:Object.assign({},H,{'Content-Type':'application/json'}),body:json});if(!up.ok)throw new Error('HTTP '+up.status);return true;}
+async function repoPutJSON(json,relpath){const cfg=getGraphCfg();if(!cfg||!cfg.clientId||!cfg.host||!cfg.sitePath)throw new Error('Configura el repositorio (⚙️).');if(location.protocol==='file:')throw new Error('Requiere la versión publicada (https).');const token=await graphToken(cfg);const H={Authorization:'Bearer '+token};const site=await graphSite(cfg,H);const drv=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:H})).json();const drive=(drv.value||[]).find(d=>d.name===cfg.library)||(drv.value||[])[0];if(!drive)throw new Error('No se encontró la biblioteca.');const up=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive.id}/root:/${graphEncPath(relpath)}:/content`,{method:'PUT',headers:Object.assign({},H,{'Content-Type':'application/json'}),body:json});if(!up.ok)throw new Error('HTTP '+up.status);return true;}
 async function guardar(){if(hasFile)return;syncFromInputs();if(!S.proyecto.version)setVersion('v1');const json=JSON.stringify(projectPayload(),null,2);const fname=costeoBaseName()+'.json';let okL=false,okR=false,er=[];try{dlLocal(json,fname);okL=true;}catch(e){er.push('Local: '+e.message);}try{okR=await repoPutJSON(json,repoRelPath(fname));}catch(e){er.push('Repositorio: '+e.message);}if(okL||okR){hasFile=true;openedFileName=fname;updateSaveButtons();logEvent('Guardar','Cotización creada · '+(S.proyecto.version||'v1')+' · '+fname);}const cat=await syncCatalogQuiet();alert('Guardado '+(S.proyecto.version||'v1')+'\n'+(okL?'✅ Local (Descargas)':'— Local')+'\n'+(okR?('✅ Repositorio'+(clientFolder()?(' 📁 '+clientFolder()):'')):'— Repositorio')+'\n'+cat+(er.length?('\n\n'+er.join('\n')):''));}
 function guardarCambios(){if(!hasFile){alert('Primero usa "Guardar" para crear el archivo.');return;}syncFromInputs();
   $('modal').innerHTML=`<h3>Guardar cambios</h3><div class="hint">Se sobrescribe el mismo archivo (local + repositorio) y se incrementa la versión.</div>
@@ -2756,8 +2770,7 @@ async function repoSave(){
   try{
     syncFromInputs();
     const token=await graphToken(cfg);const H={Authorization:'Bearer '+token};
-    const site=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${cfg.host}:${cfg.sitePath}`,{headers:H})).json();
-    if(!site.id)throw new Error('No se encontró el sitio de SharePoint.');
+    const site=await graphSite(cfg,H);
     const drv=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:H})).json();
     const drive=(drv.value||[]).find(d=>d.name===cfg.library)||(drv.value||[])[0];
     if(!drive)throw new Error('No se encontró la biblioteca "'+cfg.library+'".');
@@ -2775,8 +2788,7 @@ async function repoOpen(){
   if(location.protocol==='file:'){alert('Abrir desde el repositorio requiere el aplicativo publicado (https).');return;}
   try{
     const token=await graphToken(cfg);const H={Authorization:'Bearer '+token};
-    const site=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${cfg.host}:${cfg.sitePath}`,{headers:H})).json();
-    if(!site.id)throw new Error('No se encontró el sitio de SharePoint.');
+    const site=await graphSite(cfg,H);
     const drv=await (await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:H})).json();
     const drive=(drv.value||[]).find(d=>d.name===cfg.library)||(drv.value||[])[0];
     if(!drive)throw new Error('No se encontró la biblioteca "'+cfg.library+'".');
