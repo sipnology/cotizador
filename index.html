@@ -802,6 +802,9 @@ document.addEventListener('focusout',function(e){const el=e.target;if(!el||el.ta
 document.addEventListener('input',function(e){const el=e.target;if(!el||el.tagName!=='INPUT')return;const im=el.getAttribute('inputmode');if(im!=='decimal'&&im!=='numeric')return;const val=el.value||'';if((val.trim().charAt(0))==='=')return;if(/[$ \s]|[A-Za-z]/.test(val)){const before=(el.selectionStart||0);const cleaned=val.replace(/[$ \sA-Za-z]/g,'');const removed=val.length-cleaned.length;el.value=cleaned;try{el.setSelectionRange(Math.max(0,before-removed),Math.max(0,before-removed));}catch(_){}}},true);
 function money(v,cur){cur=cur||'MXN';return (v<0?'-':'')+cur+' '+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function n2(v){return (v<0?'-':'')+Math.abs(num(v)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+/* Suma el Precio total (pTot) de cada grupo definido por un separador, indexado por la fila del separador.
+   Se usa para mostrar el subtotal en el mismo encabezado del separador (Materiales/Contratos). */
+function bomGroupTotals(rows,calc){const m={};let cur=-1;for(let i=0;i<rows.length;i++){const row=rows[i];if(row.sep){cur=i;m[i]={total:0};continue;}const c=calc&&calc[i];if(c&&num(row.qty)>0&&cur>=0)m[cur].total+=c.pTot;}return m;}
 /* ===== Indicador "Procesando…" (puntos) — aparece SOLO si la operación tarda más de 1 s ===== */
 let _busyCount=0,_busyTimer=null,_busySilent=0;
 function busyOn(label){_busyCount++;if(_busyCount===1){const t=document.getElementById('busyText');if(t)t.textContent=label||'Procesando…';_busyTimer=setTimeout(function(){_busyTimer=null;if(_busyCount>0){const o=document.getElementById('busyOverlay');if(o){o.classList.add('on');o.setAttribute('aria-hidden','false');}}},1000);}}
@@ -1561,17 +1564,13 @@ function renderQuote(){
   const hasMesa=mesaRows!=='';if(!mesaRows)mesaRows=`<tr><td colspan="5" class="l" style="color:#999">Sin partidas</td></tr>`;
   const mesaTotal=R.sacot.priceTotal;
   // Materiales <- BOM
-  let matRows='',mi=1,pmat=null,mGT=0,mGL='',mGO=false;
-  const flushMatPrev=()=>{if(mGO&&mGL){matRows+=`<tr><td colspan="5" class="nw" style="text-align:right;font-weight:700;background:#f0f0f0">Subtotal — ${esc(mGL)}</td><td class="nw" style="font-weight:700;background:#f0f0f0">${n2(mGT)}</td></tr>`;}mGO=false;mGT=0;mGL='';};
-  S.mat.rows.forEach((row,i)=>{if(row.sep){flushMatPrev();pmat=(row.label||'').trim();return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmat){matRows+=`<tr><td colspan="6" style="font-weight:700;color:#E8632A;background:#fff3ec;text-align:center">${esc(pmat)}</td></tr>`;mGL=pmat;pmat=null;}matRows+=`<tr><td>${esc(row.item||mi)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;mGT+=c.pTot;mGO=true;mi++;}});
-  flushMatPrev();
+  let matRows='',mi=1,pmatIdx=-1;const matG=bomGroupTotals(S.mat.rows,R.mat.matCalc);
+  S.mat.rows.forEach((row,i)=>{if(row.sep){pmatIdx=i;return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmatIdx>=0){const lbl=(S.mat.rows[pmatIdx].label||'').trim();const gt=matG[pmatIdx]?matG[pmatIdx].total:0;matRows+=`<tr><td colspan="5" style="font-weight:700;color:#E8632A;background:#fff3ec">${esc(lbl)}</td><td class="nw" style="font-weight:700;color:#E8632A;background:#fff3ec;text-align:right">${n2(gt)}</td></tr>`;pmatIdx=-1;}matRows+=`<tr><td>${esc(row.item||mi)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;mi++;}});
   const hasMat=matRows!=='';if(!matRows)matRows=`<tr><td colspan="6" class="l" style="color:#999">Sin materiales</td></tr>`;
   const matTotal=R.mat.price;
   // Contratos de soporte / renovación <- Contratos
-  let conRows='',ci=1,pcon=null,cGT=0,cGL='',cGO=false;
-  const flushConPrev=()=>{if(cGO&&cGL){conRows+=`<tr><td colspan="5" class="nw" style="text-align:right;font-weight:700;background:#f0f0f0">Subtotal — ${esc(cGL)}</td><td class="nw" style="font-weight:700;background:#f0f0f0">${n2(cGT)}</td></tr>`;}cGO=false;cGT=0;cGL='';};
-  S.con.rows.forEach((row,i)=>{if(row.sep){flushConPrev();pcon=(row.label||'').trim();return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pcon){conRows+=`<tr><td colspan="6" style="font-weight:700;color:#E8632A;background:#fff3ec;text-align:center">${esc(pcon)}</td></tr>`;cGL=pcon;pcon=null;}conRows+=`<tr><td>${esc(row.item||ci)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;cGT+=c.pTot;cGO=true;ci++;}});
-  flushConPrev();
+  let conRows='',ci=1,pconIdx=-1;const conG=bomGroupTotals(S.con.rows,R.con.conCalc);
+  S.con.rows.forEach((row,i)=>{if(row.sep){pconIdx=i;return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pconIdx>=0){const lbl=(S.con.rows[pconIdx].label||'').trim();const gt=conG[pconIdx]?conG[pconIdx].total:0;conRows+=`<tr><td colspan="5" style="font-weight:700;color:#E8632A;background:#fff3ec">${esc(lbl)}</td><td class="nw" style="font-weight:700;color:#E8632A;background:#fff3ec;text-align:right">${n2(gt)}</td></tr>`;pconIdx=-1;}conRows+=`<tr><td>${esc(row.item||ci)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;ci++;}});
   const hasCon=conRows!=='';if(!conRows)conRows=`<tr><td colspan="6" class="l" style="color:#999">Sin contratos</td></tr>`;
   const conTotal=R.con.price;
   const QG=quoteTotalsByCur(R);
@@ -1731,15 +1730,11 @@ async function buildQuotePDF(){
   if(serv.length)sect('Servicios profesionales',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],serv,R.prop.priceTotal,'Total servicios profesionales ('+QG.cu.serv+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
   const mesa=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((r,i)=>{const c=R.sacot.rows[i];if(num(r.cant)>0)mesa.push([String(r.partida||(i+1)),htmlToText(r.desc||''),String(num(r.cant)),n2(c.pUnit),n2(c.pTot)]);});
   if(mesa.length)sect('Mesa de ayuda / Recursos en sitio',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesa,R.sacot.priceTotal,'Total mesa de ayuda / recursos ('+QG.cu.mesa+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
-  const mat=[];let pmatP=null,mGT=0,mGL='',mGO=false;
-  const flushMatPdf=()=>{if(mGO&&mGL){mat.push([{content:'Subtotal — '+mGL,colSpan:5,styles:{fontStyle:'bold',halign:'right',fillColor:[240,240,240]}},{content:n2(mGT),styles:{fontStyle:'bold',halign:'right',fillColor:[240,240,240]}}]);}mGO=false;mGT=0;mGL='';};
-  S.mat.rows.forEach((row,i)=>{if(row.sep){flushMatPdf();pmatP=(row.label||'').trim();return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmatP){mat.push([{content:pmatP,colSpan:6,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'center'}}]);mGL=pmatP;pmatP=null;}mat.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);mGT+=c.pTot;mGO=true;}});
-  flushMatPdf();
+  const mat=[];let pmatIdx=-1;const matG=bomGroupTotals(S.mat.rows,R.mat.matCalc);
+  S.mat.rows.forEach((row,i)=>{if(row.sep){pmatIdx=i;return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmatIdx>=0){const lbl=(S.mat.rows[pmatIdx].label||'').trim();const gt=matG[pmatIdx]?matG[pmatIdx].total:0;mat.push([{content:lbl,colSpan:5,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'left'}},{content:n2(gt),styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'right'}}]);pmatIdx=-1;}mat.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);}});
   if(mat.length)sect('Materiales',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],mat,R.mat.price,'Total materiales ('+QG.cu.mat+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
-  const con=[];let pconP=null,cGT=0,cGL='',cGO=false;
-  const flushConPdf=()=>{if(cGO&&cGL){con.push([{content:'Subtotal — '+cGL,colSpan:5,styles:{fontStyle:'bold',halign:'right',fillColor:[240,240,240]}},{content:n2(cGT),styles:{fontStyle:'bold',halign:'right',fillColor:[240,240,240]}}]);}cGO=false;cGT=0;cGL='';};
-  S.con.rows.forEach((row,i)=>{if(row.sep){flushConPdf();pconP=(row.label||'').trim();return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pconP){con.push([{content:pconP,colSpan:6,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'center'}}]);cGL=pconP;pconP=null;}con.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);cGT+=c.pTot;cGO=true;}});
-  flushConPdf();
+  const con=[];let pconIdx=-1;const conG=bomGroupTotals(S.con.rows,R.con.conCalc);
+  S.con.rows.forEach((row,i)=>{if(row.sep){pconIdx=i;return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pconIdx>=0){const lbl=(S.con.rows[pconIdx].label||'').trim();const gt=conG[pconIdx]?conG[pconIdx].total:0;con.push([{content:lbl,colSpan:5,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'left'}},{content:n2(gt),styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'right'}}]);pconIdx=-1;}con.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);}});
   if(con.length)sect('Contratos de soporte / renovación',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],con,R.con.price,'Total contratos ('+QG.cu.con+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
   if(yy>ph-34){doc.addPage();yy=M;}
   /* Totales por moneda: un bloque por cada moneda presente (USD/MXN). Si sólo hay una, un solo bloque. */
