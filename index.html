@@ -1561,13 +1561,17 @@ function renderQuote(){
   const hasMesa=mesaRows!=='';if(!mesaRows)mesaRows=`<tr><td colspan="5" class="l" style="color:#999">Sin partidas</td></tr>`;
   const mesaTotal=R.sacot.priceTotal;
   // Materiales <- BOM
-  let matRows='',mi=1,pmat=null;
-  S.mat.rows.forEach((row,i)=>{if(row.sep){pmat=(row.label||'').trim();return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmat){matRows+=`<tr><td colspan="6" style="font-weight:700;color:#E8632A;background:#fff3ec;text-align:center">${esc(pmat)}</td></tr>`;pmat=null;}matRows+=`<tr><td>${esc(row.item||mi)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;mi++;}});
+  let matRows='',mi=1,pmat=null,mGT=0,mGL='',mGO=false;
+  const flushMatPrev=()=>{if(mGO&&mGL){matRows+=`<tr><td colspan="5" class="nw" style="text-align:right;font-weight:700;background:#f0f0f0">Subtotal — ${esc(mGL)}</td><td class="nw" style="font-weight:700;background:#f0f0f0">${n2(mGT)}</td></tr>`;}mGO=false;mGT=0;mGL='';};
+  S.mat.rows.forEach((row,i)=>{if(row.sep){flushMatPrev();pmat=(row.label||'').trim();return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmat){matRows+=`<tr><td colspan="6" style="font-weight:700;color:#E8632A;background:#fff3ec;text-align:center">${esc(pmat)}</td></tr>`;mGL=pmat;pmat=null;}matRows+=`<tr><td>${esc(row.item||mi)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;mGT+=c.pTot;mGO=true;mi++;}});
+  flushMatPrev();
   const hasMat=matRows!=='';if(!matRows)matRows=`<tr><td colspan="6" class="l" style="color:#999">Sin materiales</td></tr>`;
   const matTotal=R.mat.price;
   // Contratos de soporte / renovación <- Contratos
-  let conRows='',ci=1,pcon=null;
-  S.con.rows.forEach((row,i)=>{if(row.sep){pcon=(row.label||'').trim();return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pcon){conRows+=`<tr><td colspan="6" style="font-weight:700;color:#E8632A;background:#fff3ec;text-align:center">${esc(pcon)}</td></tr>`;pcon=null;}conRows+=`<tr><td>${esc(row.item||ci)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;ci++;}});
+  let conRows='',ci=1,pcon=null,cGT=0,cGL='',cGO=false;
+  const flushConPrev=()=>{if(cGO&&cGL){conRows+=`<tr><td colspan="5" class="nw" style="text-align:right;font-weight:700;background:#f0f0f0">Subtotal — ${esc(cGL)}</td><td class="nw" style="font-weight:700;background:#f0f0f0">${n2(cGT)}</td></tr>`;}cGO=false;cGT=0;cGL='';};
+  S.con.rows.forEach((row,i)=>{if(row.sep){flushConPrev();pcon=(row.label||'').trim();return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pcon){conRows+=`<tr><td colspan="6" style="font-weight:700;color:#E8632A;background:#fff3ec;text-align:center">${esc(pcon)}</td></tr>`;cGL=pcon;pcon=null;}conRows+=`<tr><td>${esc(row.item||ci)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;cGT+=c.pTot;cGO=true;ci++;}});
+  flushConPrev();
   const hasCon=conRows!=='';if(!conRows)conRows=`<tr><td colspan="6" class="l" style="color:#999">Sin contratos</td></tr>`;
   const conTotal=R.con.price;
   const QG=quoteTotalsByCur(R);
@@ -1727,9 +1731,15 @@ async function buildQuotePDF(){
   if(serv.length)sect('Servicios profesionales',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],serv,R.prop.priceTotal,'Total servicios profesionales ('+QG.cu.serv+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
   const mesa=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((r,i)=>{const c=R.sacot.rows[i];if(num(r.cant)>0)mesa.push([String(r.partida||(i+1)),htmlToText(r.desc||''),String(num(r.cant)),n2(c.pUnit),n2(c.pTot)]);});
   if(mesa.length)sect('Mesa de ayuda / Recursos en sitio',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesa,R.sacot.priceTotal,'Total mesa de ayuda / recursos ('+QG.cu.mesa+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
-  const mat=[];let pmatP=null;S.mat.rows.forEach((row,i)=>{if(row.sep){pmatP=(row.label||'').trim();return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmatP){mat.push([{content:pmatP,colSpan:6,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'center'}}]);pmatP=null;}mat.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);}});
+  const mat=[];let pmatP=null,mGT=0,mGL='',mGO=false;
+  const flushMatPdf=()=>{if(mGO&&mGL){mat.push([{content:'Subtotal — '+mGL,colSpan:5,styles:{fontStyle:'bold',halign:'right',fillColor:[240,240,240]}},{content:n2(mGT),styles:{fontStyle:'bold',halign:'right',fillColor:[240,240,240]}}]);}mGO=false;mGT=0;mGL='';};
+  S.mat.rows.forEach((row,i)=>{if(row.sep){flushMatPdf();pmatP=(row.label||'').trim();return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmatP){mat.push([{content:pmatP,colSpan:6,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'center'}}]);mGL=pmatP;pmatP=null;}mat.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);mGT+=c.pTot;mGO=true;}});
+  flushMatPdf();
   if(mat.length)sect('Materiales',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],mat,R.mat.price,'Total materiales ('+QG.cu.mat+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
-  const con=[];let pconP=null;S.con.rows.forEach((row,i)=>{if(row.sep){pconP=(row.label||'').trim();return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pconP){con.push([{content:pconP,colSpan:6,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'center'}}]);pconP=null;}con.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);}});
+  const con=[];let pconP=null,cGT=0,cGL='',cGO=false;
+  const flushConPdf=()=>{if(cGO&&cGL){con.push([{content:'Subtotal — '+cGL,colSpan:5,styles:{fontStyle:'bold',halign:'right',fillColor:[240,240,240]}},{content:n2(cGT),styles:{fontStyle:'bold',halign:'right',fillColor:[240,240,240]}}]);}cGO=false;cGT=0;cGL='';};
+  S.con.rows.forEach((row,i)=>{if(row.sep){flushConPdf();pconP=(row.label||'').trim();return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pconP){con.push([{content:pconP,colSpan:6,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'center'}}]);cGL=pconP;pconP=null;}con.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);cGT+=c.pTot;cGO=true;}});
+  flushConPdf();
   if(con.length)sect('Contratos de soporte / renovación',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],con,R.con.price,'Total contratos ('+QG.cu.con+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
   if(yy>ph-34){doc.addPage();yy=M;}
   /* Totales por moneda: un bloque por cada moneda presente (USD/MXN). Si sólo hay una, un solo bloque. */
