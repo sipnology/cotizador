@@ -374,7 +374,7 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
       <h3>CALCULADORA RECURSO EN SITIO</h3>
       <div class="hint">Carga social por defecto 42%. Facturación mensual.</div>
       <table id="onsite_table">
-        <thead><tr><th class="l" style="text-align:center">Descripción</th><th>Cant.</th><th>Costo unit.</th><th>Carga social</th><th>Subtotal unit.</th><th>Costo total</th><th>Margen</th><th>Precio total</th><th></th></tr></thead>
+        <thead><tr><th class="l" style="text-align:center">Descripción</th><th>Cant.</th><th>Meses</th><th>Costo unit.</th><th>Carga social</th><th>Subtotal unit.</th><th>Costo total</th><th>Margen</th><th>Precio total</th><th></th></tr></thead>
         <tbody id="onsite_body"></tbody>
       </table>
       <div style="margin-top:8px"><button class="mini add" onclick="addOnsite()">＋ Agregar recurso</button></div>
@@ -748,15 +748,15 @@ function defaultState(){
         add:{mant:'-',asist:'-',nac:'-',intl:'-'}, dev:{basic:{},adv:{},end:{}}, onsite:[],
         cotiz:{rows:[{partida:'',desc:'',cant:1,costo:0,nota:''},{partida:'',desc:'',cant:1,costo:0,nota:''}]},
         sacalc:{moneda:'MXN',fx:20,rows:[{concepto:'',cant:1,costo:0,margin:0.1,nota:''},{concepto:'',cant:1,costo:0,margin:0,nota:''}]}},
-    mat:{fx:19,disc:0.15,margin:0.15,moneda:'MXN',tax:0,freight:0,prorr:0,rows:[]},
-    con:{disc:0.15,margin:0.2,moneda:'MXN',fx:19,prorr:0,rows:[]}
+    mat:{fx:19,disc:0,margin:0.15,moneda:'MXN',tax:0,freight:0,prorr:0,rows:[]},
+    con:{disc:0,margin:0.2,moneda:'MXN',fx:19,prorr:0,rows:[]}
   };
   ['basic','adv','end'].forEach(k=>DEV_ROWS[k].forEach(d=>st.sa.dev[k][d.r]=0));
   st.sa.devNames={basic:{},adv:{},end:{}};
   ['basic','adv','end'].forEach(k=>DEV_ROWS[k].forEach(d=>st.sa.devNames[k][d.r]=d.d));
-  st.sa.onsite=[{r:84,d:'Recurso 1',cant:0,costo:0,carga:0.42,margin:0.4,meses:12},{r:85,d:'Recurso 2',cant:0,costo:0,carga:0.42,margin:0.4,meses:12},{r:86,d:'Recurso 3',cant:0,costo:0,carga:0.42,margin:0.4,meses:12}];
-  for(let i=0;i<21;i++) st.mat.rows.push({prov:i===0?'INGRAM':'',marca:i===0?'Cisco':'',item:'',sku:'',desc:'',pl:0,qty:0,disc:0.15,margin:0.15});
-  for(let i=0;i<19;i++) st.con.rows.push({prov:i===0?'INGRAM':'',marca:i===0?'Cisco':'',item:'',sku:'',desc:'',pl:0,qty:0,disc:0.15,margin:0.2});
+  st.sa.onsite=[{r:84,d:'Recurso 1',cant:0,costo:0,carga:0.42,margin:0.4,meses:1},{r:85,d:'Recurso 2',cant:0,costo:0,carga:0.42,margin:0.4,meses:1},{r:86,d:'Recurso 3',cant:0,costo:0,carga:0.42,margin:0.4,meses:1}];
+  for(let i=0;i<21;i++) st.mat.rows.push({prov:i===0?'INGRAM':'',marca:i===0?'Cisco':'',item:'',sku:'',desc:'',pl:0,qty:0,disc:0,margin:0.15});
+  for(let i=0;i<19;i++) st.con.rows.push({prov:i===0?'INGRAM':'',marca:i===0?'Cisco':'',item:'',sku:'',desc:'',pl:0,qty:0,disc:0,margin:0.2});
   st.comercial={notas:'',condiciones:DEFAULT_CONDICIONES,comisiones:[{partida:'1',desc:'',cant:1,monto:0,nota:''}],validez:15};
   st.historial=[];st.bitacora=[];
   // ---- Datos de MUESTRA (para visualizar la cotización sin recapturar) ----
@@ -768,10 +768,10 @@ function defaultState(){
   st.sa.cotiz.rows=[
     {partida:'1',desc:'Mesa de Ayuda 24x7 · 12 meses · equipos LAN (17) y FW (13)',cant:12,costo:18500,nota:''}];
   st.sa.dev.basic[15]=17; st.sa.dev.basic[16]=13;
-  st.sa.onsite[0]={r:84,d:'Ingeniero de soporte N2',cant:1,costo:35000,carga:0.42,meses:12};
-  st.mat.rows[0]={prov:'INGRAM',marca:'Cisco',item:'1',sku:'C9300-48P',desc:'Catalyst 9300 48-port PoE+',pl:4200,qty:17,disc:0.15,margin:0.15};
-  st.mat.rows[1]={prov:'INGRAM',marca:'Cisco',item:'2',sku:'FPR1140',desc:'Firepower 1140 NGFW',pl:9800,qty:2,disc:0.15,margin:0.15};
-  st.con.rows[0]={prov:'INGRAM',marca:'Cisco',item:'1',sku:'CON-SNT-C9300',desc:'SmartNet 8x5xNBD 36 meses',pl:1800,qty:17,disc:0.15,margin:0.2};
+  st.sa.onsite[0]={r:84,d:'Ingeniero de soporte N2',cant:1,costo:35000,carga:0.42,meses:1};
+  st.mat.rows[0]={prov:'INGRAM',marca:'Cisco',item:'1',sku:'C9300-48P',desc:'Catalyst 9300 48-port PoE+',pl:4200,qty:17,disc:0,margin:0.15};
+  st.mat.rows[1]={prov:'INGRAM',marca:'Cisco',item:'2',sku:'FPR1140',desc:'Firepower 1140 NGFW',pl:9800,qty:2,disc:0,margin:0.15};
+  st.con.rows[0]={prov:'INGRAM',marca:'Cisco',item:'1',sku:'CON-SNT-C9300',desc:'SmartNet 8x5xNBD 36 meses',pl:1800,qty:17,disc:0,margin:0.2};
   return st;
 }
 function sub(desc,perfil){return {desc,horas:0,cant:1,perfil};}
@@ -1001,10 +1001,11 @@ function compute(){
   /* Recurso en sitio */
   let onCost=0,onPrice=0,onQty=0,onCUnit=0,onSubUnit=0; const onCalc=sa.onsite.map(o=>{
     const subUnit=num(o.costo)+num(o.costo)*num(o.carga);
-    const cost=subUnit*num(o.cant);
+    const meses=(o.meses===undefined||o.meses===null||o.meses==='')?1:num(o.meses);   // meses en sitio (cotiz. antiguas sin el dato = 1)
+    const cost=subUnit*num(o.cant)*meses;
     const om=(o.margin!=null&&o.margin!=='')?num(o.margin):sMarg;
     const price=om<1?cost/(1-om):0;
-    onCost+=cost;onPrice+=price;onQty+=num(o.cant);onCUnit+=num(o.costo);onSubUnit+=subUnit;return {subUnit,cost,price,marg:om};
+    onCost+=cost;onPrice+=price;onQty+=num(o.cant);onCUnit+=num(o.costo);onSubUnit+=subUnit;return {subUnit,cost,price,marg:om,meses};
   });
   R.onsite={cost:onCost,price:onPrice,onCalc,qty:onQty,cUnitSum:onCUnit,subUnitSum:onSubUnit,marg:onPrice?((onPrice-onCost)/onPrice):0};
 
@@ -1323,6 +1324,7 @@ function renderSA(){
     const tr=document.createElement('tr');tr.dataset.dndg='onsite';tr.dataset.dndi=i;
     tr.innerHTML=`<td class="l"><div style="display:flex;align-items:center;gap:3px">${grip('onsite',i)}<input value="${esc(o.d)}" data-on="${i}" data-k="d" style="flex:1;min-width:0"></div></td>
       <td style="text-align:center"><input class="num" type="text" inputmode="numeric" value="${o.cant}" data-on="${i}" data-k="cant"></td>
+      <td style="text-align:center"><input class="num" type="text" inputmode="numeric" value="${(o.meses===undefined||o.meses===null||o.meses==='')?1:o.meses}" data-on="${i}" data-k="meses"></td>
       <td style="text-align:center"><input class="numw" type="text" inputmode="decimal" value="${n2(o.costo)}" data-on="${i}" data-k="costo" data-f="${esc(o.costo__f||'')}"></td>
       <td style="text-align:center"><div class="pctcell"><input type="text" inputmode="decimal" value="${(num(o.carga)*100).toFixed(2)}" data-on="${i}" data-k="carga_pct"><span>%</span></div></td>
       <td class="cost nw" style="text-align:center">${n2(c.subUnit)}</td>
@@ -1455,7 +1457,7 @@ function convertCosto(St,selId,label){if(!St){return;}const tc=num(St.fx);if(tc<
 function convertSubc(){convertCosto(S.ing.subc,'subc_moneda','Costo Unitario (Subcontratación)');}
 function convertSacalc(){convertCosto(S.sa.sacalc,'sacalc_moneda','Costo Unitario (Servicio Administrado)');}
 function addSacalc(){if(!S.sa.sacalc)S.sa.sacalc={moneda:'MXN',fx:20,rows:[]};S.sa.sacalc.rows.push({concepto:'',cant:1,costo:0,margin:0,nota:''});recompute();}
-function addOnsite(){if(!Array.isArray(S.sa.onsite))S.sa.onsite=[];S.sa.onsite.push({r:0,d:'Recurso '+(S.sa.onsite.length+1),cant:0,costo:0,carga:0.42,margin:0.4,meses:12});recompute();}
+function addOnsite(){if(!Array.isArray(S.sa.onsite))S.sa.onsite=[];S.sa.onsite.push({r:0,d:'Recurso '+(S.sa.onsite.length+1),cant:0,costo:0,carga:0.42,margin:0.4,meses:1});recompute();}
 function convertBOM(tag){const St=tag==='mat'?S.mat:S.con;const tc=num(St.fx);if(tc<=0){alert('Ingresa un Tipo de cambio válido (> 0).');return;}
   const from=St.moneda||'MXN', to=(from==='MXN'?'USD':'MXN');
   St.rows.forEach(r=>{const pl=num(r.pl);r.pl=(to==='USD')?(pl/tc):(pl*tc);});
@@ -1480,7 +1482,7 @@ function bindBOM2(){
   document.querySelectorAll('[data-sep]').forEach(el=>{el.oninput=()=>{const tag=el.dataset.sep,i=+el.dataset.i;const St=tag==='mat'?S.mat:S.con;if(St.rows[i])St.rows[i].label=el.value;};});
   document.querySelectorAll('[data-delb2]').forEach(el=>{el.onclick=()=>{const p=el.dataset.delb2.split('.'),tag=p[0],i=+p[1];const St=tag==='mat'?S.mat:S.con;if(St.rows.length>1)St.rows.splice(i,1);else alert('Debe quedar al menos una fila.');recompute();};});
 }
-function addBOMrow(tag){const St=tag==='mat'?S.mat:S.con;St.rows.push({prov:'',marca:'',item:'',sku:'',desc:'',pl:0,qty:0,disc:0.15,margin:tag==='mat'?0.15:0.20});recompute();}
+function addBOMrow(tag){const St=tag==='mat'?S.mat:S.con;St.rows.push({prov:'',marca:'',item:'',sku:'',desc:'',pl:0,qty:0,disc:0,margin:tag==='mat'?0.15:0.20});recompute();}
 function addBOMsep(tag){const St=tag==='mat'?S.mat:S.con;St.rows.push({sep:true,label:''});recompute();}
 
 function renderBOM(bodyId,rows,calc,tag){
@@ -2028,8 +2030,8 @@ async function exportExcel(){
     const sacotRows=((S.sa.cotiz&&S.sa.cotiz.rows)||[]).map((row,i)=>[row.partida||(i+1),row.desc||'',num(row.cant),R.sacot.rows[i].pUnit,R.sacot.rows[i].pTot]);
     sr=table(sa,sr,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],sacotRows,[3,4]);sr=totalRow(sa,sr,'Precio total propuesta soporte',R.sacot.priceTotal,4);sr+=2;
     title(sa,sr,'Calculadora recurso en sitio');sr++;
-    const onRows=S.sa.onsite.map((o,i)=>{const c=R.onsite.onCalc[i];return [o.d,num(o.cant),num(o.costo),num(o.carga),c.subUnit,c.cost,num(c.marg),c.price];});
-    sr=table(sa,sr,['Descripción','Cant.','Costo unit.','Carga','Subtotal unit.','Costo total','Margen','Precio total'],onRows,[2,4,5,7],[3,6]);
+    const onRows=S.sa.onsite.map((o,i)=>{const c=R.onsite.onCalc[i];return [o.d,num(o.cant),(c.meses!=null?c.meses:1),num(o.costo),num(o.carga),c.subUnit,c.cost,num(c.marg),c.price];});
+    sr=table(sa,sr,['Descripción','Cant.','Meses','Costo unit.','Carga','Subtotal unit.','Costo total','Margen','Precio total'],onRows,[3,5,6,8],[4,7]);
     sr=totalRow(sa,sr,'Precio total recurso en sitio',R.onsite.price,7);
 
     /* ---- Hoja Materiales y Contratos ---- */
@@ -2165,7 +2167,7 @@ async function importBulk(tag,ev){
       if(prov.toUpperCase()==='SEPARADOR'){if(!/ejemplo\s*-\s*borrar/i.test(desc))rows.push({sep:true,label:(desc||marca||'').trim()});return;}
       if(!prov&&!marca&&!item&&!sku&&!desc&&!pl&&!qty)return;
       if(/ejemplo\s*-\s*borrar/i.test(desc))return;
-      rows.push({prov,marca,item,sku,desc,pl,qty,disc:0.15,margin:tag==='mat'?0.15:0.20});
+      rows.push({prov,marca,item,sku,desc,pl,qty,disc:0,margin:tag==='mat'?0.15:0.20});
     });
     if(!rows.length){alert('No se encontraron filas válidas en la plantilla (revisa que uses las columnas Proveedor, Marca, SKU, Descripción, PL unit. y Cant.).');return;}
     const St=tag==='mat'?S.mat:S.con;
