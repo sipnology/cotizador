@@ -85,7 +85,7 @@ tr.subtot td{background:#0c2033;font-weight:700}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .kpi{background:#0c1730;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 .kpi .lab{color:var(--mut);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px}
-.kpi .val{font-size:18px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}
+.kpi .val{font-size:clamp(13px,1.05vw,18px);font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:-.2px}
 .kpi.good .val{color:var(--acc2)} .kpi.cost .val{color:#f0b45a} .kpi.acc .val{color:#60a5fa}
 .btn{background:var(--acc);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:12px;cursor:pointer}
 .vbtn{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;line-height:1.15;font-size:10.5px;text-align:center;white-space:nowrap;min-width:58px;padding:7px 10px}
@@ -401,8 +401,9 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
         <tbody id="sacalc_body"></tbody>
       </table>
       <div style="margin-top:8px"><button class="mini add" onclick="addSacalc()">＋ Agregar fila</button></div>
-      <div class="kpis" style="margin-top:12px;grid-template-columns:repeat(3,1fr)">
+      <div class="kpis" style="margin-top:12px;grid-template-columns:repeat(4,1fr)">
         <div class="kpi cost"><div class="lab">Costo Servicio Administrado</div><div class="val" id="sacalc_cost">–</div></div>
+        <div class="kpi good"><div class="lab">Precio unitario</div><div class="val" id="sacalc_punit">–</div></div>
         <div class="kpi good"><div class="lab">Precio Servicio Administrado</div><div class="val" id="sacalc_price">–</div></div>
         <div class="kpi"><div class="lab">Margen real</div><div class="val" id="sacalc_marg">–</div></div>
       </div>
@@ -937,9 +938,9 @@ function compute(){
 
   /* Calculadora Servicio Administrado (independiente, NO entra al Resumen Financiero) */
   const xac=S.sa.sacalc||{rows:[]};
-  let xaCost=0,xaPrice=0; const xaRows=[];
-  (xac.rows||[]).forEach(r=>{const bu=num(r.costo);const cost=bu*num(r.cant);const mm=num(r.margin);const price=mm<1?(bu/(1-mm))*num(r.cant):0;const pUnit=mm<1?bu/(1-mm):0;xaRows.push({baseUnit:bu,cost,price,pUnit});xaCost+=cost;xaPrice+=price;});
-  R.sacalc={cost:xaCost,price:xaPrice,rows:xaRows,marg:xaPrice?((xaPrice-xaCost)/xaPrice):0};
+  let xaCost=0,xaPrice=0,xaPUnit=0; const xaRows=[];
+  (xac.rows||[]).forEach(r=>{const bu=num(r.costo);const cost=bu*num(r.cant);const mm=num(r.margin);const price=mm<1?(bu/(1-mm))*num(r.cant):0;const pUnit=mm<1?bu/(1-mm):0;xaRows.push({baseUnit:bu,cost,price,pUnit});xaCost+=cost;xaPrice+=price;xaPUnit+=pUnit;});
+  R.sacalc={cost:xaCost,price:xaPrice,pUnitSum:xaPUnit,rows:xaRows,marg:xaPrice?((xaPrice-xaCost)/xaPrice):0};
 
   /* Propuesta Ingeniería (calculadora independiente, mismas fórmulas que Subcontratación) */
   const pc=S.ing.prop||{rows:[]};
@@ -1396,7 +1397,7 @@ function renderSA(){
         <td>${copyBtn('sacalc',i)}<button class="mini del" data-delsacx="${i}">✕</button></td>`;
       xb.appendChild(tr);
     });
-    if(R.sacalc){$('sacalc_cost').textContent=money(R.sacalc.cost,xcur);$('sacalc_price').textContent=money(R.sacalc.price,xcur);$('sacalc_marg').textContent=pct(R.sacalc.marg);}
+    if(R.sacalc){$('sacalc_cost').textContent=money(R.sacalc.cost,xcur);$('sacalc_punit').textContent=money(R.sacalc.pUnitSum,xcur);$('sacalc_price').textContent=money(R.sacalc.price,xcur);$('sacalc_marg').textContent=pct(R.sacalc.marg);}
     document.querySelectorAll('[data-sacx]').forEach(el=>{el.oninput=()=>{const i=+el.dataset.sacx,k=el.dataset.k;
       if(k==='concepto'||k==='nota'){S.sa.sacalc.rows[i][k]=el.value;autoGrow(el);}
       else if(k==='margin_pct'){S.sa.sacalc.rows[i].margin=num(el.value)/100;recompute();}
