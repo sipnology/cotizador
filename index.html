@@ -379,11 +379,11 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
       </table>
       <div style="margin-top:8px"><button class="mini add" onclick="addOnsite()">＋ Agregar recurso</button></div>
       <div class="kpis" style="margin-top:12px;grid-template-columns:repeat(6,1fr)">
-        <div class="kpi"><div class="lab">Cantidad de recursos</div><div class="val" id="onsite_qty">–</div></div>
         <div class="kpi cost"><div class="lab">Costo Unit.</div><div class="val" id="onsite_cunit">–</div></div>
         <div class="kpi cost"><div class="lab">Subtotal unit.</div><div class="val" id="onsite_subunit">–</div></div>
         <div class="kpi cost"><div class="lab">Costo total</div><div class="val" id="onsite_cost">–</div></div>
         <div class="kpi"><div class="lab">Margen</div><div class="val" id="onsite_marg">–</div></div>
+        <div class="kpi good"><div class="lab">Precio unitario</div><div class="val" id="onsite_punit">–</div></div>
         <div class="kpi good"><div class="lab">Precio total</div><div class="val" id="onsite_price">–</div></div>
       </div>
     </div>
@@ -999,16 +999,16 @@ function compute(){
   R.sacot={priceTotal:cotP,rows:cotCalc};
 
   /* Recurso en sitio */
-  let onCost=0,onPrice=0,onQty=0,onCUnit=0,onSubUnit=0; const onCalc=sa.onsite.map(o=>{
+  let onCost=0,onPrice=0,onQty=0,onCUnit=0,onSubUnit=0,onPUnit=0; const onCalc=sa.onsite.map(o=>{
     const subUnit=num(o.costo)+num(o.costo)*num(o.carga);
     const meses=(o.meses===undefined||o.meses===null||o.meses==='')?1:num(o.meses);   // meses en sitio (cotiz. antiguas sin el dato = 1)
     const cost=subUnit*num(o.cant)*meses;
     const om=(o.margin!=null&&o.margin!=='')?num(o.margin):sMarg;
     const pUnit=om<1?subUnit/(1-om):0;   // precio de venta por recurso/mes
     const price=pUnit*num(o.cant)*meses; // = cost/(1-om)
-    onCost+=cost;onPrice+=price;onQty+=num(o.cant);onCUnit+=num(o.costo);onSubUnit+=subUnit;return {subUnit,cost,price,pUnit,marg:om,meses};
+    onCost+=cost;onPrice+=price;onQty+=num(o.cant);onCUnit+=num(o.costo);onSubUnit+=subUnit;onPUnit+=pUnit;return {subUnit,cost,price,pUnit,marg:om,meses};
   });
-  R.onsite={cost:onCost,price:onPrice,onCalc,qty:onQty,cUnitSum:onCUnit,subUnitSum:onSubUnit,marg:onPrice?((onPrice-onCost)/onPrice):0};
+  R.onsite={cost:onCost,price:onPrice,onCalc,qty:onQty,cUnitSum:onCUnit,subUnitSum:onSubUnit,pUnitSum:onPUnit,marg:onPrice?((onPrice-onCost)/onPrice):0};
 
   /* Materiales — SIN tipo de cambio (igual que el Excel). Descuento y Margen por fila.
      PL total = PL*Cant ; Costo unit = PL*(1-desc) ; Costo subtot = Costo unit*Cant ;
@@ -1336,11 +1336,11 @@ function renderSA(){
       <td>${copyBtn('onsite',i)}<button class="mini del" data-delon="${i}">✕</button></td>`;
     ob.appendChild(tr);
   });
-  $('onsite_qty').textContent=R.onsite.qty;
   $('onsite_cunit').textContent=money(R.onsite.cUnitSum,scur);
   $('onsite_subunit').textContent=money(R.onsite.subUnitSum,scur);
   $('onsite_cost').textContent=money(R.onsite.cost,scur);
   $('onsite_marg').textContent=pct(R.onsite.marg);
+  $('onsite_punit').textContent=money(R.onsite.pUnitSum,scur);
   $('onsite_price').textContent=money(R.onsite.price,scur);
   document.querySelectorAll('[data-dev]').forEach(el=>{el.oninput=()=>{S.sa.dev[el.dataset.dev][el.dataset.r]=num(el.value);recompute();};});
   document.querySelectorAll('[data-devname]').forEach(el=>{el.oninput=()=>{const k=el.dataset.devname,r=el.dataset.r;if(!S.sa.devNames)S.sa.devNames={basic:{},adv:{},end:{}};if(!S.sa.devNames[k])S.sa.devNames[k]={};S.sa.devNames[k][r]=el.value;};});
