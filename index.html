@@ -374,7 +374,7 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
       <h3>CALCULADORA RECURSO EN SITIO</h3>
       <div class="hint">Carga social por defecto 42%. Facturación mensual.</div>
       <table id="onsite_table">
-        <thead><tr><th class="l" style="text-align:center">Descripción</th><th>Cant.</th><th>Meses</th><th>Costo unit.</th><th>Carga social</th><th>Subtotal unit.</th><th>Costo total</th><th>Margen</th><th>Precio total</th><th></th></tr></thead>
+        <thead><tr><th class="l" style="text-align:center">Descripción</th><th>Cant.</th><th>Meses</th><th>Costo unit.</th><th>Carga social</th><th>Subtotal unit.</th><th>Costo total</th><th>Margen</th><th>Precio unitario</th><th>Precio total</th><th></th></tr></thead>
         <tbody id="onsite_body"></tbody>
       </table>
       <div style="margin-top:8px"><button class="mini add" onclick="addOnsite()">＋ Agregar recurso</button></div>
@@ -1004,8 +1004,9 @@ function compute(){
     const meses=(o.meses===undefined||o.meses===null||o.meses==='')?1:num(o.meses);   // meses en sitio (cotiz. antiguas sin el dato = 1)
     const cost=subUnit*num(o.cant)*meses;
     const om=(o.margin!=null&&o.margin!=='')?num(o.margin):sMarg;
-    const price=om<1?cost/(1-om):0;
-    onCost+=cost;onPrice+=price;onQty+=num(o.cant);onCUnit+=num(o.costo);onSubUnit+=subUnit;return {subUnit,cost,price,marg:om,meses};
+    const pUnit=om<1?subUnit/(1-om):0;   // precio de venta por recurso/mes
+    const price=pUnit*num(o.cant)*meses; // = cost/(1-om)
+    onCost+=cost;onPrice+=price;onQty+=num(o.cant);onCUnit+=num(o.costo);onSubUnit+=subUnit;return {subUnit,cost,price,pUnit,marg:om,meses};
   });
   R.onsite={cost:onCost,price:onPrice,onCalc,qty:onQty,cUnitSum:onCUnit,subUnitSum:onSubUnit,marg:onPrice?((onPrice-onCost)/onPrice):0};
 
@@ -1330,6 +1331,7 @@ function renderSA(){
       <td class="cost nw" style="text-align:center">${n2(c.subUnit)}</td>
       <td class="cost nw" style="text-align:center">${n2(c.cost)}</td>
       <td style="text-align:center"><div class="pctcell"><input type="text" inputmode="decimal" value="${(num(c.marg)*100).toFixed(2)}" data-on="${i}" data-k="margin_pct"><span>%</span></div></td>
+      <td class="calc nw" style="text-align:center">${n2(c.pUnit)}</td>
       <td class="calc nw" style="text-align:center">${n2(c.price)}</td>
       <td>${copyBtn('onsite',i)}<button class="mini del" data-delon="${i}">✕</button></td>`;
     ob.appendChild(tr);
@@ -2030,8 +2032,8 @@ async function exportExcel(){
     const sacotRows=((S.sa.cotiz&&S.sa.cotiz.rows)||[]).map((row,i)=>[row.partida||(i+1),row.desc||'',num(row.cant),R.sacot.rows[i].pUnit,R.sacot.rows[i].pTot]);
     sr=table(sa,sr,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],sacotRows,[3,4]);sr=totalRow(sa,sr,'Precio total propuesta soporte',R.sacot.priceTotal,4);sr+=2;
     title(sa,sr,'Calculadora recurso en sitio');sr++;
-    const onRows=S.sa.onsite.map((o,i)=>{const c=R.onsite.onCalc[i];return [o.d,num(o.cant),(c.meses!=null?c.meses:1),num(o.costo),num(o.carga),c.subUnit,c.cost,num(c.marg),c.price];});
-    sr=table(sa,sr,['Descripción','Cant.','Meses','Costo unit.','Carga','Subtotal unit.','Costo total','Margen','Precio total'],onRows,[3,5,6,8],[4,7]);
+    const onRows=S.sa.onsite.map((o,i)=>{const c=R.onsite.onCalc[i];return [o.d,num(o.cant),(c.meses!=null?c.meses:1),num(o.costo),num(o.carga),c.subUnit,c.cost,num(c.marg),c.pUnit,c.price];});
+    sr=table(sa,sr,['Descripción','Cant.','Meses','Costo unit.','Carga','Subtotal unit.','Costo total','Margen','Precio unitario','Precio total'],onRows,[3,5,6,8,9],[4,7]);
     sr=totalRow(sa,sr,'Precio total recurso en sitio',R.onsite.price,7);
 
     /* ---- Hoja Materiales y Contratos ---- */
