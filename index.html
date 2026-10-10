@@ -849,6 +849,22 @@ function sanitizeHtml(html){
   return tpl.innerHTML;
 }
 function conceptoToHtml(v){v=String(v==null?'':v);if(/<[a-z!/][\s\S]*>/i.test(v))return sanitizeHtml(v);return esc(v).replace(/\n/g,'<br>');}
+/* Convierte la descripción (HTML del editor) en párrafos {b:viñeta|null,t:texto} para dibujarla en el PDF
+   con viñetas reales y sangría colgante, igual que en la plataforma. */
+function htmlToRich(html){const out=[];let s=String(html==null?'':html);
+  if(!/[<]/.test(s)){s.split('\n').forEach(t=>out.push({b:null,t:t.replace(/\s+$/,'')}));}
+  else{const tpl=document.createElement('template');tpl.innerHTML=sanitizeHtml(s);let cur=null;
+    const flush=()=>{if(cur!==null){out.push({b:null,t:cur.replace(/\s+/g,' ').trim()});cur=null;}};
+    const walk=node=>{node.childNodes.forEach(n=>{
+      if(n.nodeType===3){cur=(cur||'')+n.nodeValue;return;}
+      if(n.nodeType!==1)return;const tag=n.tagName;
+      if(tag==='BR'){if(cur===null)cur='';flush();return;}
+      if(tag==='UL'||tag==='OL'){flush();let k=0;n.childNodes.forEach(li=>{if(li.nodeType===1&&li.tagName==='LI'){k++;out.push({b:tag==='OL'?(k+'.'):'•',t:li.textContent.replace(/\s+/g,' ').trim()});}});return;}
+      if(tag==='DIV'||tag==='P'||tag==='LI'){flush();walk(n);flush();return;}
+      walk(n);});};
+    walk(tpl.content);flush();}
+  while(out.length&&!out[0].b&&!out[0].t)out.shift();while(out.length&&!out[out.length-1].b&&!out[out.length-1].t)out.pop();
+  return out;}
 function htmlToText(html){let s=String(html==null?'':html);if(!/[<]/.test(s))return s;s=s.replace(/<\s*br\s*\/?>/gi,'\n').replace(/<\s*li[^>]*>/gi,'- ').replace(/<\/\s*(li|p|div|tr|h[1-6])\s*>/gi,'\n').replace(/<[^>]+>/g,'');const d=document.createElement('textarea');d.innerHTML=s;s=d.value;return s.replace(/\n{3,}/g,'\n\n').replace(/[ \t]+\n/g,'\n').trim();}
 /* Editor de texto enriquecido reutilizable (barra + contenteditable) */
 const RTE_TARGETS={prop:{arr:()=>(S.ing.prop&&S.ing.prop.rows),field:'concepto'},sacot:{arr:()=>(S.sa.cotiz&&S.sa.cotiz.rows),field:'desc'}};
@@ -1732,13 +1748,24 @@ async function buildQuotePDF(){
       headStyles:{fillColor:BR,textColor:255,fontStyle:'bold',halign:'center',fontSize:7.5,overflow:'visible',valign:'middle'},
       footStyles:{fillColor:TOT,textColor:20,fontStyle:'bold',fontSize:8,halign:'right'},
       bodyStyles:{fontSize:7.5,textColor:34,valign:'top',lineColor:LN,lineWidth:0.2},
-      columnStyles:cols,margin:{left:M,right:M}});
+      columnStyles:cols,margin:{left:M,right:M},
+      willDrawCell:d=>{const raw=d.cell.raw;if(d.section==='body'&&raw&&raw._rich){d.cell._ri=(d.cell.text||[]).map(x=>parseInt(x,10)).filter(x=>!isNaN(x));d.cell.text=[];}},
+      didDrawCell:d=>{const raw=d.cell.raw;if(d.section!=='body'||!raw||!raw._rich||!d.cell._ri)return;
+        const fs=d.cell.styles.fontSize;doc.setFontSize(fs);doc.setFont(undefined,'normal');doc.setTextColor(34);doc.setFillColor(34,34,34);
+        const lh=fs*doc.getLineHeightFactor()/doc.internal.scaleFactor,x0=d.cell.x+d.cell.padding('left');let y=d.cell.y+d.cell.padding('top');
+        d.cell._ri.forEach(i=>{const L=raw._rich[i];if(L){if(L.b==='•')doc.circle(x0+RICH_BX,y+lh*0.5,0.42,'F');else if(L.b)doc.text(L.b,x0,y,{baseline:'top'});if(L.t)doc.text(L.t,x0+L.ind,y,{baseline:'top'});}y+=lh;});}});
     yy=doc.lastAutoTable.finalY+4;
   };
-  const serv=[];((S.ing.prop&&S.ing.prop.rows)||[]).forEach((r,i)=>{const c=R.prop.rows[i];if(num(r.cant)>0)serv.push([String(r.partida||(i+1)),htmlToText(r.concepto||''),String(num(r.cant)),n2(c.pUnit),n2(c.pTot)]);});
-  if(serv.length)sect('Servicios profesionales',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],serv,R.prop.priceTotal,'Total servicios profesionales ('+QG.cu.serv+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
-  const mesa=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((r,i)=>{const c=R.sacot.rows[i];if(num(r.cant)>0)mesa.push([String(r.partida||(i+1)),htmlToText(r.desc||''),String(num(r.cant)),n2(c.pUnit),n2(c.pTot)]);});
-  if(mesa.length)sect('Mesa de ayuda / Recursos en sitio',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesa,R.sacot.priceTotal,'Total mesa de ayuda / recursos ('+QG.cu.mesa+')',{0:{halign:'center',cellWidth:15},1:{halign:'left'},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
+  const DW=cw-87, RPAD=1.8, RICH_BX=1.3, RICH_IND=3.6;   // ancho col. Descripción (serv/mesa), padding y sangrías (mm)
+  const richCell=html=>{doc.setFontSize(7.5);doc.setFont(undefined,'normal');const inner=DW-2*RPAD-0.6,lines=[];
+    htmlToRich(html).forEach(p=>{const ind=p.b?(p.b==='•'?RICH_IND:RICH_IND+1.2):0;const parts=p.t?doc.splitTextToSize(p.t,inner-ind):[''];
+      parts.forEach((t,k)=>lines.push({b:k===0?p.b:null,t,ind}));});
+    if(!lines.length)lines.push({b:null,t:'',ind:0});
+    return {content:lines.map((_,i)=>String(i)).join('\n'),_rich:lines,styles:{cellPadding:RPAD}};};
+  const serv=[];((S.ing.prop&&S.ing.prop.rows)||[]).forEach((r,i)=>{const c=R.prop.rows[i];if(num(r.cant)>0)serv.push([String(r.partida||(i+1)),richCell(r.concepto||''),String(num(r.cant)),n2(c.pUnit),n2(c.pTot)]);});
+  if(serv.length)sect('Servicios profesionales',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],serv,R.prop.priceTotal,'Total servicios profesionales ('+QG.cu.serv+')',{0:{halign:'center',cellWidth:15},1:{halign:'left',cellWidth:DW},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
+  const mesa=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((r,i)=>{const c=R.sacot.rows[i];if(num(r.cant)>0)mesa.push([String(r.partida||(i+1)),richCell(r.desc||''),String(num(r.cant)),n2(c.pUnit),n2(c.pTot)]);});
+  if(mesa.length)sect('Mesa de ayuda / Recursos en sitio',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesa,R.sacot.priceTotal,'Total mesa de ayuda / recursos ('+QG.cu.mesa+')',{0:{halign:'center',cellWidth:15},1:{halign:'left',cellWidth:DW},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
   const mat=[];let pmatIdx=-1;const matG=bomGroupTotals(S.mat.rows,R.mat.matCalc);
   S.mat.rows.forEach((row,i)=>{if(row.sep){pmatIdx=i;return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmatIdx>=0){const lbl=(S.mat.rows[pmatIdx].label||'').trim();const gt=matG[pmatIdx]?matG[pmatIdx].total:0;mat.push([{content:lbl,colSpan:5,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'left'}},{content:n2(gt),styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'right'}}]);pmatIdx=-1;}mat.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);}});
   if(mat.length)sect('Materiales',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],mat,R.mat.price,'Total materiales ('+QG.cu.mat+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
