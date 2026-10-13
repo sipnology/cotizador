@@ -2060,9 +2060,6 @@ async function exportExcel(){
     sr=table(sa,sr,['Tipo Servicio','Cobertura','SLA','Meses','# Disp','Costo Unitario','Margen','Precio Unitario','Precio Total','% Desc','Total Final'],
       [[S.sa.servicio,S.sa.cobertura,S.sa.sla,num(S.sa.dur),R.sa.nDev,R.sa.monthlySub,sMg,sumPU,sumPT,R.sa.md,R.sa.managedPrice]],[5,7,8,10],[6,9]);
     sr+=2;
-    title(sa,sr,'Propuesta de soporte / servicios administrados');sr++;
-    const sacotRows=((S.sa.cotiz&&S.sa.cotiz.rows)||[]).map((row,i)=>[row.partida||(i+1),row.desc||'',num(row.cant),R.sacot.rows[i].pUnit,R.sacot.rows[i].pTot]);
-    sr=table(sa,sr,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],sacotRows,[3,4]);sr=totalRow(sa,sr,'Precio total propuesta soporte',R.sacot.priceTotal,4);sr+=2;
     title(sa,sr,'Calculadora recurso en sitio');sr++;
     const onRows=S.sa.onsite.map((o,i)=>{const c=R.onsite.onCalc[i];return [o.d,num(o.cant),(c.meses!=null?c.meses:1),num(o.costo),num(o.carga),c.subUnit,c.cost,num(c.marg),c.pUnit,c.pMes,c.price];});
     sr=table(sa,sr,['Descripción','Cant.','Meses','Costo unit.','Carga','Subtotal unit.','Costo total','Margen','Precio unitario','Precio mensual','Precio total'],onRows,[3,5,6,8,9,10],[4,7]);
@@ -2076,6 +2073,10 @@ async function exportExcel(){
     sr=totalRow(sa,sr,'Precio total servicio administrado',xR.price,6);sr++;
     sr=kv(sa,sr,'Costo servicio administrado',xR.cost,MONEY);sr=kv(sa,sr,'Margen',xR.marg,'0.00%');
     sr=kv(sa,sr,'Precio unitario (suma)',xR.pUnitSum||0,MONEY);sr=kv(sa,sr,'Precio servicio administrado',xR.price,MONEY);
+    sr+=2;
+    title(sa,sr,'Propuesta de soporte / servicios administrados');sr++;
+    const sacotRows=((S.sa.cotiz&&S.sa.cotiz.rows)||[]).map((row,i)=>[row.partida||(i+1),htmlToText(row.desc||''),num(row.cant),R.sacot.rows[i].pUnit,R.sacot.rows[i].pTot]);
+    sr=table(sa,sr,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],sacotRows,[3,4]);sr=totalRow(sa,sr,'Precio total propuesta soporte',R.sacot.priceTotal,4);sr+=2;
 
     /* ---- Hoja Materiales y Contratos ---- */
     const mc=wb.addWorksheet('Materiales y Contratos',{views:[{showGridLines:false}]});
@@ -2091,6 +2092,19 @@ async function exportExcel(){
     mr=table(mc,mr,bomHdr,conAll.length?conAll:[['','','','','—',0,0,0,0,0,0,0,0,0]],[5,7,9,10,12,13]);
     for(let k=mr-(conAll.length||1);k<mr;k++){mc.getCell(k,9).numFmt='0.00%';mc.getCell(k,12).numFmt='0.00%';}
     mr=totalRow(mc,mr,'Precio total contratos',R.con.price,13);
+    /* ---- Hoja Condiciones comerciales (misma información que la pestaña) ---- */
+    const cc=wb.addWorksheet('Condiciones comerciales',{views:[{showGridLines:false}]});
+    cc.columns=[{width:14},{width:52},{width:12},{width:18},{width:36}];
+    {const co=S.comercial||{};let cr=1;
+     const block=(t,txt)=>{title(cc,cr,t);cr++;cc.mergeCells(cr,1,cr,5);const c=cc.getCell(cr,1);c.value=txt||'—';c.alignment={wrapText:true,vertical:'top'};const nl=String(txt||'').split('\n').length;cc.getRow(cr).height=Math.max(18,Math.min(400,nl*15));cr+=2;};
+     block('Notas',co.notas||'');block('Condiciones comerciales',co.condiciones||'');
+     title(cc,cr,'Comisiones/Bolsa/Eventos');cr++;
+     const cmRows=((co.comisiones)||[]).map((r,i)=>[r.partida||(i+1),r.desc||'',num(r.cant),num(r.monto),r.nota||'']);
+     cr=table(cc,cr,['Partida','Descripción','Cantidad','Monto','Notas'],cmRows.length?cmRows:[['','—',0,0,'']],[3]);
+     totalRow(cc,cr,'Total comisiones/bolsa/eventos',R.comis||0,3);}
+    /* Orden de hojas = orden de las pestañas de la plataforma */
+    ['Registro Proyecto','Calculadora Ingeniería','Calculadora Serv. Admin','Materiales y Contratos','Condiciones comerciales','Resumen Financiero','Cotización']
+      .forEach((nm,ix)=>{const ws=wb.getWorksheet(nm);if(ws)ws.orderNo=ix+1;});
 
     const out=await wb.xlsx.writeBuffer();
     const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
