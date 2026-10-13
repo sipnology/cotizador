@@ -2066,7 +2066,16 @@ async function exportExcel(){
     title(sa,sr,'Calculadora recurso en sitio');sr++;
     const onRows=S.sa.onsite.map((o,i)=>{const c=R.onsite.onCalc[i];return [o.d,num(o.cant),(c.meses!=null?c.meses:1),num(o.costo),num(o.carga),c.subUnit,c.cost,num(c.marg),c.pUnit,c.pMes,c.price];});
     sr=table(sa,sr,['Descripción','Cant.','Meses','Costo unit.','Carga','Subtotal unit.','Costo total','Margen','Precio unitario','Precio mensual','Precio total'],onRows,[3,5,6,8,9,10],[4,7]);
-    sr=totalRow(sa,sr,'Precio total recurso en sitio',R.onsite.price,7);
+    sr=totalRow(sa,sr,'Precio total recurso en sitio',R.onsite.price,10);sr+=2;
+    /* Calculadora Servicio Administrado */
+    const xa=S.sa.sacalc||{rows:[]}, xR=R.sacalc||{rows:[],cost:0,price:0,pUnitSum:0,marg:0};
+    title(sa,sr,'Calculadora servicio administrado');sr++;
+    sr=kv(sa,sr,'Moneda',xa.moneda||'MXN');sr=kv(sa,sr,'Tipo de cambio',num(xa.fx),MONEY);
+    const xaRows=(xa.rows||[]).map((row,i)=>{const c=xR.rows[i]||{pUnit:0,cost:0,price:0};return [htmlToText(row.concepto||''),num(row.cant),num(row.costo),num(row.margin),c.pUnit,c.cost,c.price,row.nota||''];});
+    sr=table(sa,sr,['Concepto','Cantidad','Costo unitario','Margen','Precio unitario','Costo total','Precio total','Notas'],xaRows.length?xaRows:[['—',0,0,0,0,0,0,'']],[2,4,5,6],[3]);
+    sr=totalRow(sa,sr,'Precio total servicio administrado',xR.price,6);sr++;
+    sr=kv(sa,sr,'Costo servicio administrado',xR.cost,MONEY);sr=kv(sa,sr,'Margen',xR.marg,'0.00%');
+    sr=kv(sa,sr,'Precio unitario (suma)',xR.pUnitSum||0,MONEY);sr=kv(sa,sr,'Precio servicio administrado',xR.price,MONEY);
 
     /* ---- Hoja Materiales y Contratos ---- */
     const mc=wb.addWorksheet('Materiales y Contratos',{views:[{showGridLines:false}]});
