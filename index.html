@@ -1955,6 +1955,35 @@ async function exportExcel(){
     const kv=(ws,r,label,value,fmt)=>{const a=ws.getCell(r,1);a.value=label;a.font={bold:true};a.alignment={horizontal:'left',vertical:'top'};a.border=B;const b=ws.getCell(r,2);b.value=(value===''||value==null)?'—':value;if(fmt)b.numFmt=fmt;b.alignment={horizontal:'left',vertical:'top',wrapText:true};b.border=B;return r+1;};
     const putLogo=(ws,w,h)=>{if(logoB64){const id=wb.addImage({base64:logoB64,extension:'png'});ws.addImage(id,{tl:{col:0.1,row:0.1},ext:{width:w||150,height:h||58}});}};
 
+    wb.calcProperties={fullCalcOnLoad:true};
+    const PCT='0.00%', TF={type:'pattern',pattern:'solid',fgColor:{argb:TOTF}}, SF={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFF3EC'}};
+    const F=(f,v)=>({f,v});
+    const SH=nm=>"'"+nm.replace(/'/g,"''")+"'!";
+    const put=(c,val,r)=>{if(val&&typeof val==='object'&&!Array.isArray(val)&&('f' in val)){const v=(typeof val.v==='number'&&isFinite(val.v))?val.v:(val.v==null?0:val.v);c.value={formula:val.f.replace(/\{r\}/g,r),result:v};}else c.value=val;};
+    /* Tabla con soporte de fórmulas ({r} = fila actual) y filas separador {sep,sub} */
+    const tbl=(ws,start,headers,rows,fmt)=>{hdr(ws,start,headers);let r=start+1;const first=r;const n=headers.length;
+      rows.forEach(row=>{const rr=ws.getRow(r);
+        if(row&&!Array.isArray(row)&&row.sep!==undefined){
+          ws.mergeCells(r,1,r,row.sub?n-1:n);const c0=rr.getCell(1);c0.value=row.sep;c0.font={bold:true,color:{argb:ORANGE}};c0.fill=SF;c0.border=B;c0.alignment={horizontal:'left'};
+          if(row.sub){const cs=rr.getCell(n);put(cs,row.sub,r);cs.numFmt=MONEY;cs.font={bold:true,color:{argb:ORANGE}};cs.fill=SF;cs.border=B;cs.alignment={horizontal:'right'};}
+        }else row.forEach((v,i)=>{const c=rr.getCell(i+1);put(c,v,r);c.border=B;const f=fmt&&fmt[i];
+          if(f==='m'){c.numFmt=MONEY;c.alignment={horizontal:'right'};}else if(f==='p'){c.numFmt=PCT;c.alignment={horizontal:'right'};}else if(f==='n'){c.numFmt='#,##0.##';c.alignment={horizontal:'center'};}else{c.alignment={wrapText:true,vertical:'top'};}});
+        r++;});
+      return {first,last:Math.max(first,r-1),next:r};};
+    /* Fila de totales: etiqueta (cols 1..span) + celdas {col:{val,fmt}} ; estiliza hasta maxCol */
+    const sumRow=(ws,r,label,span,cells,maxCol)=>{ws.mergeCells(r,1,r,span);const c0=ws.getCell(r,1);c0.value=label;c0.font={bold:true};c0.alignment={horizontal:'right'};c0.fill=TF;c0.border=B;
+      for(let ci=span+1;ci<=(maxCol||span+1);ci++){const c=ws.getCell(r,ci);c.fill=TF;c.border=B;const spec=cells[ci];if(spec){put(c,spec.val,r);c.numFmt=spec.fmt==='p'?PCT:(spec.fmt==='n'?'#,##0.##':MONEY);c.font={bold:true};c.alignment={horizontal:'right'};}}
+      return r+1;};
+    const kvF=(ws,r,label,val,fmt)=>{const a=ws.getCell(r,1);a.value=label;a.font={bold:true};a.border=B;const b=ws.getCell(r,2);put(b,val,r);if(fmt)b.numFmt=fmt;b.alignment={horizontal:'left'};b.border=B;return r+1;};
+    /* Agrupa filas BOM con separadores (sólo separadores con ítems), calcula rango de cada grupo y su subtotal */
+    const groupRows=(list,start,subCol)=>{const out=[];let k=0;
+      for(let i=0;i<list.length;i++){const it=list[i];
+        if(it.sep){let j=i+1;while(j<list.length&&!list[j].sep)j++;if(j===i+1)continue;
+          const a=start+1+out.length+1,b=a+(j-i-1)-1;out.push({sep:it.label,sub:F(`SUM(${subCol}${a}:${subCol}${b})`,it.v)});}
+        else out.push(it.cells);}
+      return out;};
+    const posOf=(rows,start)=>{const m=[];rows.forEach((row,k)=>{if(row&&row.__i!=null)m[row.__i]=start+1+k;});return m;};
+
     /* ---- Hoja Proyecto ---- */
     const pj=wb.addWorksheet('Registro Proyecto',{views:[{showGridLines:false}]});
     pj.columns=[{width:26},{width:54}];
@@ -1973,6 +2002,142 @@ async function exportExcel(){
     pr=kv(pj,pr,'Tipo de despliegue',tec.despliegue);pr=kv(pj,pr,'Número de sitios',num(tec.sitios));pr=kv(pj,pr,'Duración soporte',tec.dur);
     pr=kv(pj,pr,'Marcas / Proveedores',tec.marcas);pr=kv(pj,pr,'Notas técnicas',tec.notas);
 
+    /* ---- Hoja Ingeniería (fórmulas) ---- */
+    const ING='Calculadora Ingeniería';
+    const ing=wb.addWorksheet(ING,{views:[{showGridLines:false}]});
+    ing.columns=[{width:24},{width:40},{width:12},{width:11},{width:14},{width:12},{width:14},{width:11},{width:14}];
+    let ir=1;title(ing,ir,'Ingeniería — Moneda '+S.ing.moneda+' · TC '+num(S.ing.fx).toFixed(2)+' · Margen global '+(num(S.ing.margin)*100).toFixed(2)+'%');ir+=2;
+    title(ing,ir,'Cálculo de Ingeniería');ir++;
+    const fIngC='C{r}*D{r}*F{r}', fIngP='IF(H{r}<1,G{r}/(1-H{r}),0)';
+    const tRows=[];S.ing.tasks.forEach((t,ti)=>{t.subs.forEach((s,si)=>{const c=R.ing.tasks[ti].subs[si];tRows.push([t.name,s.desc,num(s.horas),num(s.cant),s.perfil,c.chr,F(fIngC,c.cost),c.rowMarg,F(fIngP,c.price)]);});});
+    const tt=tbl(ing,ir,['Tarea','Subtarea','Horas unit.','Cantidad','Perfil','Costo/hr','Costo total','Margen','Precio total'],tRows.length?tRows:[['—','',0,0,'',0,F(fIngC,0),0,F(fIngP,0)]],[null,null,'n','n',null,'m','m','p','m']);
+    ir=tt.next;const ingTot=ir;
+    ir=sumRow(ing,ir,'Totales ingeniería',6,{7:{val:F(`SUM(G${tt.first}:G${tt.last})`,R.ing.cost)},8:{val:F('IF(I{r}=0,0,(I{r}-G{r})/I{r})',R.ing.marg),fmt:'p'},9:{val:F(`SUM(I${tt.first}:I${tt.last})`,R.ing.price)}},9);ir+=1;
+    title(ing,ir,'Desglose de horas por recurso');ir++;
+    const profs=Object.keys(R.ing.byProfile).filter(pf=>R.ing.byProfile[pf].h>0);
+    const dA=ir+1,dB=ir+Math.max(1,profs.length);
+    const dRows=profs.map(pf=>{const d=R.ing.byProfile[pf];return [pf,
+      F(`SUMPRODUCT((E${tt.first}:E${tt.last}=A{r})*C${tt.first}:C${tt.last}*D${tt.first}:D${tt.last})`,d.h),
+      F(`IF(SUM(B${dA}:B${dB})=0,0,B{r}/SUM(B${dA}:B${dB}))`,R.ing.hours?d.h/R.ing.hours:0),
+      F(`SUMIF(E${tt.first}:E${tt.last},A{r},G${tt.first}:G${tt.last})`,d.c)];});
+    const dt=tbl(ing,ir,['Perfil','Horas','% del total','Costo'],dRows.length?dRows:[['—',0,0,0]],[null,'n','p','m']);ir=dt.next;
+    ir=sumRow(ing,ir,'Total',1,{2:{val:F(`SUM(B${dt.first}:B${dt.last})`,R.ing.hours),fmt:'n'},3:{val:F(`SUM(C${dt.first}:C${dt.last})`,profs.length?1:0),fmt:'p'},4:{val:F(`SUM(D${dt.first}:D${dt.last})`,R.ing.cost)}},4);ir+=1;
+    title(ing,ir,'Subcontratación / Extras');ir++;
+    const fPU='IF(D{r}<1,C{r}/(1-D{r}),0)', fCT='B{r}*C{r}', fPT='E{r}*B{r}';
+    const subcRows=[];S.ing.subc.rows.forEach((row,i)=>{const c=R.subc.rows[i];if(row.concepto||num(row.costo))subcRows.push([row.concepto||'',num(row.cant),num(row.costo),num(row.margin),F(fPU,c.pUnit),F(fCT,c.cost),F(fPT,c.price),row.nota||'']);});
+    const st=tbl(ing,ir,['Concepto','Cantidad','Costo unit.','Margen','Precio unit.','Costo total','Precio total','Notas'],subcRows.length?subcRows:[['—',0,0,0,F(fPU,0),F(fCT,0),F(fPT,0),'']],[null,'n','m','p','m','m','m',null]);
+    ir=st.next;const subcTot=ir;
+    ir=sumRow(ing,ir,'Totales subcontratación',3,{4:{val:F('IF(G{r}=0,0,(G{r}-F{r})/G{r})',R.subc.marg),fmt:'p'},5:{val:F(`SUM(E${st.first}:E${st.last})`,R.subc.rows.reduce((a,x)=>a+x.pUnit,0))},6:{val:F(`SUM(F${st.first}:F${st.last})`,R.subc.cost)},7:{val:F(`SUM(G${st.first}:G${st.last})`,R.subc.price)}},8);ir+=1;
+    title(ing,ir,'Calculadora de Viajes y Viáticos');ir++;
+    const tripRows=[];S.ing.trips.forEach((t,i)=>{const c=R.trip.rows[i];if(num(t.cant)>0||num(t.costo)>0)tripRows.push([t.concepto||'',num(t.cant),num(t.costo),F('B{r}*C{r}',c.price),t.nota||'']);});
+    const trt=tbl(ing,ir,['Concepto','Cantidad','Costo unit.','Precio total','Notas'],tripRows.length?tripRows:[['—',0,0,F('B{r}*C{r}',0),'']],[null,'n','m','m',null]);
+    ir=trt.next;ir=sumRow(ing,ir,'Precio total viajes',3,{4:{val:F(`SUM(D${trt.first}:D${trt.last})`,R.trip.price)}},5);ir+=1;
+    title(ing,ir,'Propuesta Ingeniería');ir++;
+    const propRows=((S.ing.prop&&S.ing.prop.rows)||[]).map((row,i)=>{const a=[row.partida||(i+1),htmlToText(row.concepto||''),num(row.cant),num(row.costo),F('C{r}*D{r}',R.prop.rows[i].pTot)];a.__i=i;return a;});
+    const pt=tbl(ing,ir,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],propRows.length?propRows:[['','—',0,0,F('C{r}*D{r}',0)]],[null,null,'n','m','m']);
+    const propPos=posOf(propRows,ir);ir=pt.next;
+    ir=sumRow(ing,ir,'Precio total propuesta',4,{5:{val:F(`SUM(E${pt.first}:E${pt.last})`,R.prop.priceTotal)}},5);
+
+    /* ---- Hoja Serv. Administrados (fórmulas) ---- */
+    const SAN='Calculadora Serv. Admin';
+    const sa=wb.addWorksheet(SAN,{views:[{showGridLines:false}]});
+    sa.columns=[{width:24},{width:22},{width:12},{width:11},{width:11},{width:16},{width:11},{width:16},{width:15},{width:15},{width:15}];
+    let sr=1;title(sa,sr,'Servicios administrados / Soporte');sr+=2;
+    sr=kv(sa,sr,'Tipo de despliegue',S.sa.despliegue);sr=kv(sa,sr,'Cobertura',S.sa.cobertura);sr=kv(sa,sr,'Tipo de servicio',S.sa.servicio);
+    sr=kv(sa,sr,'SLA',S.sa.sla);sr=kv(sa,sr,'Duración (meses)',num(S.sa.dur));sr=kv(sa,sr,'Mantenimiento preventivo',S.sa.mant==='Yes'?'Sí':'No');
+    sr=kv(sa,sr,'Asistencia en sitio',S.sa.asist==='Yes'?'Sí':'No');sr=kv(sa,sr,'Tickets adicionales',num(S.sa.tickets));sr=kv(sa,sr,'Moneda',S.sa.moneda);
+    sr=kv(sa,sr,'Tipo de cambio',num(S.sa.fx),MONEY);sr=kv(sa,sr,'Margen sugerido',num(S.sa.margin),PCT);sr++;
+    title(sa,sr,'Dispositivos por tecnología');sr++;
+    const devGroups=[['Básico','basic'],['Avanzado','adv'],['Endpoint','end']];const devData=[];
+    devGroups.forEach(g=>{DEV_ROWS[g[1]].forEach(d=>{const nm=(S.sa.devNames&&S.sa.devNames[g[1]]&&S.sa.devNames[g[1]][d.r])||d.d;devData.push([g[0],nm,num(S.sa.dev[g[1]][d.r])]);});});
+    const dvt=tbl(sa,sr,['Categoría','Dispositivo','Cantidad'],devData,[null,null,'n']);sr=dvt.next;
+    sr=sumRow(sa,sr,'Total dispositivos',2,{3:{val:F(`SUM(C${dvt.first}:C${dvt.last})`,R.sa.nDev),fmt:'n'}},3);sr+=1;
+    title(sa,sr,'Resumen de dispositivos');sr++;
+    const sMg=num(S.sa.margin),sumPU=sMg<1?R.sa.monthlySub/(1-sMg):0,sumPT=sMg<1?R.sa.managedCost/(1-sMg):0;
+    const rdt=tbl(sa,sr,['Tipo Servicio','Cobertura','SLA','Meses','# Disp','Costo Unitario','Margen','Precio Unitario','Precio Total','% Desc','Total Final'],
+      [[S.sa.servicio,S.sa.cobertura,S.sa.sla,num(S.sa.dur),F(`SUM(C${dvt.first}:C${dvt.last})`,R.sa.nDev),R.sa.monthlySub,sMg,F('IF(G{r}<1,F{r}/(1-G{r}),0)',sumPU),F('IF(G{r}<1,F{r}*D{r}/(1-G{r}),0)',sumPT),R.sa.md,F('I{r}*(1-J{r})',R.sa.managedPrice)]],
+      [null,null,null,'n','n','m','p','m','m','p','m']);sr=rdt.next+1;
+    title(sa,sr,'Calculadora recurso en sitio');sr++;
+    const onRows=S.sa.onsite.map((o,i)=>{const c=R.onsite.onCalc[i];return [o.d,num(o.cant),(c.meses!=null?c.meses:1),num(o.costo),num(o.carga),F('D{r}*(1+E{r})',c.subUnit),F('F{r}*B{r}*C{r}',c.cost),num(c.marg),F('IF(H{r}<1,F{r}/(1-H{r}),0)',c.pUnit),F('I{r}*B{r}',c.pMes),F('J{r}*C{r}',c.price)];});
+    const ont=tbl(sa,sr,['Descripción','Cant.','Meses','Costo unit.','Carga social','Subtotal unit.','Costo total','Margen','Precio unitario','Precio mensual','Precio total'],
+      onRows.length?onRows:[['—',0,1,0,0,F('D{r}*(1+E{r})',0),F('F{r}*B{r}*C{r}',0),0,F('IF(H{r}<1,F{r}/(1-H{r}),0)',0),F('I{r}*B{r}',0),F('J{r}*C{r}',0)]],
+      [null,'n','n','m','p','m','m','p','m','m','m']);
+    sr=ont.next;const onTot=sr;const oA=ont.first,oB=ont.last;
+    sr=sumRow(sa,sr,'Totales recurso en sitio',3,{4:{val:F(`SUM(D${oA}:D${oB})`,R.onsite.cUnitSum)},6:{val:F(`SUM(F${oA}:F${oB})`,R.onsite.subUnitSum)},7:{val:F(`SUM(G${oA}:G${oB})`,R.onsite.cost)},8:{val:F('IF(K{r}=0,0,(K{r}-G{r})/K{r})',R.onsite.marg),fmt:'p'},9:{val:F(`SUM(I${oA}:I${oB})`,R.onsite.pUnitSum)},10:{val:F(`SUM(J${oA}:J${oB})`,R.onsite.pMesSum)},11:{val:F(`SUM(K${oA}:K${oB})`,R.onsite.price)}},11);sr+=1;
+    /* Calculadora Servicio Administrado */
+    const xa=S.sa.sacalc||{rows:[]}, xR=R.sacalc||{rows:[],cost:0,price:0,pUnitSum:0,marg:0};
+    title(sa,sr,'Calculadora servicio administrado');sr++;
+    sr=kv(sa,sr,'Moneda',xa.moneda||'MXN');sr=kv(sa,sr,'Tipo de cambio',num(xa.fx),MONEY);
+    const xaRows=(xa.rows||[]).map((row,i)=>{const c=xR.rows[i]||{pUnit:0,cost:0,price:0};return [htmlToText(row.concepto||''),num(row.cant),num(row.costo),num(row.margin),F(fPU,c.pUnit),F(fCT,c.cost),F(fPT,c.price),row.nota||''];});
+    const xat=tbl(sa,sr,['Concepto','Cantidad','Costo unitario','Margen','Precio unitario','Costo total','Precio total','Notas'],xaRows.length?xaRows:[['—',0,0,0,F(fPU,0),F(fCT,0),F(fPT,0),'']],[null,'n','m','p','m','m','m',null]);
+    sr=xat.next;const xaTot=sr;
+    sr=sumRow(sa,sr,'Totales servicio administrado',3,{4:{val:F('IF(G{r}=0,0,(G{r}-F{r})/G{r})',xR.marg),fmt:'p'},5:{val:F(`SUM(E${xat.first}:E${xat.last})`,xR.pUnitSum||0)},6:{val:F(`SUM(F${xat.first}:F${xat.last})`,xR.cost)},7:{val:F(`SUM(G${xat.first}:G${xat.last})`,xR.price)}},8);sr++;
+    sr=kvF(sa,sr,'Costo servicio administrado',F(`F${xaTot}`,xR.cost),MONEY);sr=kvF(sa,sr,'Margen',F(`D${xaTot}`,xR.marg),PCT);
+    sr=kvF(sa,sr,'Precio unitario (suma)',F(`E${xaTot}`,xR.pUnitSum||0),MONEY);sr=kvF(sa,sr,'Precio servicio administrado',F(`G${xaTot}`,xR.price),MONEY);
+    sr+=2;
+    title(sa,sr,'Propuesta de soporte / servicios administrados');sr++;
+    const sacotRows=((S.sa.cotiz&&S.sa.cotiz.rows)||[]).map((row,i)=>{const a=[row.partida||(i+1),htmlToText(row.desc||''),num(row.cant),num(row.costo),F('C{r}*D{r}',R.sacot.rows[i].pTot)];a.__i=i;return a;});
+    const sct=tbl(sa,sr,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],sacotRows.length?sacotRows:[['','—',0,0,F('C{r}*D{r}',0)]],[null,null,'n','m','m']);
+    const sacotPos=posOf(sacotRows,sr);sr=sct.next;
+    sr=sumRow(sa,sr,'Precio total propuesta soporte',4,{5:{val:F(`SUM(E${sct.first}:E${sct.last})`,R.sacot.priceTotal)}},5);
+
+    /* ---- Hoja Materiales y Contratos (fórmulas + separadores con subtotal) ---- */
+    const MYC='Materiales y Contratos';
+    const mc=wb.addWorksheet(MYC,{views:[{showGridLines:false}]});
+    mc.columns=[{width:14},{width:12},{width:8},{width:16},{width:34},{width:12},{width:8},{width:13},{width:10},{width:12},{width:13},{width:9},{width:12},{width:14}];
+    const bomHdr=['Proveedor','Marca','No. Item','SKU','Descripción','PL unit.','Cant.','PL total','Descuento','Costo unit.','Costo subtot.','Margen','Precio unit.','Precio total'];
+    const bomFmt=[null,null,null,null,null,'m','n','m','p','m','m','p','m','m'];
+    let mr=1;
+    const bomSheet=(St,calc,ttl,totLabel)=>{
+      title(mc,mr,ttl);mr++;
+      const prRow=mr;mr=kv(mc,mr,'Prorrateo (costo a repartir)',num(St.prorr),MONEY);
+      const cntRow=mr;mr++;const perRow=mr;mr++;mr++;
+      const hdrRow=mr;
+      const list=[];St.rows.forEach((row,i)=>{if(row.sep){list.push({sep:true,label:(row.label||'').trim()||'—',v:0});return;}
+        if(!(row.sku||row.desc||num(row.pl)||num(row.qty)))return;const c=calc[i];
+        const cells=[row.prov||'',row.marca||'',row.item||(i+1),row.sku||'',row.desc||'',num(row.pl),num(row.qty),F('F{r}*G{r}',c.plTot),num(row.disc),
+          F(`F{r}*(1-I{r})+IF(G{r}>0,$B$${perRow}/G{r},0)`,c.cUnit),F('J{r}*G{r}',c.cSub),num(row.margin),F('IF(L{r}<1,J{r}/(1-L{r}),0)',c.pUnit),F('M{r}*G{r}',c.pTot)];
+        cells.__i=i;list.push({cells});});
+      /* valor de subtotal por separador (para mostrar sin recalcular) */
+      for(let i=0;i<list.length;i++)if(list[i].sep){let s=0;for(let j=i+1;j<list.length&&!list[j].sep;j++)s+=calc[list[j].cells.__i].pTot;list[i].v=s;}
+      const rows=groupRows(list,hdrRow,'N');
+      const t=tbl(mc,hdrRow,bomHdr,rows.length?rows:[['','','','','—',0,0,F('F{r}*G{r}',0),0,F('F{r}*(1-I{r})',0),F('J{r}*G{r}',0),0,F('IF(L{r}<1,J{r}/(1-L{r}),0)',0),F('M{r}*G{r}',0)]],bomFmt);
+      const pos=posOf(rows,hdrRow);const nQ=list.filter(x=>x.cells&&num(x.cells[6])>0).length;
+      /* filas auxiliares del prorrateo (dependen del rango de la tabla) */
+      const lc=mc.getCell(cntRow,1);lc.value='Ítems con cantidad > 0';lc.font={bold:true};lc.border=B;const vc=mc.getCell(cntRow,2);put(vc,F(`COUNTIF(G${t.first}:G${t.last},">0")`,nQ),cntRow);vc.border=B;
+      const lp=mc.getCell(perRow,1);lp.value='Prorrateo por ítem';lp.font={bold:true};lp.border=B;const vp=mc.getCell(perRow,2);put(vp,F(`IF(B${cntRow}>0,B${prRow}/B${cntRow},0)`,nQ>0?num(St.prorr)/nQ:0),perRow);vp.numFmt=MONEY;vp.border=B;
+      mr=t.next;const tot=mr;const Rt=St===S.mat?R.mat:R.con;
+      mr=sumRow(mc,mr,totLabel,7,{8:{val:F(`SUM(H${t.first}:H${t.last})`,Rt.pl)},11:{val:F(`SUM(K${t.first}:K${t.last})`,Rt.cost)},12:{val:F('IF(N{r}=0,0,(N{r}-K{r})/N{r})',Rt.marg),fmt:'p'},14:{val:F(`SUMPRODUCT(G${t.first}:G${t.last},M${t.first}:M${t.last})`,Rt.price)}},14);
+      mr+=2;return {tot,pos};};
+    const matS=bomSheet(S.mat,R.mat.matCalc,'Materiales (BOM de infraestructura)','Totales materiales');
+    const conS=bomSheet(S.con,R.con.conCalc,'Contratos de soporte / renovaciones','Totales contratos');
+
+    /* ---- Hoja Condiciones comerciales ---- */
+    const CCN='Condiciones comerciales';
+    const cc=wb.addWorksheet(CCN,{views:[{showGridLines:false}]});
+    cc.columns=[{width:14},{width:52},{width:12},{width:18},{width:36}];
+    let comisTot=0;
+    {const co=S.comercial||{};let cr=1;
+     const block=(t,txt)=>{title(cc,cr,t);cr++;cc.mergeCells(cr,1,cr,5);const c=cc.getCell(cr,1);c.value=txt||'—';c.alignment={wrapText:true,vertical:'top'};const nl=String(txt||'').split('\n').length;cc.getRow(cr).height=Math.max(18,Math.min(400,nl*15));cr+=2;};
+     block('Notas',co.notas||'');block('Condiciones comerciales',co.condiciones||'');
+     title(cc,cr,'Comisiones/Bolsa/Eventos');cr++;
+     const cmRows=((co.comisiones)||[]).map((r,i)=>[r.partida||(i+1),r.desc||'',num(r.cant),num(r.monto),r.nota||'']);
+     const cmt=tbl(cc,cr,['Partida','Descripción','Cantidad','Monto','Notas'],cmRows.length?cmRows:[['','—',0,0,'']],[null,null,'n','m',null]);
+     comisTot=cmt.next;sumRow(cc,cmt.next,'Total comisiones/bolsa/eventos',3,{4:{val:F(`SUM(D${cmt.first}:D${cmt.last})`,R.comis||0)}},5);}
+
+    /* ---- Hoja Resumen Financiero (referencias a cada calculadora) ---- */
+    const RFN='Resumen Financiero';
+    const rf=wb.addWorksheet(RFN,{views:[{showGridLines:false}]});
+    rf.columns=[{width:38},{width:18},{width:18},{width:18},{width:12}];
+    let rr=4;title(rf,rr,'Resumen financiero — '+(p.empresa||''));rr++;
+    const refs=[[SH(ING)+'G'+ingTot,SH(ING)+'I'+ingTot],[SH(ING)+'F'+subcTot,SH(ING)+'G'+subcTot],[SH(SAN)+'F'+xaTot,SH(SAN)+'G'+xaTot],
+                [SH(SAN)+'G'+onTot,SH(SAN)+'K'+onTot],[SH(MYC)+'K'+matS.tot,SH(MYC)+'N'+matS.tot],[SH(MYC)+'K'+conS.tot,SH(MYC)+'N'+conS.tot]];
+    const fx=s=>(s.cur==='USD')?(num(s.fx)||1):1;
+    const sRows=R.total.streams.map((s,i)=>{const k=fx(s),m=k!==1?('*'+k):'';return [s.k+(k!==1?' (USD→MXN TC '+k+')':''),F(refs[i][0]+m,s.cost*k),F(refs[i][1]+m,s.price*k),F('C{r}-B{r}',(s.price-s.cost)*k),F('IF(C{r}=0,0,D{r}/C{r})',s.price?((s.price-s.cost)/s.price):0)];});
+    const rft=tbl(rf,rr,['Concepto','Costo','Precio','Utilidad','Margen'],sRows,[null,'m','m','m','p']);rr=rft.next;const rTot=rr;
+    rr=sumRow(rf,rr,'TOTAL',1,{2:{val:F(`SUM(B${rft.first}:B${rft.last})`,R.total.cost)},3:{val:F(`SUM(C${rft.first}:C${rft.last})`,R.total.price)},4:{val:F('C{r}-B{r}',R.total.profit)},5:{val:F('IF(C{r}=0,0,D{r}/C{r})',R.total.margin),fmt:'p'}},5);
+    const rCm=rr;{const a=rf.getCell(rr,1);a.value='Comisiones/Bolsa/Eventos';a.border=B;const d=rf.getCell(rr,4);put(d,F(`-${SH(CCN)}D${comisTot}`,-(R.comis||0)),rr);d.numFmt=MONEY;d.alignment={horizontal:'right'};d.font={color:{argb:'FFC0392B'}};[2,3,4,5].forEach(ci=>rf.getCell(rr,ci).border=B);rr++;}
+    rr=sumRow(rf,rr,'Utilidad neta / Margen Total',3,{4:{val:F(`D${rTot}+D${rCm}`,R.total.profitNet)},5:{val:F(`IF(C${rTot}=0,0,D{r}/C${rTot})`,R.total.marginNet),fmt:'p'}},5);
     /* ---- Hoja Cotización ---- */
     const q=wb.addWorksheet('Cotización',{views:[{showGridLines:false}]});
     q.columns=[{width:12},{width:26},{width:26},{width:13},{width:15},{width:15}];
@@ -1991,16 +2156,31 @@ async function exportExcel(){
     exeCell.value={richText:[{font:{bold:true,color:{argb:ORANGE}},text:'Ejecutivo de cuenta\n'},{font:{bold:true},text:'Nombre: '},{text:(p.ejecutivo||'—')+'\n'},{font:{bold:true},text:'E-mail: '},{text:(am?am.email:'—')+'\n'},{font:{bold:true},text:'Teléfono: '},{text:(am?am.telefono:'—')}]};
     [cliCell,exeCell].forEach(c=>{c.alignment={vertical:'top',wrapText:true};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFDF3EC'}};c.border={top:{style:'thin',color:{argb:LINE}},left:{style:'thin',color:{argb:LINE}},right:{style:'thin',color:{argb:LINE}},bottom:{style:'thin',color:{argb:LINE}}};});
     let r=13;
-    const servData=[];((S.ing.prop&&S.ing.prop.rows)||[]).forEach((row,i)=>{const c=R.prop.rows[i];if(c&&(c.pTot>0||num(row.costo)>0))servData.push([row.partida||(i+1),htmlToText(row.concepto||''),num(row.cant),c.pUnit,c.pTot]);});
-    qh(r,'Servicios profesionales');r++;r=table(q,r,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],servData.length?servData:[['','—',0,0,0]],[3,4]);r=totalRow(q,r,'Total servicios profesionales',R.prop.priceTotal,4);r++;
-    const mesaData=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((row,i)=>{const c=R.sacot.rows[i];if(c&&(c.pTot>0||num(row.costo)>0))mesaData.push([row.partida||(i+1),htmlToText(row.desc||''),num(row.cant),c.pUnit,c.pTot]);});
-    qh(r,'Mesa de ayuda / Recursos en sitio');r++;r=table(q,r,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesaData.length?mesaData:[['','—',0,0,0]],[3,4]);r=totalRow(q,r,'Total mesa de ayuda / recursos',R.sacot.priceTotal,4);r++;
-    const matData=[];S.mat.rows.forEach((row,i)=>{const c=R.mat.matCalc[i];if(num(row.qty)>0)matData.push([row.item||(i+1),row.sku,row.desc,num(row.qty),c.pUnit,c.pTot]);});
-    qh(r,'Materiales');r++;r=table(q,r,['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],matData.length?matData:[['','','—',0,0,0]],[4,5]);r=totalRow(q,r,'Total materiales',R.mat.price,5);r++;
-    const conData=[];S.con.rows.forEach((row,i)=>{const c=R.con.conCalc[i];if(num(row.qty)>0)conData.push([row.item||(i+1),row.sku,row.desc,num(row.qty),c.pUnit,c.pTot]);});
-    qh(r,'Contratos de soporte / renovación');r++;r=table(q,r,['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],conData.length?conData:[['','','—',0,0,0]],[4,5]);r=totalRow(q,r,'Total contratos',R.con.price,5);r++;
+    /* Servicios profesionales: cantidad y precio unitario enlazados a la Propuesta Ingeniería */
+    const servRows=[];((S.ing.prop&&S.ing.prop.rows)||[]).forEach((row,i)=>{const c=R.prop.rows[i];if(c&&(c.pTot>0||num(row.costo)>0)&&propPos[i])servRows.push([row.partida||(i+1),htmlToText(row.concepto||''),F(SH(ING)+'C'+propPos[i],num(row.cant)),F(SH(ING)+'D'+propPos[i],c.pUnit),F('C{r}*D{r}',c.pTot)]);});
+    qh(r,'Servicios profesionales');r++;
+    const qs=tbl(q,r,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],servRows.length?servRows:[['','—',0,0,F('C{r}*D{r}',0)]],[null,null,'n','m','m']);r=qs.next;
+    const qServ=r;r=sumRow(q,r,'Total servicios profesionales',4,{5:{val:F(`SUM(E${qs.first}:E${qs.last})`,R.prop.priceTotal)}},6);r++;
+    /* Mesa de ayuda: enlazada a la Propuesta de soporte */
+    const mesaRows=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((row,i)=>{const c=R.sacot.rows[i];if(c&&(c.pTot>0||num(row.costo)>0)&&sacotPos[i])mesaRows.push([row.partida||(i+1),htmlToText(row.desc||''),F(SH(SAN)+'C'+sacotPos[i],num(row.cant)),F(SH(SAN)+'D'+sacotPos[i],c.pUnit),F('C{r}*D{r}',c.pTot)]);});
+    qh(r,'Mesa de ayuda / Recursos en sitio');r++;
+    const qm=tbl(q,r,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesaRows.length?mesaRows:[['','—',0,0,F('C{r}*D{r}',0)]],[null,null,'n','m','m']);r=qm.next;
+    const qMesa=r;r=sumRow(q,r,'Total mesa de ayuda / recursos',4,{5:{val:F(`SUM(E${qm.first}:E${qm.last})`,R.sacot.priceTotal)}},6);r++;
+    /* Materiales / Contratos: enlazados a la hoja Materiales y Contratos; separadores con subtotal del grupo */
+    const qBom=(St,calc,posMap,label,totLabel,totVal)=>{
+      const list=[];St.rows.forEach((row,i)=>{if(row.sep){list.push({sep:true,label:(row.label||'').trim()||'—',v:0});return;}
+        if(num(row.qty)>0&&posMap[i]){const c=calc[i];const cells=[row.item||(i+1),row.sku||'',row.desc||'',F(SH(MYC)+'G'+posMap[i],num(row.qty)),F(SH(MYC)+'M'+posMap[i],c.pUnit),F('D{r}*E{r}',c.pTot)];cells.__i=i;list.push({cells});}});
+      for(let i=0;i<list.length;i++)if(list[i].sep){let s=0;for(let j=i+1;j<list.length&&!list[j].sep;j++)s+=calc[list[j].cells.__i].pTot;list[i].v=s;}
+      qh(r,label);r++;
+      const rows=groupRows(list,r,'F');
+      const t=tbl(q,r,['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],rows.length?rows:[['','','—',0,0,F('D{r}*E{r}',0)]],[null,null,null,'n','m','m']);r=t.next;
+      const tot=r;r=sumRow(q,r,totLabel,5,{6:{val:F(`SUMPRODUCT(D${t.first}:D${t.last},E${t.first}:E${t.last})`,totVal)}},6);r++;return tot;};
+    const qMat=qBom(S.mat,R.mat.matCalc,matS.pos,'Materiales','Total materiales',R.mat.price);
+    const qCon=qBom(S.con,R.con.conCalc,conS.pos,'Contratos de soporte / renovación','Total contratos',R.con.price);
     const sub=R.prop.priceTotal+R.sacot.priceTotal+R.mat.price+R.con.price, iva=sub*0.16;
-    r=totalRow(q,r,'Subtotal',sub,5);r=totalRow(q,r,'Impuesto (16%)',iva,5);r=totalRow(q,r,'TOTAL',sub+iva,5);r+=2;
+    const qSub=r;r=sumRow(q,r,'Subtotal',5,{6:{val:F(`E${qServ}+E${qMesa}+F${qMat}+F${qCon}`,sub)}},6);
+    const qIva=r;r=sumRow(q,r,'Impuesto (16%)',5,{6:{val:F(`F${qSub}*0.16`,iva)}},6);
+    r=sumRow(q,r,'TOTAL',5,{6:{val:F(`F${qSub}+F${qIva}`,sub+iva)}},6);r+=2;
     const co=S.comercial||{notas:'',condiciones:''};
     if(co.notas){qh(r,'Notas');r++;q.mergeCells(r,1,r,6);q.getCell('A'+r).value=co.notas;q.getCell('A'+r).alignment={wrapText:true,vertical:'top'};q.getCell('A'+r).font={size:10};r+=3;}
     qh(r,'Condiciones comerciales');r++;q.mergeCells(r,1,r+18,6);q.getCell('A'+r).value=co.condiciones||'';q.getCell('A'+r).alignment={wrapText:true,vertical:'top'};q.getCell('A'+r).font={size:9};r+=20;
@@ -2008,100 +2188,6 @@ async function exportExcel(){
     q.getCell('A'+r).value='_____________________________';q.getCell('D'+r).value='_____________________________';r++;
     q.getCell('A'+r).value='Sipnology';q.getCell('A'+r).font={bold:true};q.getCell('D'+r).value='CLIENTE';q.getCell('D'+r).font={bold:true};
 
-    /* ---- Hoja Resumen Financiero ---- */
-    const rf=wb.addWorksheet('Resumen Financiero',{views:[{showGridLines:false}]});
-    rf.columns=[{width:38},{width:16},{width:16},{width:16},{width:12}];
-    let rr=4; title(rf,rr,'Resumen financiero — '+(p.empresa||''));rr++;
-    const streamRows=R.total.streams.map(s=>[s.k,s.cost,s.price,s.price-s.cost,(s.price?((s.price-s.cost)/s.price):0)]);
-    rr=table(rf,rr,['Concepto','Costo','Precio','Utilidad','Margen'],streamRows,[1,2,3]);
-    streamRows.forEach((_,i)=>{rf.getCell(rr-streamRows.length+i,5).numFmt='0.00%';});
-    const tr2=rf.getRow(rr);tr2.getCell(1).value='TOTAL';tr2.getCell(2).value=R.total.cost;tr2.getCell(3).value=R.total.price;tr2.getCell(4).value=R.total.profit;tr2.getCell(5).value=R.total.margin;
-    [1,2,3,4,5].forEach(ci=>{const c=tr2.getCell(ci);c.font={bold:true};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:TOTF}};c.border=B;if(ci>=2&&ci<=4){c.numFmt=MONEY;c.alignment={horizontal:'right'};}if(ci===5){c.numFmt='0.00%';c.alignment={horizontal:'right'};}});
-    let rcm=rr+1;
-    const cmr=rf.getRow(rcm);cmr.getCell(1).value='Comisiones/Bolsa/Eventos';cmr.getCell(4).value=-(R.comis||0);cmr.getCell(4).numFmt=MONEY;cmr.getCell(4).alignment={horizontal:'right'};cmr.getCell(4).font={color:{argb:'FFC0392B'}};[1,2,3,4,5].forEach(ci=>cmr.getCell(ci).border=B);rcm++;
-    const nmr=rf.getRow(rcm);nmr.getCell(1).value='Utilidad neta / Margen Total';nmr.getCell(4).value=R.total.profitNet;nmr.getCell(5).value=R.total.marginNet;
-    [1,2,3,4,5].forEach(ci=>{const c=nmr.getCell(ci);c.font={bold:true};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:TOTF}};c.border=B;if(ci===4){c.numFmt=MONEY;c.alignment={horizontal:'right'};}if(ci===5){c.numFmt='0.00%';c.alignment={horizontal:'right'};}});
-
-    /* ---- Hoja Ingeniería ---- */
-    const ing=wb.addWorksheet('Calculadora Ingeniería',{views:[{showGridLines:false}]});
-    ing.columns=[{width:24},{width:40},{width:12},{width:11},{width:12},{width:12},{width:14},{width:11},{width:14}];
-    let ir=1;title(ing,ir,'Ingeniería — Moneda '+S.ing.moneda+' · TC '+num(S.ing.fx).toFixed(2)+' · Margen global '+(num(S.ing.margin)*100).toFixed(2)+'%');ir+=2;
-    title(ing,ir,'Cálculo de Ingeniería');ir++;
-    const taskRows=[];S.ing.tasks.forEach((t,ti)=>{t.subs.forEach((s,si)=>{const c=R.ing.tasks[ti].subs[si];taskRows.push([t.name,s.desc,num(s.horas),num(s.cant),s.perfil,c.chr,c.cost,c.rowMarg,c.price]);});});
-    ir=table(ing,ir,['Tarea','Subtarea','Horas unit.','Cantidad','Perfil','Costo/hr','Costo total','Margen','Precio total'],taskRows,[5,6,8],[7]);
-    ir=totalRow(ing,ir,'Precio total ingeniería',R.ing.price,8);ir+=2;
-    title(ing,ir,'Desglose de horas por recurso');ir++;
-    const roleRows=Object.keys(R.ing.byProfile).filter(pf=>R.ing.byProfile[pf].h>0).map(pf=>{const d=R.ing.byProfile[pf];return [pf,d.h,R.ing.hours?d.h/R.ing.hours:0,d.c];});
-    ir=table(ing,ir,['Perfil','Horas','% del total','Costo'],roleRows.length?roleRows:[['—',0,0,0]],[3],[2]);ir+=2;
-    title(ing,ir,'Subcontratación / Extras');ir++;
-    const subcRows=S.ing.subc.rows.map((row,i)=>{const c=R.subc.rows[i];return [row.concepto||'',num(row.cant),c.baseUnit,num(row.margin),c.cost,c.price,row.nota||''];}).filter(x=>x[0]||x[2]);
-    ir=table(ing,ir,['Concepto','Cantidad','Costo unit.','Margen','Costo total','Precio total','Notas'],subcRows.length?subcRows:[['—',0,0,0,0,0,'']],[2,4,5],[3]);ir=totalRow(ing,ir,'Precio total subcontratación',R.subc.price,5);ir+=2;
-    title(ing,ir,'Calculadora de Viajes y Viáticos');ir++;
-    const tripRows=S.ing.trips.map((t,i)=>{const c=R.trip.rows[i];return [t.concepto||'',num(t.cant),num(t.costo),c.price,t.nota||''];}).filter(x=>num(x[1])>0||num(x[2])>0);
-    ir=table(ing,ir,['Concepto','Cantidad','Costo unit.','Precio total','Notas'],tripRows.length?tripRows:[['—',0,0,0,'']],[2,3]);ir=totalRow(ing,ir,'Precio total viajes',R.trip.price,3);ir+=2;
-    title(ing,ir,'Propuesta Ingeniería');ir++;
-    const propRows=((S.ing.prop&&S.ing.prop.rows)||[]).map((row,i)=>[row.partida||(i+1),row.concepto||'',num(row.cant),R.prop.rows[i].pUnit,R.prop.rows[i].pTot]);
-    ir=table(ing,ir,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],propRows,[3,4]);ir=totalRow(ing,ir,'Precio total propuesta',R.prop.priceTotal,4);
-
-    /* ---- Hoja Serv. Administrados ---- */
-    const sa=wb.addWorksheet('Calculadora Serv. Admin',{views:[{showGridLines:false}]});
-    sa.columns=[{width:24},{width:22},{width:12},{width:11},{width:11},{width:16},{width:11},{width:16},{width:15},{width:11},{width:15}];
-    let sr=1;title(sa,sr,'Servicios administrados / Soporte');sr+=2;
-    sr=kv(sa,sr,'Tipo de despliegue',S.sa.despliegue);sr=kv(sa,sr,'Cobertura',S.sa.cobertura);sr=kv(sa,sr,'Tipo de servicio',S.sa.servicio);
-    sr=kv(sa,sr,'SLA',S.sa.sla);sr=kv(sa,sr,'Duración (meses)',num(S.sa.dur));sr=kv(sa,sr,'Mantenimiento preventivo',S.sa.mant==='Yes'?'Sí':'No');
-    sr=kv(sa,sr,'Asistencia en sitio',S.sa.asist==='Yes'?'Sí':'No');sr=kv(sa,sr,'Tickets adicionales',num(S.sa.tickets));sr=kv(sa,sr,'Moneda',S.sa.moneda);
-    sr=kv(sa,sr,'Tipo de cambio',num(S.sa.fx),MONEY);sr=kv(sa,sr,'Margen sugerido',num(S.sa.margin),'0.00%');sr++;
-    title(sa,sr,'Dispositivos por tecnología');sr++;
-    const devGroups=[['Básico','basic'],['Avanzado','adv'],['Endpoint','end']];const devData=[];
-    devGroups.forEach(g=>{DEV_ROWS[g[1]].forEach(d=>{const nm=(S.sa.devNames&&S.sa.devNames[g[1]]&&S.sa.devNames[g[1]][d.r])||d.d;devData.push([g[0],nm,num(S.sa.dev[g[1]][d.r])]);});});
-    sr=table(sa,sr,['Categoría','Dispositivo','Cantidad'],devData);sr+=2;
-    title(sa,sr,'Resumen de dispositivos');sr++;
-    const sMg=num(S.sa.margin),sumPU=sMg<1?R.sa.monthlySub/(1-sMg):0,sumPT=sMg<1?R.sa.managedCost/(1-sMg):0;
-    sr=table(sa,sr,['Tipo Servicio','Cobertura','SLA','Meses','# Disp','Costo Unitario','Margen','Precio Unitario','Precio Total','% Desc','Total Final'],
-      [[S.sa.servicio,S.sa.cobertura,S.sa.sla,num(S.sa.dur),R.sa.nDev,R.sa.monthlySub,sMg,sumPU,sumPT,R.sa.md,R.sa.managedPrice]],[5,7,8,10],[6,9]);
-    sr+=2;
-    title(sa,sr,'Calculadora recurso en sitio');sr++;
-    const onRows=S.sa.onsite.map((o,i)=>{const c=R.onsite.onCalc[i];return [o.d,num(o.cant),(c.meses!=null?c.meses:1),num(o.costo),num(o.carga),c.subUnit,c.cost,num(c.marg),c.pUnit,c.pMes,c.price];});
-    sr=table(sa,sr,['Descripción','Cant.','Meses','Costo unit.','Carga','Subtotal unit.','Costo total','Margen','Precio unitario','Precio mensual','Precio total'],onRows,[3,5,6,8,9,10],[4,7]);
-    sr=totalRow(sa,sr,'Precio total recurso en sitio',R.onsite.price,10);sr+=2;
-    /* Calculadora Servicio Administrado */
-    const xa=S.sa.sacalc||{rows:[]}, xR=R.sacalc||{rows:[],cost:0,price:0,pUnitSum:0,marg:0};
-    title(sa,sr,'Calculadora servicio administrado');sr++;
-    sr=kv(sa,sr,'Moneda',xa.moneda||'MXN');sr=kv(sa,sr,'Tipo de cambio',num(xa.fx),MONEY);
-    const xaRows=(xa.rows||[]).map((row,i)=>{const c=xR.rows[i]||{pUnit:0,cost:0,price:0};return [htmlToText(row.concepto||''),num(row.cant),num(row.costo),num(row.margin),c.pUnit,c.cost,c.price,row.nota||''];});
-    sr=table(sa,sr,['Concepto','Cantidad','Costo unitario','Margen','Precio unitario','Costo total','Precio total','Notas'],xaRows.length?xaRows:[['—',0,0,0,0,0,0,'']],[2,4,5,6],[3]);
-    sr=totalRow(sa,sr,'Precio total servicio administrado',xR.price,6);sr++;
-    sr=kv(sa,sr,'Costo servicio administrado',xR.cost,MONEY);sr=kv(sa,sr,'Margen',xR.marg,'0.00%');
-    sr=kv(sa,sr,'Precio unitario (suma)',xR.pUnitSum||0,MONEY);sr=kv(sa,sr,'Precio servicio administrado',xR.price,MONEY);
-    sr+=2;
-    title(sa,sr,'Propuesta de soporte / servicios administrados');sr++;
-    const sacotRows=((S.sa.cotiz&&S.sa.cotiz.rows)||[]).map((row,i)=>[row.partida||(i+1),htmlToText(row.desc||''),num(row.cant),R.sacot.rows[i].pUnit,R.sacot.rows[i].pTot]);
-    sr=table(sa,sr,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],sacotRows,[3,4]);sr=totalRow(sa,sr,'Precio total propuesta soporte',R.sacot.priceTotal,4);sr+=2;
-
-    /* ---- Hoja Materiales y Contratos ---- */
-    const mc=wb.addWorksheet('Materiales y Contratos',{views:[{showGridLines:false}]});
-    mc.columns=[{width:14},{width:10},{width:8},{width:14},{width:32},{width:11},{width:8},{width:12},{width:9},{width:12},{width:12},{width:8},{width:12},{width:12}];
-    const bomHdr=['Proveedor','Marca','No. Item','SKU','Descripción','PL unit.','Cant.','PL total','Descuento','Costo unit.','Costo subtot.','Margen','Precio unit.','Precio total'];
-    let mr=1;title(mc,mr,'Materiales (BOM de infraestructura)');mr++;
-    const matAll=S.mat.rows.map((row,i)=>{const c=R.mat.matCalc[i];return [row.prov,row.marca,row.item||(i+1),row.sku,row.desc,num(row.pl),num(row.qty),c.plTot,num(row.disc),c.cUnit,c.cSub,num(row.margin),c.pUnit,c.pTot];}).filter(x=>x[3]||x[4]||x[5]||x[6]);
-    mr=table(mc,mr,bomHdr,matAll.length?matAll:[['','','','','—',0,0,0,0,0,0,0,0,0]],[5,7,9,10,12,13]);
-    for(let k=mr-(matAll.length||1);k<mr;k++){mc.getCell(k,9).numFmt='0.00%';mc.getCell(k,12).numFmt='0.00%';}
-    mr=totalRow(mc,mr,'Precio total materiales',R.mat.price,13);mr+=2;
-    title(mc,mr,'Contratos de soporte / renovaciones');mr++;
-    const conAll=S.con.rows.map((row,i)=>{const c=R.con.conCalc[i];return [row.prov,row.marca,row.item||(i+1),row.sku,row.desc,num(row.pl),num(row.qty),c.plTot,num(row.disc),c.cUnit,c.cSub,num(row.margin),c.pUnit,c.pTot];}).filter(x=>x[3]||x[4]||x[5]||x[6]);
-    mr=table(mc,mr,bomHdr,conAll.length?conAll:[['','','','','—',0,0,0,0,0,0,0,0,0]],[5,7,9,10,12,13]);
-    for(let k=mr-(conAll.length||1);k<mr;k++){mc.getCell(k,9).numFmt='0.00%';mc.getCell(k,12).numFmt='0.00%';}
-    mr=totalRow(mc,mr,'Precio total contratos',R.con.price,13);
-    /* ---- Hoja Condiciones comerciales (misma información que la pestaña) ---- */
-    const cc=wb.addWorksheet('Condiciones comerciales',{views:[{showGridLines:false}]});
-    cc.columns=[{width:14},{width:52},{width:12},{width:18},{width:36}];
-    {const co=S.comercial||{};let cr=1;
-     const block=(t,txt)=>{title(cc,cr,t);cr++;cc.mergeCells(cr,1,cr,5);const c=cc.getCell(cr,1);c.value=txt||'—';c.alignment={wrapText:true,vertical:'top'};const nl=String(txt||'').split('\n').length;cc.getRow(cr).height=Math.max(18,Math.min(400,nl*15));cr+=2;};
-     block('Notas',co.notas||'');block('Condiciones comerciales',co.condiciones||'');
-     title(cc,cr,'Comisiones/Bolsa/Eventos');cr++;
-     const cmRows=((co.comisiones)||[]).map((r,i)=>[r.partida||(i+1),r.desc||'',num(r.cant),num(r.monto),r.nota||'']);
-     cr=table(cc,cr,['Partida','Descripción','Cantidad','Monto','Notas'],cmRows.length?cmRows:[['','—',0,0,'']],[3]);
-     totalRow(cc,cr,'Total comisiones/bolsa/eventos',R.comis||0,3);}
     /* Orden de hojas = orden de las pestañas de la plataforma */
     ['Registro Proyecto','Calculadora Ingeniería','Calculadora Serv. Admin','Materiales y Contratos','Condiciones comerciales','Resumen Financiero','Cotización']
       .forEach((nm,ix)=>{const ws=wb.getWorksheet(nm);if(ws)ws.orderNo=ix+1;});
