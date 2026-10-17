@@ -120,6 +120,7 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
 /* modal */
 .overlay{position:fixed;inset:0;background:rgba(5,10,22,.7);display:none;align-items:center;justify-content:center;z-index:50}
 /* Indicador de "Procesando…" (puntos que rebotan) — sobre un velo oscuro, por encima de todo */
+select.cursel{width:auto;min-width:62px;padding:3px 4px;font-size:12px;font-weight:700;background:#0c1730;border:1px solid var(--line);border-radius:6px;color:#cfd8e6}
 .busy-ov{position:fixed;inset:0;background:rgba(5,10,22,.62);display:none;align-items:center;justify-content:center;z-index:9999}
 .busy-ov.on{display:flex}
 .busy-box{display:flex;flex-direction:column;align-items:center;gap:14px;padding:26px 34px;background:#0c1730;border:1px solid #22314f;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
@@ -294,12 +295,12 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
     <div class="card">
       <div class="row" style="align-items:flex-end;gap:16px">
         <h3 style="margin:0">CALCULADORA SUBCONTRATACIÓN / EXTRAS</h3>
-        <div style="width:120px"><label class="f">Moneda</label><select id="subc_moneda" onchange="S.ing.subc.moneda=this.value;recompute()"><option>MXN</option><option>USD</option></select></div>
+        <div style="width:150px"><label class="f" title="Moneda que toman los renglones que no tienen una moneda propia">Moneda por defecto</label><select id="subc_moneda" onchange="S.ing.subc.moneda=this.value;recompute()"><option>MXN</option><option>USD</option></select></div>
         <div style="width:110px"><label class="f">Tipo de cambio</label><input id="subc_fx" type="number" step="0.01" value="20" oninput="S.ing.subc.fx=num(this.value)"></div>
         <button class="btn sec" onclick="convertSubc()" title="Convierte el Costo Unitario entre MXN y USD">🔁 Convertir</button>
       </div>
       <table id="subc_table" style="margin-top:8px">
-        <thead><tr><th class="l">Concepto</th><th class="fit">Cantidad</th><th class="fit">Costo Unitario</th><th class="fit">Margen</th><th class="fit nw">Precio unitario</th><th class="nw">Costo total</th><th class="nw">Precio total</th><th class="l">Notas</th><th></th></tr></thead>
+        <thead><tr><th class="l">Concepto</th><th class="fit">Cantidad</th><th class="fit">Moneda</th><th class="fit">Costo Unitario</th><th class="fit">Margen</th><th class="fit nw">Precio unitario</th><th class="nw">Costo total</th><th class="nw">Precio total</th><th class="l">Notas</th><th></th></tr></thead>
         <tbody id="subc_body"></tbody>
       </table>
       <div style="margin-top:8px"><button class="mini add" onclick="addSubc()">＋ Agregar fila</button></div>
@@ -313,7 +314,7 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
     <div class="card">
       <h3>CALCULADORA DE VIAJES Y VIATICOS</h3>
       <table id="trip_table">
-        <thead><tr><th class="l">Concepto</th><th class="fit">Cantidad</th><th class="fit">Costo Unitario</th><th class="nw">Precio total</th><th class="l">Notas</th><th></th></tr></thead>
+        <thead><tr><th class="l">Concepto</th><th class="fit">Cantidad</th><th class="fit">Moneda</th><th class="fit">Costo Unitario</th><th class="nw">Precio total</th><th class="l">Notas</th><th></th></tr></thead>
         <tbody id="trip_body"></tbody>
       </table>
       <div style="margin-top:8px"><button class="mini add" onclick="addTrip()">＋ Agregar fila</button></div>
@@ -323,7 +324,7 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
     <div class="card">
       <div class="row"><h3 style="margin:0">PROPUESTA INGENIERIA</h3></div>
       <table id="prop_table" style="margin-top:8px">
-        <thead><tr><th class="fit">Partida</th><th class="l">Descripción</th><th class="fit">Cantidad</th><th class="fit nw">Precio Unitario</th><th class="nw">Precio Total</th><th class="l">Notas</th><th></th></tr></thead>
+        <thead><tr><th class="fit">Partida</th><th class="l">Descripción</th><th class="fit">Cantidad</th><th class="fit">Moneda</th><th class="fit nw">Precio Unitario</th><th class="nw">Precio Total</th><th class="l">Notas</th><th></th></tr></thead>
         <tbody id="prop_body"></tbody>
       </table>
       <div style="margin-top:8px"><button class="mini add" onclick="addProp()">＋ Agregar fila</button></div>
@@ -374,7 +375,7 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
       <h3>CALCULADORA RECURSO EN SITIO</h3>
       <div class="hint">Carga social por defecto 42%. Facturación mensual.</div>
       <table id="onsite_table">
-        <thead><tr><th class="l" style="text-align:center">Descripción</th><th>Cant.</th><th>Meses</th><th>Costo unit.</th><th>Carga social</th><th>Subtotal unit.</th><th>Costo total</th><th>Margen</th><th>Precio unitario</th><th>Precio mensual</th><th>Precio total</th><th></th></tr></thead>
+        <thead><tr><th class="l" style="text-align:center">Descripción</th><th>Cant.</th><th>Meses</th><th class="fit">Moneda</th><th>Costo unit.</th><th>Carga social</th><th>Subtotal unit.</th><th>Costo total</th><th>Margen</th><th>Precio unitario</th><th>Precio mensual</th><th>Precio total</th><th></th></tr></thead>
         <tbody id="onsite_body"></tbody>
       </table>
       <div style="margin-top:8px"><button class="mini add" onclick="addOnsite()">＋ Agregar recurso</button></div>
@@ -392,13 +393,13 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
     <div class="card">
       <div class="row" style="align-items:flex-end;gap:16px">
         <h3 style="margin:0">CALCULADORA SERVICIO ADMINISTRADO</h3>
-        <div style="width:120px"><label class="f">Moneda</label><select id="sacalc_moneda" onchange="S.sa.sacalc.moneda=this.value;recompute()"><option>MXN</option><option>USD</option></select></div>
+        <div style="width:150px"><label class="f" title="Moneda que toman los renglones que no tienen una moneda propia">Moneda por defecto</label><select id="sacalc_moneda" onchange="S.sa.sacalc.moneda=this.value;recompute()"><option>MXN</option><option>USD</option></select></div>
         <div style="width:110px"><label class="f">Tipo de cambio</label><input id="sacalc_fx" type="number" step="0.01" value="20" oninput="S.sa.sacalc.fx=num(this.value)"></div>
         <button class="btn sec" onclick="convertSacalc()" title="Convierte el Costo Unitario entre MXN y USD">🔁 Convertir</button>
       </div>
       <div class="hint">Alimenta el rubro <b>"Soporte / Servicios Administrados"</b> del Resumen Financiero. Precio = (Costo Unitario ÷ (1 − Margen)) × Cantidad.</div>
       <table id="sacalc_table" style="margin-top:8px">
-        <thead><tr><th class="l">Concepto</th><th class="fit">Cantidad</th><th class="fit">Costo Unitario</th><th class="fit">Margen</th><th class="fit nw">Precio unitario</th><th class="nw">Costo total</th><th class="nw">Precio total</th><th class="l">Notas</th><th></th></tr></thead>
+        <thead><tr><th class="l">Concepto</th><th class="fit">Cantidad</th><th class="fit">Moneda</th><th class="fit">Costo Unitario</th><th class="fit">Margen</th><th class="fit nw">Precio unitario</th><th class="nw">Costo total</th><th class="nw">Precio total</th><th class="l">Notas</th><th></th></tr></thead>
         <tbody id="sacalc_body"></tbody>
       </table>
       <div style="margin-top:8px"><button class="mini add" onclick="addSacalc()">＋ Agregar fila</button></div>
@@ -414,7 +415,7 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
       <h3>PROPUESTA DE SOPORTE / SERVICIOS ADMINISTRADOS</h3>
       <div class="hint">Arma la propuesta de soporte por partidas. Precio Total = Cantidad × Precio Unitario.</div>
       <table id="sacot_table">
-        <thead><tr><th class="fit">Partida</th><th class="l">Descripción</th><th class="fit">Cantidad</th><th class="fit nw">Precio Unitario</th><th class="nw">Precio Total</th><th class="l">Notas</th><th></th></tr></thead>
+        <thead><tr><th class="fit">Partida</th><th class="l">Descripción</th><th class="fit">Cantidad</th><th class="fit">Moneda</th><th class="fit nw">Precio Unitario</th><th class="nw">Precio Total</th><th class="l">Notas</th><th></th></tr></thead>
         <tbody id="sacot_body"></tbody>
       </table>
       <div style="margin-top:8px"><button class="mini add" onclick="addCotRow()">＋ Agregar partida</button></div>
@@ -431,7 +432,7 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
       <div class="row" style="align-items:flex-end;gap:16px">
         <div style="width:120px"><label class="f">Descuento Global</label><div class="pctcell"><input id="mat_discG" type="text" inputmode="decimal" oninput="setBOMglobal('mat','disc',this.value)"><span>%</span></div></div>
         <div style="width:120px"><label class="f">Margen Global</label><div class="pctcell"><input id="mat_marginG" type="text" inputmode="decimal" oninput="setBOMglobal('mat','margin',this.value)"><span>%</span></div></div>
-        <div style="width:120px"><label class="f">Moneda</label><select id="mat_moneda" onchange="recompute()"><option>MXN</option><option>USD</option></select></div>
+        <div style="width:150px"><label class="f" title="Moneda que toman los renglones que no tienen una moneda propia">Moneda por defecto</label><select id="mat_moneda" onchange="recompute()"><option>MXN</option><option>USD</option></select></div>
         <div style="width:110px"><label class="f">Tipo de cambio</label><input id="mat_fx" type="number" step="0.01" value="19" oninput="S.mat.fx=num(this.value)"></div>
         <div style="width:150px"><label class="f">Prorrateo (costo a repartir)</label><input id="mat_prorr" type="text" inputmode="decimal" value="0" oninput="S.mat.prorr=num(this.value);recompute()" onchange="logEvent('Prorrateo','Materiales: '+n2(num(this.value)))" style="text-align:center" title="Costo adicional que se reparte en partes iguales entre los ítems con cantidad > 0"></div>
         <button class="btn sec" onclick="convertBOM('mat')" title="Convierte PL unit. entre MXN y USD">🔁 Convertir</button>
@@ -443,7 +444,7 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
         <table id="mat_table">
           <thead><tr>
             <th>Proveedor</th><th>Marca</th><th class="fit nw">No. Item</th><th>SKU</th><th>Descripción</th>
-            <th class="fit nw">PL unit.</th><th class="fit nw">Cant.</th><th class="fit nw">PL total</th>
+            <th class="fit">Moneda</th><th class="fit nw">PL unit.</th><th class="fit nw">Cant.</th><th class="fit nw">PL total</th>
             <th class="fit nw">Descuento</th><th class="fit nw">Costo unit.</th><th class="fit nw">Costo subtot.</th>
             <th class="fit nw">Margen</th><th class="fit nw">Precio unit.</th><th class="fit nw">Precio total</th><th class="fit nw">Descuento al cliente</th><th></th>
           </tr></thead>
@@ -466,7 +467,7 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
       <div class="row" style="align-items:flex-end;gap:16px">
         <div style="width:120px"><label class="f">Descuento Global</label><div class="pctcell"><input id="con_discG" type="text" inputmode="decimal" oninput="setBOMglobal('con','disc',this.value)"><span>%</span></div></div>
         <div style="width:120px"><label class="f">Margen Global</label><div class="pctcell"><input id="con_marginG" type="text" inputmode="decimal" oninput="setBOMglobal('con','margin',this.value)"><span>%</span></div></div>
-        <div style="width:120px"><label class="f">Moneda</label><select id="con_moneda" onchange="recompute()"><option>MXN</option><option>USD</option></select></div>
+        <div style="width:150px"><label class="f" title="Moneda que toman los renglones que no tienen una moneda propia">Moneda por defecto</label><select id="con_moneda" onchange="recompute()"><option>MXN</option><option>USD</option></select></div>
         <div style="width:110px"><label class="f">Tipo de cambio</label><input id="con_fx" type="number" step="0.01" value="19" oninput="S.con.fx=num(this.value)"></div>
         <div style="width:150px"><label class="f">Prorrateo (costo a repartir)</label><input id="con_prorr" type="text" inputmode="decimal" value="0" oninput="S.con.prorr=num(this.value);recompute()" onchange="logEvent('Prorrateo','Contratos: '+n2(num(this.value)))" style="text-align:center" title="Costo adicional que se reparte en partes iguales entre los ítems con cantidad > 0"></div>
         <button class="btn sec" onclick="convertBOM('con')" title="Convierte PL unit. entre MXN y USD">🔁 Convertir</button>
@@ -478,7 +479,7 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
         <table id="con_table">
           <thead><tr>
             <th>Proveedor</th><th>Marca</th><th class="fit nw">No. Item</th><th>SKU</th><th>Descripción</th>
-            <th class="fit nw">PL unit.</th><th class="fit nw">Cant.</th><th class="fit nw">PL total</th>
+            <th class="fit">Moneda</th><th class="fit nw">PL unit.</th><th class="fit nw">Cant.</th><th class="fit nw">PL total</th>
             <th class="fit nw">Descuento</th><th class="fit nw">Costo unit.</th><th class="fit nw">Costo subtot.</th>
             <th class="fit nw">Margen</th><th class="fit nw">Precio unit.</th><th class="fit nw">Precio total</th><th class="fit nw">Descuento al cliente</th><th></th>
           </tr></thead>
@@ -508,7 +509,7 @@ td.rtecell .rte,td.rtecell .rtebar{max-width:100%}
         <div class="kpi"><div class="lab">Margen Total</div><div class="val" id="r_margin">–</div></div>
       </div>
       <table style="margin-top:14px">
-        <thead><tr><th class="l">Concepto</th><th>Costo</th><th>Precio</th><th>Utilidad</th><th>Margen</th></tr></thead>
+        <thead id="r_head"><tr><th class="l">Concepto</th><th>Costo</th><th>Precio</th><th>Utilidad</th><th>Margen</th></tr></thead>
         <tbody id="r_body"></tbody>
         <tfoot id="r_foot"></tfoot>
       </table>
@@ -802,11 +803,40 @@ const num=v=>{if(typeof v==='string'){const t=v.trim();if(t.charAt(0)==='='){con
 document.addEventListener('focusout',function(e){const el=e.target;if(!el||el.tagName!=='INPUT')return;const im=el.getAttribute('inputmode');if(im!=='decimal'&&im!=='numeric')return;const v=(el.value||'').trim();if(v.charAt(0)==='='){const r=evalFormula(v);if(r!=null)el.value=String(r);}},true);
 /* En celdas numéricas: quita en vivo el símbolo $ (y espacios/moneda) al escribir o pegar, sin esperar a salir de la celda. No toca fórmulas que empiezan con '='. */
 document.addEventListener('input',function(e){const el=e.target;if(!el||el.tagName!=='INPUT')return;const im=el.getAttribute('inputmode');if(im!=='decimal'&&im!=='numeric')return;const val=el.value||'';if((val.trim().charAt(0))==='=')return;if(/[$ \s]|[A-Za-z]/.test(val)){const before=(el.selectionStart||0);const cleaned=val.replace(/[$ \sA-Za-z]/g,'');const removed=val.length-cleaned.length;el.value=cleaned;try{el.setSelectionRange(Math.max(0,before-removed),Math.max(0,before-removed));}catch(_){}}},true);
+/* ===== Moneda por renglón (MXN/USD) ===== */
+const NCUR=c=>c==='USD'?'USD':'MXN';
+const CUR_SECS={
+  subc:{arr:()=>S.ing.subc.rows,cur:()=>NCUR(S.ing.subc.moneda||S.ing.moneda),fx:()=>num(S.ing.subc.fx||S.ing.fx)},
+  trip:{arr:()=>S.ing.trips,cur:()=>NCUR(S.ing.moneda),fx:()=>num(S.ing.fx)},
+  prop:{arr:()=>(S.ing.prop&&S.ing.prop.rows)||[],cur:()=>NCUR(S.ing.moneda),fx:()=>num(S.ing.fx)},
+  onsite:{arr:()=>S.sa.onsite||[],cur:()=>NCUR(S.sa.moneda),fx:()=>num(S.sa.fx)},
+  sacalc:{arr:()=>(S.sa.sacalc&&S.sa.sacalc.rows)||[],cur:()=>NCUR(S.sa.sacalc&&S.sa.sacalc.moneda),fx:()=>num((S.sa.sacalc&&S.sa.sacalc.fx)||S.sa.fx)},
+  sacot:{arr:()=>(S.sa.cotiz&&S.sa.cotiz.rows)||[],cur:()=>NCUR(S.sa.moneda),fx:()=>num(S.sa.fx)},
+  mat:{arr:()=>S.mat.rows,cur:()=>NCUR(S.mat.moneda),fx:()=>num(S.mat.fx)},
+  con:{arr:()=>S.con.rows,cur:()=>NCUR(S.con.moneda),fx:()=>num(S.con.fx||S.mat.fx)}
+};
+/* moneda efectiva de un renglón: la suya, o la de su sección (cotizaciones anteriores) */
+function curOf(row,secCur){const c=row&&row.cur;return (c==='USD'||c==='MXN')?c:NCUR(secCur);}
+function bcAdd(bc,cur,o){const t=bc[cur]||(bc[cur]={});for(const k in o)t[k]=(t[k]||0)+(o[k]||0);}
+function cvt(v,from,to,fx){if(from===to)return v;fx=num(fx)||1;return from==='USD'?v*fx:v/fx;}
+function bcCurs(bc,keys){return ['MXN','USD'].filter(c=>bc&&bc[c]&&keys.some(k=>Math.abs(bc[c][k]||0)>1e-9));}
+/* Montos por moneda para indicadores: "MXN x<br>USD y" (sin convertir) */
+function moneyBC(bc,key,secCur){const cs=bcCurs(bc,[key]);return cs.length?cs.map(c=>money(bc[c][key],c)).join('<br>'):money(0,secCur);}
+/* Margen por moneda */
+function margBC(bc,ck,pk,secCur){const cs=bcCurs(bc,[ck,pk]);if(!cs.length)return pct(0);const m=c=>{const p=bc[c][pk]||0;return p?(p-(bc[c][ck]||0))/p:0;};return cs.length===1?pct(m(cs[0])):cs.map(c=>c+' '+pct(m(c))).join('<br>');}
+function curSel(sec,i,row){const c=curOf(row,CUR_SECS[sec].cur());return `<select class="cursel" data-cursec="${sec}" data-i="${i}" title="Moneda de este renglón">${['MXN','USD'].map(x=>`<option${x===c?' selected':''}>${x}</option>`).join('')}</select>`;}
+document.addEventListener('change',e=>{const el=e.target;if(!el||!el.classList||!el.classList.contains('cursel'))return;const sec=CUR_SECS[el.dataset.cursec];if(!sec)return;const row=sec.arr()[+el.dataset.i];if(!row)return;row.cur=NCUR(el.value);recompute();});
 function money(v,cur){cur=cur||'MXN';return (v<0?'-':'')+cur+' '+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function n2(v){return (v<0?'-':'')+Math.abs(num(v)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 /* Suma el Precio total (pTot) de cada grupo definido por un separador, indexado por la fila del separador.
    Se usa para mostrar el subtotal en el mismo encabezado del separador (Materiales/Contratos). */
-function bomGroupTotals(rows,calc){const m={};let cur=-1;for(let i=0;i<rows.length;i++){const row=rows[i];if(row.sep){cur=i;m[i]={total:0};continue;}const c=calc&&calc[i];if(c&&num(row.qty)>0&&cur>=0)m[cur].total+=c.pTot;}return m;}
+function bomGroupTotals(rows,calc){const m={};let cur=-1;for(let i=0;i<rows.length;i++){const row=rows[i];if(row.sep){cur=i;m[i]={total:0,bc:{}};continue;}const c=calc&&calc[i];if(c&&num(row.qty)>0&&cur>=0){m[cur].total+=c.pTot;bcAdd(m[cur].bc,c.cur||'MXN',{price:c.pTot});}}return m;}
+/* Cotización con varias monedas: si una sección mezcla MXN y USD, cada importe lleva su moneda; los totales van por moneda (sin convertir). */
+function qMixed(bc){return bcCurs(bc,['price']).length>1;}
+function qf(v,cur,mixed){return mixed?money(v,cur||'MXN'):n2(v);}
+function qGroup(g,mixed){if(!g)return n2(0);const cs=bcCurs(g.bc,['price']);if(cs.length>1)return cs.map(c=>money(g.bc[c].price,c)).join(' · ');return mixed?money(g.total,cs[0]||'MXN'):n2(g.total);}
+function qTotals(bc,secCur){const cs=bcCurs(bc,['price']);return (cs.length?cs:[NCUR(secCur)]).map(c=>({c,v:(bc&&bc[c]&&bc[c].price)||0}));}
+function qFoot(label,bc,secCur,span){return qTotals(bc,secCur).map(t=>`<tr class="tot"><td colspan="${span}" class="l">${label} (${t.c})</td><td class="nw">${n2(t.v)}</td></tr>`).join('');}
 /* ===== Indicador "Procesando…" (puntos) — aparece SOLO si la operación tarda más de 1 s ===== */
 let _busyCount=0,_busyTimer=null,_busySilent=0;
 function busyOn(label){_busyCount++;if(_busyCount===1){const t=document.getElementById('busyText');if(t)t.textContent=label||'Procesando…';_busyTimer=setTimeout(function(){_busyTimer=null;if(_busyCount>0){const o=document.getElementById('busyOverlay');if(o){o.classList.add('on');o.setAttribute('aria-hidden','false');}}},1000);}}
@@ -939,44 +969,49 @@ function compute(){
   });
   R.ing.cost=ingCost;R.ing.price=ingPrice;R.ing.hours=ingHours;R.ing.byProfile=byProfile;
   R.ing.marg=ingPrice?((ingPrice-ingCost)/ingPrice):0;
+  R.ing.byCur={};bcAdd(R.ing.byCur,NCUR(im),{cost:ingCost,price:ingPrice});
 
   /* Subcontratación */
   const sc=S.ing.subc;
-  let scCost=0,scPrice=0; const scRows=[];
+  let scCost=0,scPrice=0; const scRows=[],scBC={};const scSec=CUR_SECS.subc.cur(),scFx=CUR_SECS.subc.fx();
   sc.rows.forEach(r=>{
+    const cur=curOf(r,scSec);
     const baseUnit=num(r.costo);
     const cost=baseUnit*num(r.cant);
     const mm=num(r.margin);
     const price=mm<1?(baseUnit/(1-mm))*num(r.cant):0;
     const pUnit=mm<1?baseUnit/(1-mm):0;
-    scRows.push({baseUnit,cost,price,pUnit}); scCost+=cost;scPrice+=price;
+    scRows.push({baseUnit,cost,price,pUnit,cur}); bcAdd(scBC,cur,{cost,price,pUnit});
+    scCost+=cvt(cost,cur,scSec,scFx);scPrice+=cvt(price,cur,scSec,scFx);
   });
-  R.subc={cost:scCost,price:scPrice,rows:scRows,marg:scPrice?((scPrice-scCost)/scPrice):0};
+  R.subc={cost:scCost,price:scPrice,rows:scRows,byCur:scBC,cur:scSec,marg:scPrice?((scPrice-scCost)/scPrice):0};
 
   /* Calculadora Servicio Administrado (independiente, NO entra al Resumen Financiero) */
   const xac=S.sa.sacalc||{rows:[]};
-  let xaCost=0,xaPrice=0,xaPUnit=0; const xaRows=[];
-  (xac.rows||[]).forEach(r=>{const bu=num(r.costo);const cost=bu*num(r.cant);const mm=num(r.margin);const price=mm<1?(bu/(1-mm))*num(r.cant):0;const pUnit=mm<1?bu/(1-mm):0;xaRows.push({baseUnit:bu,cost,price,pUnit});xaCost+=cost;xaPrice+=price;xaPUnit+=pUnit;});
-  R.sacalc={cost:xaCost,price:xaPrice,pUnitSum:xaPUnit,rows:xaRows,marg:xaPrice?((xaPrice-xaCost)/xaPrice):0};
+  let xaCost=0,xaPrice=0,xaPUnit=0; const xaRows=[],xaBC={};const xaSec=CUR_SECS.sacalc.cur(),xaFx=CUR_SECS.sacalc.fx();
+  (xac.rows||[]).forEach(r=>{const cur=curOf(r,xaSec);const bu=num(r.costo);const cost=bu*num(r.cant);const mm=num(r.margin);const price=mm<1?(bu/(1-mm))*num(r.cant):0;const pUnit=mm<1?bu/(1-mm):0;xaRows.push({baseUnit:bu,cost,price,pUnit,cur});bcAdd(xaBC,cur,{cost,price,pUnit});xaCost+=cvt(cost,cur,xaSec,xaFx);xaPrice+=cvt(price,cur,xaSec,xaFx);xaPUnit+=cvt(pUnit,cur,xaSec,xaFx);});
+  R.sacalc={cost:xaCost,price:xaPrice,pUnitSum:xaPUnit,rows:xaRows,byCur:xaBC,cur:xaSec,marg:xaPrice?((xaPrice-xaCost)/xaPrice):0};
 
   /* Propuesta Ingeniería (calculadora independiente, mismas fórmulas que Subcontratación) */
   const pc=S.ing.prop||{rows:[]};
-  let pPrice=0; const pRows=[];
+  let pPrice=0; const pRows=[],pBC={};const pSec=CUR_SECS.prop.cur(),pFx=CUR_SECS.prop.fx();
   (pc.rows||[]).forEach(r=>{
+    const cur=curOf(r,pSec);
     const pUnit=num(r.costo);         // Precio Unitario (captura directa)
     const pTot=pUnit*num(r.cant);     // Precio Total = Cantidad × Precio Unitario
-    pRows.push({pUnit,pTot}); pPrice+=pTot;
+    pRows.push({pUnit,pTot,cur}); bcAdd(pBC,cur,{price:pTot}); pPrice+=cvt(pTot,cur,pSec,pFx);
   });
-  R.prop={priceTotal:pPrice,rows:pRows};
+  R.prop={priceTotal:pPrice,rows:pRows,byCur:pBC,cur:pSec};
 
   /* Viajes */
-  let trCost=0,trPrice=0; const trRows=[];
+  let trCost=0,trPrice=0; const trRows=[],trBC={};const trSec=CUR_SECS.trip.cur(),trFx=CUR_SECS.trip.fx();
   S.ing.trips.forEach(t=>{
+    const cur=curOf(t,trSec);
     const base=num(t.cant)*num(t.costo);
     const price=base;
-    trRows.push({base,price}); trCost+=base; trPrice+=price;
+    trRows.push({base,price,cur}); bcAdd(trBC,cur,{cost:base,price}); trCost+=cvt(base,cur,trSec,trFx); trPrice+=cvt(price,cur,trSec,trFx);
   });
-  R.trip={cost:trCost,price:trPrice,rows:trRows};
+  R.trip={cost:trCost,price:trPrice,rows:trRows,byCur:trBC,cur:trSec};
 
   /* Servicios administrados */
   const sa=S.sa, sfx=sa.fx, smon=sa.moneda, sTy=sa.servicio, sSla=sa.sla, months=num(sa.dur);
@@ -1013,11 +1048,13 @@ function compute(){
      CostoTotal=CostoUnit*Meses; PrecioUnit=CostoUnit/(1-Margen); PrecioTotal=CostoTotal/(1-Margen);
      TotalFinal=PrecioTotal*(1-%Desc); MargenReal=(ΣTotalFinal-ΣCostoTotal)/ΣTotalFinal */
   const cotRows=(S.sa.cotiz&&S.sa.cotiz.rows?S.sa.cotiz.rows:[]);
-  let cotP=0; const cotCalc=cotRows.map(r=>{const pUnit=num(r.costo);const pTot=pUnit*num(r.cant);cotP+=pTot;return {pUnit,pTot};});
-  R.sacot={priceTotal:cotP,rows:cotCalc};
+  let cotP=0; const cotBC={};const ctSec=CUR_SECS.sacot.cur(),ctFx=CUR_SECS.sacot.fx();
+  const cotCalc=cotRows.map(r=>{const cur=curOf(r,ctSec);const pUnit=num(r.costo);const pTot=pUnit*num(r.cant);bcAdd(cotBC,cur,{price:pTot});cotP+=cvt(pTot,cur,ctSec,ctFx);return {pUnit,pTot,cur};});
+  R.sacot={priceTotal:cotP,rows:cotCalc,byCur:cotBC,cur:ctSec};
 
   /* Recurso en sitio */
-  let onCost=0,onPrice=0,onQty=0,onCUnit=0,onSubUnit=0,onPUnit=0,onPMes=0; const onCalc=sa.onsite.map(o=>{
+  let onCost=0,onPrice=0,onQty=0,onCUnit=0,onSubUnit=0,onPUnit=0,onPMes=0; const onBC={};const onSec=CUR_SECS.onsite.cur(),onFx=CUR_SECS.onsite.fx();const onCalc=sa.onsite.map(o=>{
+    const cur=curOf(o,onSec);
     const subUnit=num(o.costo)+num(o.costo)*num(o.carga);
     const meses=(o.meses===undefined||o.meses===null||o.meses==='')?1:num(o.meses);   // meses en sitio (cotiz. antiguas sin el dato = 1)
     const cost=subUnit*num(o.cant)*meses;
@@ -1025,39 +1062,47 @@ function compute(){
     const pUnit=om<1?subUnit/(1-om):0;   // precio de venta por recurso/mes
     const pMes=pUnit*num(o.cant);        // precio mensual de todos los recursos de la fila
     const price=pMes*meses;              // = cost/(1-om)
-    onCost+=cost;onPrice+=price;onQty+=num(o.cant);onCUnit+=num(o.costo);onSubUnit+=subUnit;onPUnit+=pUnit;onPMes+=pMes;return {subUnit,cost,price,pUnit,pMes,marg:om,meses};
+    bcAdd(onBC,cur,{cost,price,cUnit:num(o.costo),subUnit,pUnit,pMes});
+    const k=v=>cvt(v,cur,onSec,onFx);
+    onCost+=k(cost);onPrice+=k(price);onQty+=num(o.cant);onCUnit+=k(num(o.costo));onSubUnit+=k(subUnit);onPUnit+=k(pUnit);onPMes+=k(pMes);return {subUnit,cost,price,pUnit,pMes,marg:om,meses,cur};
   });
-  R.onsite={cost:onCost,price:onPrice,onCalc,qty:onQty,cUnitSum:onCUnit,subUnitSum:onSubUnit,pUnitSum:onPUnit,pMesSum:onPMes,marg:onPrice?((onPrice-onCost)/onPrice):0};
+  R.onsite={cost:onCost,price:onPrice,onCalc,qty:onQty,cUnitSum:onCUnit,subUnitSum:onSubUnit,pUnitSum:onPUnit,pMesSum:onPMes,byCur:onBC,cur:onSec,marg:onPrice?((onPrice-onCost)/onPrice):0};
 
   /* Materiales — SIN tipo de cambio (igual que el Excel). Descuento y Margen por fila.
      PL total = PL*Cant ; Costo unit = PL*(1-desc) ; Costo subtot = Costo unit*Cant ;
      Precio unit = Costo unit/(1-margen) ; Precio total = Precio unit*Cant ; Margen real = (ΣPrecioTot-ΣCostoSub)/ΣPrecioTot */
   const matN=S.mat.rows.filter(r=>!r.sep&&num(r.qty)>0).length;
   const matPer=(matN>0&&num(S.mat.prorr)>0)?(num(S.mat.prorr)/matN):0;
-  let matCost=0,matPrice=0,matPL=0,matCUnit=0,matPUnit=0; const matCalc=S.mat.rows.map(row=>{
+  let matCost=0,matPrice=0,matPL=0,matCUnit=0,matPUnit=0; const matBC={};const matSec=CUR_SECS.mat.cur(),matFx=CUR_SECS.mat.fx(); const matCalc=S.mat.rows.map(row=>{
     if(row.sep)return {sep:true,plTot:0,cUnit:0,cSub:0,pUnit:0,pTot:0,dcli:0};
+    const cur=curOf(row,matSec);
     const pl=num(row.pl), qty=num(row.qty), disc=num(row.disc), marg=num(row.margin);
-    const plTot=pl*qty; const addU=(qty>0)?(matPer/qty):0; const cUnit=(pl-disc*pl)+addU;
+    const plTot=pl*qty; const addU=(qty>0)?cvt(matPer/qty,matSec,cur,matFx):0; const cUnit=(pl-disc*pl)+addU;   /* prorrateo (en moneda de la sección) llevado a la moneda del renglón */
     const cSub=cUnit*qty, pUnit=marg<1?cUnit/(1-marg):0, pTot=pUnit*qty;
     const dcli=pl>0?(1-(pUnit/pl)):0;
-    matCost+=cSub;matPrice+=pTot;matPL+=plTot;matCUnit+=cUnit;matPUnit+=pUnit;
-    return {plTot,cUnit,cSub,pUnit,pTot,dcli};
+    bcAdd(matBC,cur,{pl:plTot,cost:cSub,price:pTot,cUnit,pUnit});
+    const k=v=>cvt(v,cur,matSec,matFx);
+    matCost+=k(cSub);matPrice+=k(pTot);matPL+=k(plTot);matCUnit+=k(cUnit);matPUnit+=k(pUnit);
+    return {plTot,cUnit,cSub,pUnit,pTot,dcli,cur};
   });
-  R.mat={cost:matCost,price:matPrice,pl:matPL,cUnitSum:matCUnit,pUnitSum:matPUnit,taxLog:0,matCalc,prorr:num(S.mat.prorr),perItem:matPer,marg:matPrice?((matPrice-matCost)/matPrice):0};
+  R.mat={byCur:matBC,cur:matSec,cost:matCost,price:matPrice,pl:matPL,cUnitSum:matCUnit,pUnitSum:matPUnit,taxLog:0,matCalc,prorr:num(S.mat.prorr),perItem:matPer,marg:matPrice?((matPrice-matCost)/matPrice):0};
 
   /* Contratos — SIN tipo de cambio. Descuento y Margen por fila (mismas fórmulas que Materiales) */
   const conN=S.con.rows.filter(r=>!r.sep&&num(r.qty)>0).length;
   const conPer=(conN>0&&num(S.con.prorr)>0)?(num(S.con.prorr)/conN):0;
-  let conCost=0,conPrice=0,conPL=0,conCUnit=0,conPUnit=0; const conCalc=S.con.rows.map(row=>{
+  let conCost=0,conPrice=0,conPL=0,conCUnit=0,conPUnit=0; const conBC={};const conSec=CUR_SECS.con.cur(),conFx=CUR_SECS.con.fx(); const conCalc=S.con.rows.map(row=>{
     if(row.sep)return {sep:true,plTot:0,cUnit:0,cSub:0,pUnit:0,pTot:0,dcli:0};
+    const cur=curOf(row,conSec);
     const pl=num(row.pl), qty=num(row.qty), disc=num(row.disc), marg=num(row.margin);
-    const plTot=pl*qty; const addU=(qty>0)?(conPer/qty):0; const cUnit=(pl-disc*pl)+addU;
+    const plTot=pl*qty; const addU=(qty>0)?cvt(conPer/qty,conSec,cur,conFx):0; const cUnit=(pl-disc*pl)+addU;   /* prorrateo (en moneda de la sección) llevado a la moneda del renglón */
     const cSub=cUnit*qty, pUnit=marg<1?cUnit/(1-marg):0, pTot=pUnit*qty;
     const dcli=pl>0?(1-(pUnit/pl)):0;
-    conCost+=cSub;conPrice+=pTot;conPL+=plTot;conCUnit+=cUnit;conPUnit+=pUnit;
-    return {plTot,cUnit,cSub,pUnit,pTot,dcli};
+    bcAdd(conBC,cur,{pl:plTot,cost:cSub,price:pTot,cUnit,pUnit});
+    const k=v=>cvt(v,cur,conSec,conFx);
+    conCost+=k(cSub);conPrice+=k(pTot);conPL+=k(plTot);conCUnit+=k(cUnit);conPUnit+=k(pUnit);
+    return {plTot,cUnit,cSub,pUnit,pTot,dcli,cur};
   });
-  R.con={cost:conCost,price:conPrice,pl:conPL,cUnitSum:conCUnit,pUnitSum:conPUnit,conCalc,prorr:num(S.con.prorr),perItem:conPer,marg:conPrice?((conPrice-conCost)/conPrice):0};
+  R.con={byCur:conBC,cur:conSec,cost:conCost,price:conPrice,pl:conPL,cUnitSum:conCUnit,pUnitSum:conPUnit,conCalc,prorr:num(S.con.prorr),perItem:conPer,marg:conPrice?((conPrice-conCost)/conPrice):0};
 
   /* Consolidación */
   const streams=[
@@ -1072,12 +1117,19 @@ function compute(){
   const toBase=s=>((s.cur==='USD')?(num(s.fx)||1):1);
   const totCost=streams.reduce((a,s)=>a+s.cost*toBase(s),0), totPrice=streams.reduce((a,s)=>a+s.price*toBase(s),0);
   R.total={streams,cost:totCost,price:totPrice,profit:totPrice-totCost,margin:totPrice?((totPrice-totCost)/totPrice):0};
+  /* Por moneda, sin convertir: cada rubro aporta lo que lleva en MXN y en USD */
+  const srcBC=[R.ing.byCur,R.subc.byCur,R.sacalc.byCur,R.onsite.byCur,R.mat.byCur,R.con.byCur];
+  streams.forEach((st,i)=>{st.byCur={};const b=srcBC[i]||{};['MXN','USD'].forEach(c=>{if(b[c])st.byCur[c]={cost:b[c].cost||0,price:b[c].price||0};});});
+  const tBC={};streams.forEach(st=>{for(const c in st.byCur)bcAdd(tBC,c,st.byCur[c]);});
+  R.total.byCur=tBC;
   /* Comisiones/Bolsa/Eventos: se restan de la Utilidad y afectan el Margen Total */
   const comis=((S.comercial&&S.comercial.comisiones)?S.comercial.comisiones:[]).reduce((a,rr)=>a+num(rr.monto),0);
   R.comis=comis;
   R.total.comis=comis;
   R.total.profitNet=R.total.profit-comis;
   R.total.marginNet=R.total.price?(R.total.profitNet/R.total.price):0;
+  /* Comisiones/Bolsa/Eventos se capturan en MXN: se restan de la utilidad en MXN */
+  ['MXN','USD'].forEach(c=>{const t=R.total.byCur[c];if(!t&&c!=='MXN')return;const x=t||(R.total.byCur.MXN={cost:0,price:0});x.profit=(x.price||0)-(x.cost||0);x.comis=(c==='MXN')?comis:0;x.profitNet=x.profit-x.comis;x.margin=x.price?(x.profit/x.price):0;x.marginNet=x.price?(x.profitNet/x.price):0;});
   return R;
 }
 
@@ -1214,6 +1266,7 @@ function renderIng(){
     const tr=document.createElement('tr');tr.dataset.dndg='subc';tr.dataset.dndi=i;
     tr.innerHTML=`<td class="l"><div style="display:flex;align-items:center;gap:3px">${grip('subc',i)}<textarea class="ta" rows="1" data-subc="${i}" data-k="concepto" style="flex:1;min-width:0">${esc(r.concepto)}</textarea></div></td>
       <td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-subc="${i}" data-k="cant" value="${r.cant}"></td>
+      <td class="fit" style="text-align:center">${curSel('subc',i,r)}</td>
       <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-subc="${i}" data-k="costo" value="${n2(r.costo)}" data-f="${esc(r.costo__f||'')}"></td>
       <td class="fit" style="text-align:center"><div class="pctcell"><input class="num" type="text" inputmode="decimal" data-subc="${i}" data-k="margin_pct" value="${(num(r.margin)*100).toFixed(2)}"><span>%</span></div></td>
       <td class="calc fit tight">${n2(c.pUnit)}</td>
@@ -1223,9 +1276,9 @@ function renderIng(){
       <td>${copyBtn('subc',i)}<button class="mini del" data-delsubc="${i}">✕</button></td>`;
     sb.appendChild(tr);
   });
-  $('subc_cost').textContent=money(R.subc.cost,scur);
-  $('subc_price').textContent=money(R.subc.price,scur);
-  $('subc_marg').textContent=pct(R.subc.marg);
+  $('subc_cost').innerHTML=moneyBC(R.subc.byCur,'cost',R.subc.cur);
+  $('subc_price').innerHTML=moneyBC(R.subc.byCur,'price',R.subc.cur);
+  $('subc_marg').innerHTML=margBC(R.subc.byCur,'cost','price',R.subc.cur);
 
   // Viajes
   const tb=$('trip_body'); tb.innerHTML='';
@@ -1234,13 +1287,14 @@ function renderIng(){
     const tr=document.createElement('tr');tr.dataset.dndg='trip';tr.dataset.dndi=i;
     tr.innerHTML=`<td class="l"><div style="display:flex;align-items:center;gap:3px">${grip('trip',i)}<textarea class="ta" rows="1" data-trip="${i}" data-k="concepto" style="flex:1;min-width:0">${esc(t.concepto)}</textarea></div></td>
       <td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-trip="${i}" data-k="cant" value="${t.cant}"></td>
+      <td class="fit" style="text-align:center">${curSel('trip',i,t)}</td>
       <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-trip="${i}" data-k="costo" value="${n2(t.costo)}" data-f="${esc(t.costo__f||'')}"></td>
       <td class="calc fit tight">${n2(c.price)}</td>
       <td class="l"><textarea class="ta" rows="1" data-trip="${i}" data-k="nota" style="width:100%">${esc(t.nota||'')}</textarea></td>
       <td>${copyBtn('trip',i)}<button class="mini del" data-deltrip="${i}">✕</button></td>`;
     tb.appendChild(tr);
   });
-  $('trip_total').textContent=money(R.trip.price,cur);
+  $('trip_total').innerHTML=moneyBC(R.trip.byCur,'price',R.trip.cur).replace(/<br>/g,' · ');
 
   // Propuesta Ingeniería
   const pb=$('prop_body'); pb.innerHTML='';
@@ -1250,13 +1304,14 @@ function renderIng(){
     tr.innerHTML=`<td class="fit"><div style="display:flex;align-items:center;gap:3px">${grip('prop',i)}<input class="num" type="text" inputmode="decimal" data-prop="${i}" data-k="partida" value="${esc(r.partida||'')}" style="text-align:center;flex:1;min-width:0"></div></td>
       <td class="l rtecell">${rteBar('prop',i)}</td>
       <td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-prop="${i}" data-k="cant" value="${r.cant}"></td>
+      <td class="fit" style="text-align:center">${curSel('prop',i,r)}</td>
       <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-prop="${i}" data-k="costo" value="${n2(r.costo)}" data-f="${esc(r.costo__f||'')}"></td>
       <td class="calc fit tight">${n2(c.pTot)}</td>
       <td class="l"><textarea class="ta" rows="1" data-prop="${i}" data-k="nota" style="width:100%">${esc(r.nota||'')}</textarea></td>
       <td>${copyBtn('prop',i)}<button class="mini del" data-delprop="${i}">✕</button></td>`;
     pb.appendChild(tr);
   });
-  $('prop_price').textContent=money(R.prop.priceTotal,cur);
+  $('prop_price').innerHTML=moneyBC(R.prop.byCur,'price',R.prop.cur);
   bindIng();
 }
 
@@ -1345,6 +1400,7 @@ function renderSA(){
     tr.innerHTML=`<td class="l"><div style="display:flex;align-items:center;gap:3px">${grip('onsite',i)}<input value="${esc(o.d)}" data-on="${i}" data-k="d" style="flex:1;min-width:0"></div></td>
       <td style="text-align:center"><input class="num" type="text" inputmode="numeric" value="${o.cant}" data-on="${i}" data-k="cant"></td>
       <td style="text-align:center"><input class="num" type="text" inputmode="numeric" value="${(o.meses===undefined||o.meses===null||o.meses==='')?1:o.meses}" data-on="${i}" data-k="meses"></td>
+      <td class="fit" style="text-align:center">${curSel('onsite',i,o)}</td>
       <td style="text-align:center"><input class="numw" type="text" inputmode="decimal" value="${n2(o.costo)}" data-on="${i}" data-k="costo" data-f="${esc(o.costo__f||'')}"></td>
       <td style="text-align:center"><div class="pctcell"><input type="text" inputmode="decimal" value="${(num(o.carga)*100).toFixed(2)}" data-on="${i}" data-k="carga_pct"><span>%</span></div></td>
       <td class="cost nw" style="text-align:center">${n2(c.subUnit)}</td>
@@ -1356,13 +1412,13 @@ function renderSA(){
       <td>${copyBtn('onsite',i)}<button class="mini del" data-delon="${i}">✕</button></td>`;
     ob.appendChild(tr);
   });
-  $('onsite_cunit').textContent=money(R.onsite.cUnitSum,scur);
-  $('onsite_subunit').textContent=money(R.onsite.subUnitSum,scur);
-  $('onsite_cost').textContent=money(R.onsite.cost,scur);
-  $('onsite_marg').textContent=pct(R.onsite.marg);
-  $('onsite_punit').textContent=money(R.onsite.pUnitSum,scur);
-  $('onsite_pmes').textContent=money(R.onsite.pMesSum,scur);
-  $('onsite_price').textContent=money(R.onsite.price,scur);
+  $('onsite_cunit').innerHTML=moneyBC(R.onsite.byCur,'cUnit',R.onsite.cur);
+  $('onsite_subunit').innerHTML=moneyBC(R.onsite.byCur,'subUnit',R.onsite.cur);
+  $('onsite_cost').innerHTML=moneyBC(R.onsite.byCur,'cost',R.onsite.cur);
+  $('onsite_marg').innerHTML=margBC(R.onsite.byCur,'cost','price',R.onsite.cur);
+  $('onsite_punit').innerHTML=moneyBC(R.onsite.byCur,'pUnit',R.onsite.cur);
+  $('onsite_pmes').innerHTML=moneyBC(R.onsite.byCur,'pMes',R.onsite.cur);
+  $('onsite_price').innerHTML=moneyBC(R.onsite.byCur,'price',R.onsite.cur);
   document.querySelectorAll('[data-dev]').forEach(el=>{el.oninput=()=>{S.sa.dev[el.dataset.dev][el.dataset.r]=num(el.value);recompute();};});
   document.querySelectorAll('[data-devname]').forEach(el=>{el.oninput=()=>{const k=el.dataset.devname,r=el.dataset.r;if(!S.sa.devNames)S.sa.devNames={basic:{},adv:{},end:{}};if(!S.sa.devNames[k])S.sa.devNames[k]={};S.sa.devNames[k][r]=el.value;};});
   document.querySelectorAll('[data-on]').forEach(el=>{el.oninput=()=>{const i=el.dataset.on,k=el.dataset.k;
@@ -1382,13 +1438,14 @@ function renderSA(){
     tr.innerHTML=`<td class="fit"><div style="display:flex;align-items:center;gap:3px">${grip('sacot',i)}<input class="num" type="text" inputmode="decimal" data-cot="${i}" data-k="partida" value="${esc(r.partida||'')}" style="text-align:center;flex:1;min-width:0"></div></td>
       <td class="l rtecell">${rteBar('sacot',i)}</td>
       <td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-cot="${i}" data-k="cant" value="${r.cant}"></td>
+      <td class="fit" style="text-align:center">${curSel('sacot',i,r)}</td>
       <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-cot="${i}" data-k="costo" value="${n2(r.costo)}" data-f="${esc(r.costo__f||'')}"></td>
       <td class="calc fit tight">${n2(c.pTot)}</td>
       <td class="l"><textarea class="ta" rows="1" data-cot="${i}" data-k="nota" style="width:100%">${esc(r.nota||'')}</textarea></td>
       <td>${copyBtn('sacot',i)}<button class="mini del" data-delcot="${i}">✕</button></td>`;
     cb.appendChild(tr);
   });
-  $('sacot_price').textContent=money(R.sacot.priceTotal,scur);
+  $('sacot_price').innerHTML=moneyBC(R.sacot.byCur,'price',R.sacot.cur);
   document.querySelectorAll('[data-cot]').forEach(el=>{el.oninput=()=>{const i=+el.dataset.cot,k=el.dataset.k;
     if(k==='desc'||k==='nota'){S.sa.cotiz.rows[i][k]=el.value;autoGrow(el);renderQuote();}
     else if(k==='partida'){S.sa.cotiz.rows[i].partida=el.value;}
@@ -1408,7 +1465,8 @@ function renderSA(){
       const tr=document.createElement('tr');tr.dataset.dndg='sacalc';tr.dataset.dndi=i;
       tr.innerHTML=`<td class="l"><div style="display:flex;align-items:center;gap:3px">${grip('sacalc',i)}<textarea class="ta" rows="1" data-sacx="${i}" data-k="concepto" style="flex:1;min-width:0">${esc(r.concepto)}</textarea></div></td>
         <td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-sacx="${i}" data-k="cant" value="${r.cant}"></td>
-        <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-sacx="${i}" data-k="costo" value="${n2(r.costo)}" data-f="${esc(r.costo__f||'')}"></td>
+        <td class="fit" style="text-align:center">${curSel('sacalc',i,r)}</td>
+      <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-sacx="${i}" data-k="costo" value="${n2(r.costo)}" data-f="${esc(r.costo__f||'')}"></td>
         <td class="fit" style="text-align:center"><div class="pctcell"><input class="num" type="text" inputmode="decimal" data-sacx="${i}" data-k="margin_pct" value="${(num(r.margin)*100).toFixed(2)}"><span>%</span></div></td>
         <td class="calc fit tight">${n2(c.pUnit)}</td>
         <td class="cost fit tight">${n2(c.cost)}</td>
@@ -1417,7 +1475,7 @@ function renderSA(){
         <td>${copyBtn('sacalc',i)}<button class="mini del" data-delsacx="${i}">✕</button></td>`;
       xb.appendChild(tr);
     });
-    if(R.sacalc){$('sacalc_cost').textContent=money(R.sacalc.cost,xcur);$('sacalc_punit').textContent=money(R.sacalc.pUnitSum,xcur);$('sacalc_price').textContent=money(R.sacalc.price,xcur);$('sacalc_marg').textContent=pct(R.sacalc.marg);}
+    if(R.sacalc){const b=R.sacalc.byCur,c=R.sacalc.cur;$('sacalc_cost').innerHTML=moneyBC(b,'cost',c);$('sacalc_punit').innerHTML=moneyBC(b,'pUnit',c);$('sacalc_price').innerHTML=moneyBC(b,'price',c);$('sacalc_marg').innerHTML=margBC(b,'cost','price',c);}
     document.querySelectorAll('[data-sacx]').forEach(el=>{el.oninput=()=>{const i=+el.dataset.sacx,k=el.dataset.k;
       if(k==='concepto'||k==='nota'){S.sa.sacalc.rows[i][k]=el.value;autoGrow(el);}
       else if(k==='margin_pct'){S.sa.sacalc.rows[i].margin=num(el.value)/100;recompute();}
@@ -1438,7 +1496,7 @@ function renderBOMtable(tag){
   St.rows.forEach((row,i)=>{
     if(row.sep){
       const trs=document.createElement('tr');trs.dataset.dndg=tag;trs.dataset.dndi=i;trs.className='sep-row';
-      trs.innerHTML=`<td class="l" colspan="15" style="background:#0c1730"><div style="display:flex;align-items:center;gap:6px">${grip(tag,i)}<span style="color:#E8632A;font-weight:800">▸</span><input type="text" data-sep="${tag}" data-i="${i}" value="${esc(row.label||'')}" placeholder="Grupo (ej. Switches LAN)" style="flex:1;min-width:0;width:100%;background:transparent;border:none;color:#E8632A;font-weight:700;font-size:13px;outline:none"></div></td><td class="fit" style="text-align:center;background:#0c1730"><button class="mini del" data-delb2="${tag}.${i}">✕</button></td>`;
+      trs.innerHTML=`<td class="l" colspan="16" style="background:#0c1730"><div style="display:flex;align-items:center;gap:6px">${grip(tag,i)}<span style="color:#E8632A;font-weight:800">▸</span><input type="text" data-sep="${tag}" data-i="${i}" value="${esc(row.label||'')}" placeholder="Grupo (ej. Switches LAN)" style="flex:1;min-width:0;width:100%;background:transparent;border:none;color:#E8632A;font-weight:700;font-size:13px;outline:none"></div></td><td class="fit" style="text-align:center;background:#0c1730"><button class="mini del" data-delb2="${tag}.${i}">✕</button></td>`;
       body.appendChild(trs);return;
     }
     const c=calc[i];
@@ -1449,6 +1507,7 @@ function renderBOMtable(tag){
       <td class="fit" style="text-align:center"><input class="autow" type="text" data-b2="${tag}" data-i="${i}" data-k="item" value="${esc(row.item!=null&&row.item!==''?row.item:(i+1))}"></td>
       <td class="l"><textarea class="ta" rows="1" data-b2="${tag}" data-i="${i}" data-k="sku">${esc(row.sku)}</textarea></td>
       <td class="l"><textarea class="ta" rows="1" data-b2="${tag}" data-i="${i}" data-k="desc" style="min-width:255px">${esc(row.desc)}</textarea></td>
+      <td class="fit" style="text-align:center">${curSel(tag,i,row)}</td>
       <td class="fit" style="text-align:center"><input class="numw" type="text" inputmode="decimal" data-b2="${tag}" data-i="${i}" data-k="pl" value="${n2(row.pl)}" data-f="${esc(row.pl__f||'')}"></td>
       <td class="fit" style="text-align:center"><input class="autow" type="text" inputmode="decimal" data-b2="${tag}" data-i="${i}" data-k="qty" value="${row.qty}"></td>
       <td class="fit tight">${money(c.plTot,cur)}</td>
@@ -1462,19 +1521,19 @@ function renderBOMtable(tag){
       <td class="fit" style="text-align:center"><button class="mini del" data-delb2="${tag}.${i}">✕</button></td>`;
     body.appendChild(tr);
   });
-  $(tag+'_pl').textContent=money(Rt.pl,cur);
-  $(tag+'_cunit').textContent=money(Rt.cUnitSum,cur);
-  $(tag+'_csub').textContent=money(Rt.cost,cur);
-  $(tag+'_punit').textContent=money(Rt.pUnitSum,cur);
-  $(tag+'_ptot').textContent=money(Rt.price,cur);
-  $(tag+'_marg').textContent=pct(Rt.marg);
+  $(tag+'_pl').innerHTML=moneyBC(Rt.byCur,'pl',Rt.cur);
+  $(tag+'_cunit').innerHTML=moneyBC(Rt.byCur,'cUnit',Rt.cur);
+  $(tag+'_csub').innerHTML=moneyBC(Rt.byCur,'cost',Rt.cur);
+  $(tag+'_punit').innerHTML=moneyBC(Rt.byCur,'pUnit',Rt.cur);
+  $(tag+'_ptot').innerHTML=moneyBC(Rt.byCur,'price',Rt.cur);
+  $(tag+'_marg').innerHTML=margBC(Rt.byCur,'cost','price',Rt.cur);
   const pp=$(tag+'_prorr');if(pp&&document.activeElement!==pp)pp.value=n2(num(St.prorr));
 }
 function setBOMglobal(tag,field,pctVal){const St=tag==='mat'?S.mat:S.con;const v=num(pctVal)/100;St[field]=v;St.rows.forEach(r=>r[field]=v);recompute();}
 /* Conversión de moneda para calculadoras basadas en "costo" (Subcontratación y Servicio Administrado) */
 function convertCosto(St,selId,label){if(!St){return;}const tc=num(St.fx);if(tc<=0){alert('Ingresa un Tipo de cambio válido (> 0).');return;}
   const from=St.moneda||'MXN', to=(from==='MXN'?'USD':'MXN');
-  (St.rows||[]).forEach(r=>{const c=num(r.costo);r.costo=(to==='USD')?(c/tc):(c*tc);});
+  (St.rows||[]).forEach(r=>{const rc=curOf(r,from);if(rc!==to){r.costo=cvt(num(r.costo),rc,to,tc);delete r.costo__f;}r.cur=to;});   /* cada renglón desde su propia moneda */
   St.moneda=to;const sel=$(selId);if(sel)sel.value=to;recompute();
   alert((label||'Costo Unitario')+' convertido de '+from+' a '+to+' (Tipo de cambio '+tc.toFixed(2)+').');}
 function convertSubc(){convertCosto(S.ing.subc,'subc_moneda','Costo Unitario (Subcontratación)');}
@@ -1483,7 +1542,7 @@ function addSacalc(){if(!S.sa.sacalc)S.sa.sacalc={moneda:'MXN',fx:20,rows:[]};S.
 function addOnsite(){if(!Array.isArray(S.sa.onsite))S.sa.onsite=[];S.sa.onsite.push({r:0,d:'Recurso '+(S.sa.onsite.length+1),cant:0,costo:0,carga:0.42,margin:0.4,meses:1});recompute();}
 function convertBOM(tag){const St=tag==='mat'?S.mat:S.con;const tc=num(St.fx);if(tc<=0){alert('Ingresa un Tipo de cambio válido (> 0).');return;}
   const from=St.moneda||'MXN', to=(from==='MXN'?'USD':'MXN');
-  St.rows.forEach(r=>{const pl=num(r.pl);r.pl=(to==='USD')?(pl/tc):(pl*tc);});
+  St.rows.forEach(r=>{if(r.sep)return;const rc=curOf(r,from);if(rc!==to){r.pl=cvt(num(r.pl),rc,to,tc);delete r.pl__f;}r.cur=to;});   /* cada renglón desde su propia moneda */
   St.moneda=to;const sel=$(tag+'_moneda');if(sel)sel.value=to;recompute();
   logEvent('Convertir moneda',(tag==='mat'?'Materiales':'Contratos')+': '+from+'→'+to+' (TC '+tc.toFixed(2)+')');
   alert('PL unit. convertidos de '+from+' a '+to+' (Tipo de cambio '+tc.toFixed(2)+').');}
@@ -1528,21 +1587,23 @@ function renderBOM(bodyId,rows,calc,tag){
 }
 
 function renderResumen(){
-  const R=LAST;
+  const R=LAST;const T=R.total.byCur||{};
+  /* Monedas presentes (MXN siempre; USD sólo si hay montos en USD). Sin conversión entre monedas. */
+  const curs=['MXN','USD'].filter(c=>c==='MXN'||(T[c]&&(Math.abs(T[c].cost||0)>1e-9||Math.abs(T[c].price||0)>1e-9)));
+  const two=curs.length>1;
+  $('r_head').innerHTML=two
+    ?`<tr><th class="l" rowspan="2">Concepto</th>${curs.map(c=>`<th colspan="4" style="text-align:center;border-bottom:1px solid var(--line)">${c}</th>`).join('')}</tr><tr>${curs.map(()=>'<th>Costo</th><th>Precio</th><th>Utilidad</th><th>Margen</th>').join('')}</tr>`
+    :`<tr><th class="l">Concepto</th><th>Costo</th><th>Precio</th><th>Utilidad</th><th>Margen</th></tr>`;
+  const cell=(o,c)=>{if(!o||(!o.cost&&!o.price))return '<td class="cost">—</td><td class="calc">—</td><td>—</td><td>—</td>';const u=(o.price||0)-(o.cost||0);return `<td class="cost">${money(o.cost||0,c)}</td><td class="calc">${money(o.price||0,c)}</td><td>${money(u,c)}</td><td>${pct(o.price?u/o.price:0)}</td>`;};
   const rb=$('r_body'); rb.innerHTML='';
-  R.total.streams.forEach(s=>{
-    const util=s.price-s.cost, m=s.price?util/s.price:0;
-    const cc=s.cur||(s.tc?S.ing.moneda:undefined);
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td class="l">${s.k}</td><td class="cost">${money(s.cost,cc)}</td><td class="calc">${money(s.price,cc)}</td><td>${money(util,cc)}</td><td>${pct(m)}</td>`;
-    rb.appendChild(tr);
-  });
-  let foot=`<tr class="subtot"><td class="l">TOTAL</td><td>${money(R.total.cost)}</td><td>${money(R.total.price)}</td><td>${money(R.total.profit)}</td><td>${pct(R.total.margin)}</td></tr>`;
-  foot+=`<tr><td class="l">Comisiones/Bolsa/Eventos</td><td></td><td></td><td style="color:#c0392b">-${money(R.comis||0)}</td><td></td></tr>`;
-  foot+=`<tr class="subtot"><td class="l">Utilidad neta / Margen Total</td><td></td><td></td><td>${money(R.total.profitNet)}</td><td>${pct(R.total.marginNet)}</td></tr>`;
+  R.total.streams.forEach(s=>{const tr=document.createElement('tr');tr.innerHTML=`<td class="l">${s.k}</td>`+curs.map(c=>cell((s.byCur||{})[c],c)).join('');rb.appendChild(tr);});
+  const tot=c=>{const o=T[c]||{};return `<td>${money(o.cost||0,c)}</td><td>${money(o.price||0,c)}</td><td>${money(o.profit||0,c)}</td><td>${pct(o.margin||0)}</td>`;};
+  let foot=`<tr class="subtot"><td class="l">TOTAL</td>${curs.map(tot).join('')}</tr>`;
+  foot+=`<tr><td class="l">Comisiones/Bolsa/Eventos <span style="color:#7c89a6;font-size:11px">(MXN)</span></td>${curs.map(c=>`<td></td><td></td><td style="color:#c0392b">${c==='MXN'?'-'+money(R.comis||0,'MXN'):''}</td><td></td>`).join('')}</tr>`;
+  foot+=`<tr class="subtot"><td class="l">Utilidad neta / Margen Total</td>${curs.map(c=>{const o=T[c]||{};return `<td></td><td></td><td>${money(o.profitNet||0,c)}</td><td>${pct(o.marginNet||0)}</td>`;}).join('')}</tr>`;
   $('r_foot').innerHTML=foot;
-  $('r_cost').textContent=money(R.total.cost);$('r_price').textContent=money(R.total.price);
-  $('r_profit').textContent=money(R.total.profitNet);$('r_margin').textContent=pct(R.total.marginNet);
+  const kp=(k,isPct)=>curs.map(c=>{const o=T[c]||{};return isPct?(two?c+' ':'')+pct(o[k]||0):money(o[k]||0,c);}).join('<br>');
+  $('r_cost').innerHTML=kp('cost');$('r_price').innerHTML=kp('price');$('r_profit').innerHTML=kp('profitNet');$('r_margin').innerHTML=kp('marginNet',true);
 }
 
 /* ============================ QUOTE / PDF ============================ */
@@ -1555,10 +1616,8 @@ function quoteSectionCur(){return {
 };}
 /* Agrupa los totales por moneda: si hay USD y MXN -> totales separados; si hay una sola -> todo en esa moneda. */
 function quoteTotalsByCur(R){
-  const cu=quoteSectionCur();
-  const secs=[{t:R.prop.priceTotal,c:cu.serv},{t:R.sacot.priceTotal,c:cu.mesa},{t:R.mat.price,c:cu.mat},{t:R.con.price,c:cu.con}];
-  const byCur={};
-  secs.forEach(s=>{if(s.t>0)byCur[s.c]=(byCur[s.c]||0)+s.t;});
+  const cu=quoteSectionCur();const byCur={};
+  [R.prop,R.sacot,R.mat,R.con].forEach(x=>{const b=(x&&x.byCur)||{};for(const c in b){const v=b[c].price||0;if(v>0)byCur[c]=(byCur[c]||0)+v;}});
   let curs=Object.keys(byCur);
   if(curs.length===0){curs=[(S.ing.moneda==='USD')?'USD':'MXN'];byCur[curs[0]]=0;}
   curs.sort((a,b)=>a==='MXN'?-1:(b==='MXN'?1:0));
@@ -1579,23 +1638,24 @@ function renderQuote(){
   const cont=cli?cli.contactos.find(c=>c.nombre===p.contacto):null;
   const pv=DIR.preventa.find(x=>x.nombre===p.preventa), am=DIR.ejecutivos.find(x=>x.nombre===p.ejecutivo);
   // Servicios profesionales <- Propuesta Ingeniería
+  const mxS=qMixed(R.prop.byCur),mxM=qMixed(R.sacot.byCur),mxMat=qMixed(R.mat.byCur),mxCon=qMixed(R.con.byCur);
   let servRows='';
-  ((S.ing.prop&&S.ing.prop.rows)?S.ing.prop.rows:[]).forEach((r,i)=>{const c=R.prop.rows[i];if(c&&(c.pTot>0||num(r.costo)>0)){servRows+=`<tr><td>${esc(r.partida||(i+1))}</td><td class="l"><div class="rich">${conceptoToHtml(r.concepto||'')}</div></td><td>${esc(r.cant)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;}});
+  ((S.ing.prop&&S.ing.prop.rows)?S.ing.prop.rows:[]).forEach((r,i)=>{const c=R.prop.rows[i];if(c&&(c.pTot>0||num(r.costo)>0)){servRows+=`<tr><td>${esc(r.partida||(i+1))}</td><td class="l"><div class="rich">${conceptoToHtml(r.concepto||'')}</div></td><td>${esc(r.cant)}</td><td class="nw">${qf(c.pUnit,c.cur,mxS)}</td><td class="nw">${qf(c.pTot,c.cur,mxS)}</td></tr>`;}});
   const hasServ=servRows!=='';if(!servRows)servRows=`<tr><td colspan="5" class="l" style="color:#999">Sin partidas</td></tr>`;
   const servTotal=R.prop.priceTotal;
   // Mesa de ayuda / Recursos en sitio <- Propuesta de Soporte
   let mesaRows='';
-  ((S.sa.cotiz&&S.sa.cotiz.rows)?S.sa.cotiz.rows:[]).forEach((r,i)=>{const c=R.sacot.rows[i];if(c&&(c.pTot>0||num(r.costo)>0)){mesaRows+=`<tr><td>${esc(r.partida||(i+1))}</td><td class="l"><div class="rich">${conceptoToHtml(r.desc||'')}</div></td><td>${esc(r.cant)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;}});
+  ((S.sa.cotiz&&S.sa.cotiz.rows)?S.sa.cotiz.rows:[]).forEach((r,i)=>{const c=R.sacot.rows[i];if(c&&(c.pTot>0||num(r.costo)>0)){mesaRows+=`<tr><td>${esc(r.partida||(i+1))}</td><td class="l"><div class="rich">${conceptoToHtml(r.desc||'')}</div></td><td>${esc(r.cant)}</td><td class="nw">${qf(c.pUnit,c.cur,mxM)}</td><td class="nw">${qf(c.pTot,c.cur,mxM)}</td></tr>`;}});
   const hasMesa=mesaRows!=='';if(!mesaRows)mesaRows=`<tr><td colspan="5" class="l" style="color:#999">Sin partidas</td></tr>`;
   const mesaTotal=R.sacot.priceTotal;
   // Materiales <- BOM
   let matRows='',mi=1,pmatIdx=-1;const matG=bomGroupTotals(S.mat.rows,R.mat.matCalc);
-  S.mat.rows.forEach((row,i)=>{if(row.sep){pmatIdx=i;return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmatIdx>=0){const lbl=(S.mat.rows[pmatIdx].label||'').trim();const gt=matG[pmatIdx]?matG[pmatIdx].total:0;matRows+=`<tr><td colspan="5" style="font-weight:700;color:#E8632A;background:#fff3ec">${esc(lbl)}</td><td class="nw" style="font-weight:700;color:#E8632A;background:#fff3ec;text-align:right">${n2(gt)}</td></tr>`;pmatIdx=-1;}matRows+=`<tr><td>${esc(row.item||mi)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;mi++;}});
+  S.mat.rows.forEach((row,i)=>{if(row.sep){pmatIdx=i;return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmatIdx>=0){const lbl=(S.mat.rows[pmatIdx].label||'').trim();const gt=matG[pmatIdx]?matG[pmatIdx].total:0;matRows+=`<tr><td colspan="5" style="font-weight:700;color:#E8632A;background:#fff3ec">${esc(lbl)}</td><td class="nw" style="font-weight:700;color:#E8632A;background:#fff3ec;text-align:right">${qGroup(matG[pmatIdx],mxMat)}</td></tr>`;pmatIdx=-1;}matRows+=`<tr><td>${esc(row.item||mi)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${qf(c.pUnit,c.cur,mxMat)}</td><td class="nw">${qf(c.pTot,c.cur,mxMat)}</td></tr>`;mi++;}});
   const hasMat=matRows!=='';if(!matRows)matRows=`<tr><td colspan="6" class="l" style="color:#999">Sin materiales</td></tr>`;
   const matTotal=R.mat.price;
   // Contratos de soporte / renovación <- Contratos
   let conRows='',ci=1,pconIdx=-1;const conG=bomGroupTotals(S.con.rows,R.con.conCalc);
-  S.con.rows.forEach((row,i)=>{if(row.sep){pconIdx=i;return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pconIdx>=0){const lbl=(S.con.rows[pconIdx].label||'').trim();const gt=conG[pconIdx]?conG[pconIdx].total:0;conRows+=`<tr><td colspan="5" style="font-weight:700;color:#E8632A;background:#fff3ec">${esc(lbl)}</td><td class="nw" style="font-weight:700;color:#E8632A;background:#fff3ec;text-align:right">${n2(gt)}</td></tr>`;pconIdx=-1;}conRows+=`<tr><td>${esc(row.item||ci)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${n2(c.pUnit)}</td><td class="nw">${n2(c.pTot)}</td></tr>`;ci++;}});
+  S.con.rows.forEach((row,i)=>{if(row.sep){pconIdx=i;return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pconIdx>=0){const lbl=(S.con.rows[pconIdx].label||'').trim();const gt=conG[pconIdx]?conG[pconIdx].total:0;conRows+=`<tr><td colspan="5" style="font-weight:700;color:#E8632A;background:#fff3ec">${esc(lbl)}</td><td class="nw" style="font-weight:700;color:#E8632A;background:#fff3ec;text-align:right">${qGroup(conG[pconIdx],mxCon)}</td></tr>`;pconIdx=-1;}conRows+=`<tr><td>${esc(row.item||ci)}</td><td class="l nw">${esc(row.sku)}</td><td class="l">${esc(row.desc)}</td><td>${esc(row.qty)}</td><td class="nw">${qf(c.pUnit,c.cur,mxCon)}</td><td class="nw">${qf(c.pTot,c.cur,mxCon)}</td></tr>`;ci++;}});
   const hasCon=conRows!=='';if(!conRows)conRows=`<tr><td colspan="6" class="l" style="color:#999">Sin contratos</td></tr>`;
   const conTotal=R.con.price;
   const QG=quoteTotalsByCur(R);
@@ -1621,16 +1681,16 @@ function renderQuote(){
     </tr></table>
     ${hasServ?`<h3>Servicios profesionales</h3>
     <table><thead><tr><th class="fitc">Partida</th><th class="l" style="text-align:center">Descripción</th><th class="fitc">Cantidad</th><th class="fitc">Precio unitario</th><th class="fitc">Precio total</th></tr></thead>
-      <tbody>${servRows}</tbody><tfoot><tr class="tot"><td colspan="4" class="l">Total servicios profesionales (${QG.cu.serv})</td><td class="nw">${n2(servTotal)}</td></tr></tfoot></table>`:''}
+      <tbody>${servRows}</tbody><tfoot>${qFoot('Total servicios profesionales',R.prop.byCur,QG.cu.serv,4)}</tfoot></table>`:''}
     ${hasMesa?`<h3>Mesa de ayuda / Recursos en sitio</h3>
     <table><thead><tr><th class="fitc">Partida</th><th class="l" style="text-align:center">Descripción</th><th class="fitc">Cantidad</th><th class="fitc">Precio unitario</th><th class="fitc">Precio total</th></tr></thead>
-      <tbody>${mesaRows}</tbody><tfoot><tr class="tot"><td colspan="4" class="l">Total mesa de ayuda / recursos (${QG.cu.mesa})</td><td class="nw">${n2(mesaTotal)}</td></tr></tfoot></table>`:''}
+      <tbody>${mesaRows}</tbody><tfoot>${qFoot('Total mesa de ayuda / recursos',R.sacot.byCur,QG.cu.mesa,4)}</tfoot></table>`:''}
     ${hasMat?`<h3>Materiales</h3>
     <table><thead><tr><th class="fitc">No. Item</th><th class="l" style="text-align:center">No. Parte</th><th class="l" style="text-align:center">Descripción</th><th class="fitc">Cantidad</th><th class="fitc">Precio unitario</th><th class="fitc">Precio total</th></tr></thead>
-      <tbody>${matRows}</tbody><tfoot><tr class="tot"><td colspan="5" class="l">Total materiales (${QG.cu.mat})</td><td class="nw">${n2(matTotal)}</td></tr></tfoot></table>`:''}
+      <tbody>${matRows}</tbody><tfoot>${qFoot('Total materiales',R.mat.byCur,QG.cu.mat,5)}</tfoot></table>`:''}
     ${hasCon?`<h3>Contratos de soporte / renovación</h3>
     <table><thead><tr><th class="fitc">No. Item</th><th class="l" style="text-align:center">No. Parte</th><th class="l" style="text-align:center">Descripción</th><th class="fitc">Cantidad</th><th class="fitc">Precio unitario</th><th class="fitc">Precio total</th></tr></thead>
-      <tbody>${conRows}</tbody><tfoot><tr class="tot"><td colspan="5" class="l">Total contratos (${QG.cu.con})</td><td class="nw">${n2(conTotal)}</td></tr></tfoot></table>`:''}
+      <tbody>${conRows}</tbody><tfoot>${qFoot('Total contratos',R.con.byCur,QG.cu.con,5)}</tfoot></table>`:''}
     ${totalsHtml}
     ${co.notas?`<h3>Notas</h3><div class="cond">${esc(co.notas)}</div>`:''}
     <h3>Condiciones comerciales</h3>
@@ -1743,7 +1803,7 @@ async function buildQuotePDF(){
     doc.setFontSize(11);doc.setTextColor(BR[0],BR[1],BR[2]);doc.setFont(undefined,'bold');doc.text(title,M,yy);
     doc.autoTable({startY:yy+2,head:[head],
       body:body.length?body:[[{content:'Sin partidas',colSpan:head.length,styles:{halign:'left',textColor:150}}]],
-      foot:[[{content:tlabel,colSpan:head.length-1,styles:{halign:'right',fontStyle:'bold'}},n2(total)]],
+      foot:(Array.isArray(total)?total:[{label:tlabel,val:total}]).map(t=>[{content:t.label,colSpan:head.length-1,styles:{halign:'right',fontStyle:'bold'}},n2(t.val)]),
       theme:'grid',showFoot:'lastPage',showHead:'everyPage',
       headStyles:{fillColor:BR,textColor:255,fontStyle:'bold',halign:'center',fontSize:7.5,overflow:'visible',valign:'middle'},
       footStyles:{fillColor:TOT,textColor:20,fontStyle:'bold',fontSize:8,halign:'right'},
@@ -1762,16 +1822,18 @@ async function buildQuotePDF(){
       parts.forEach((t,k)=>lines.push({b:k===0?p.b:null,t,ind}));});
     if(!lines.length)lines.push({b:null,t:'',ind:0});
     return {content:lines.map((_,i)=>String(i)).join('\n'),_rich:lines,styles:{cellPadding:RPAD}};};
-  const serv=[];((S.ing.prop&&S.ing.prop.rows)||[]).forEach((r,i)=>{const c=R.prop.rows[i];if(num(r.cant)>0)serv.push([String(r.partida||(i+1)),richCell(r.concepto||''),String(num(r.cant)),n2(c.pUnit),n2(c.pTot)]);});
-  if(serv.length)sect('Servicios profesionales',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],serv,R.prop.priceTotal,'Total servicios profesionales ('+QG.cu.serv+')',{0:{halign:'center',cellWidth:15},1:{halign:'left',cellWidth:DW},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
-  const mesa=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((r,i)=>{const c=R.sacot.rows[i];if(num(r.cant)>0)mesa.push([String(r.partida||(i+1)),richCell(r.desc||''),String(num(r.cant)),n2(c.pUnit),n2(c.pTot)]);});
-  if(mesa.length)sect('Mesa de ayuda / Recursos en sitio',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesa,R.sacot.priceTotal,'Total mesa de ayuda / recursos ('+QG.cu.mesa+')',{0:{halign:'center',cellWidth:15},1:{halign:'left',cellWidth:DW},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
+  const mxS=qMixed(R.prop.byCur),mxM=qMixed(R.sacot.byCur),mxMat=qMixed(R.mat.byCur),mxCon=qMixed(R.con.byCur);
+  const qT=(lbl,bc,sc)=>qTotals(bc,sc).map(t=>({label:lbl+' ('+t.c+')',val:t.v}));
+  const serv=[];((S.ing.prop&&S.ing.prop.rows)||[]).forEach((r,i)=>{const c=R.prop.rows[i];if(num(r.cant)>0)serv.push([String(r.partida||(i+1)),richCell(r.concepto||''),String(num(r.cant)),qf(c.pUnit,c.cur,mxS),qf(c.pTot,c.cur,mxS)]);});
+  if(serv.length)sect('Servicios profesionales',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],serv,qT('Total servicios profesionales',R.prop.byCur,QG.cu.serv),'',{0:{halign:'center',cellWidth:15},1:{halign:'left',cellWidth:DW},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
+  const mesa=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((r,i)=>{const c=R.sacot.rows[i];if(num(r.cant)>0)mesa.push([String(r.partida||(i+1)),richCell(r.desc||''),String(num(r.cant)),qf(c.pUnit,c.cur,mxM),qf(c.pTot,c.cur,mxM)]);});
+  if(mesa.length)sect('Mesa de ayuda / Recursos en sitio',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesa,qT('Total mesa de ayuda / recursos',R.sacot.byCur,QG.cu.mesa),'',{0:{halign:'center',cellWidth:15},1:{halign:'left',cellWidth:DW},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
   const mat=[];let pmatIdx=-1;const matG=bomGroupTotals(S.mat.rows,R.mat.matCalc);
-  S.mat.rows.forEach((row,i)=>{if(row.sep){pmatIdx=i;return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmatIdx>=0){const lbl=(S.mat.rows[pmatIdx].label||'').trim();const gt=matG[pmatIdx]?matG[pmatIdx].total:0;mat.push([{content:lbl,colSpan:5,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'left'}},{content:n2(gt),styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'right'}}]);pmatIdx=-1;}mat.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);}});
-  if(mat.length)sect('Materiales',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],mat,R.mat.price,'Total materiales ('+QG.cu.mat+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
+  S.mat.rows.forEach((row,i)=>{if(row.sep){pmatIdx=i;return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmatIdx>=0){const lbl=(S.mat.rows[pmatIdx].label||'').trim();const gt=matG[pmatIdx]?matG[pmatIdx].total:0;mat.push([{content:lbl,colSpan:5,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'left'}},{content:qGroup(matG[pmatIdx],mxMat),styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'right'}}]);pmatIdx=-1;}mat.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),qf(c.pUnit,c.cur,mxMat),qf(c.pTot,c.cur,mxMat)]);}});
+  if(mat.length)sect('Materiales',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],mat,qT('Total materiales',R.mat.byCur,QG.cu.mat),'',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
   const con=[];let pconIdx=-1;const conG=bomGroupTotals(S.con.rows,R.con.conCalc);
-  S.con.rows.forEach((row,i)=>{if(row.sep){pconIdx=i;return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pconIdx>=0){const lbl=(S.con.rows[pconIdx].label||'').trim();const gt=conG[pconIdx]?conG[pconIdx].total:0;con.push([{content:lbl,colSpan:5,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'left'}},{content:n2(gt),styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'right'}}]);pconIdx=-1;}con.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),n2(c.pUnit),n2(c.pTot)]);}});
-  if(con.length)sect('Contratos de soporte / renovación',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],con,R.con.price,'Total contratos ('+QG.cu.con+')',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
+  S.con.rows.forEach((row,i)=>{if(row.sep){pconIdx=i;return;}const c=R.con.conCalc[i];if(num(row.qty)>0){if(pconIdx>=0){const lbl=(S.con.rows[pconIdx].label||'').trim();const gt=conG[pconIdx]?conG[pconIdx].total:0;con.push([{content:lbl,colSpan:5,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'left'}},{content:qGroup(conG[pconIdx],mxCon),styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'right'}}]);pconIdx=-1;}con.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),qf(c.pUnit,c.cur,mxCon),qf(c.pTot,c.cur,mxCon)]);}});
+  if(con.length)sect('Contratos de soporte / renovación',['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],con,qT('Total contratos',R.con.byCur,QG.cu.con),'',{0:{halign:'center',cellWidth:13},1:{halign:'left',cellWidth:'wrap'},2:{halign:'left'},3:{halign:'center',cellWidth:16},4:{halign:'right',cellWidth:24},5:{halign:'right',cellWidth:24}});
   if(yy>ph-34){doc.addPage();yy=M;}
   /* Totales por moneda: un bloque por cada moneda presente (USD/MXN). Si sólo hay una, un solo bloque. */
   QG.curs.forEach(c=>{const sub=QG.byCur[c],iva=sub*0.16,tot=sub+iva;
@@ -1958,6 +2020,9 @@ async function exportExcel(){
     wb.calcProperties={fullCalcOnLoad:true};
     const PCT='0.00%', TF={type:'pattern',pattern:'solid',fgColor:{argb:TOTF}}, SF={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFF3EC'}};
     const F=(f,v)=>({f,v});
+    const MF=c=>'"'+c+' "#,##0.00';
+    const COL=n=>{let t='';while(n>0){const m=(n-1)%26;t=String.fromCharCode(65+m)+t;n=Math.floor((n-1)/26);}return t;};
+    const curList=(bc,keys,sec)=>{const cs=bcCurs(bc||{},keys);return cs.length?cs:[NCUR(sec)];};
     const SH=nm=>"'"+nm.replace(/'/g,"''")+"'!";
     const put=(c,val,r)=>{if(val&&typeof val==='object'&&!Array.isArray(val)&&('f' in val)){const v=(typeof val.v==='number'&&isFinite(val.v))?val.v:(val.v==null?0:val.v);c.value={formula:val.f.replace(/\{r\}/g,r),result:v};}else c.value=val;};
     /* Tabla con soporte de fórmulas ({r} = fila actual) y filas separador {sep,sub} */
@@ -1965,21 +2030,28 @@ async function exportExcel(){
       rows.forEach(row=>{const rr=ws.getRow(r);
         if(row&&!Array.isArray(row)&&row.sep!==undefined){
           ws.mergeCells(r,1,r,row.sub?n-1:n);const c0=rr.getCell(1);c0.value=row.sep;c0.font={bold:true,color:{argb:ORANGE}};c0.fill=SF;c0.border=B;c0.alignment={horizontal:'left'};
-          if(row.sub){const cs=rr.getCell(n);put(cs,row.sub,r);cs.numFmt=MONEY;cs.font={bold:true,color:{argb:ORANGE}};cs.fill=SF;cs.border=B;cs.alignment={horizontal:'right'};}
+          if(row.sub){const cs=rr.getCell(n);put(cs,row.sub,r);cs.numFmt=row.subFmt||MONEY;cs.font={bold:true,color:{argb:ORANGE}};cs.fill=SF;cs.border=B;cs.alignment={horizontal:'right'};}
         }else row.forEach((v,i)=>{const c=rr.getCell(i+1);put(c,v,r);c.border=B;const f=fmt&&fmt[i];
-          if(f==='m'){c.numFmt=MONEY;c.alignment={horizontal:'right'};}else if(f==='p'){c.numFmt=PCT;c.alignment={horizontal:'right'};}else if(f==='n'){c.numFmt='#,##0.##';c.alignment={horizontal:'center'};}else{c.alignment={wrapText:true,vertical:'top'};}});
+          if(f==='m'||f==='MXN'||f==='USD'){c.numFmt=(f==='m')?(row.__cur?MF(row.__cur):MONEY):MF(f);c.alignment={horizontal:'right'};}else if(f==='p'){c.numFmt=PCT;c.alignment={horizontal:'right'};}else if(f==='n'){c.numFmt='#,##0.##';c.alignment={horizontal:'center'};}else{c.alignment={wrapText:true,vertical:'top'};}});
         r++;});
       return {first,last:Math.max(first,r-1),next:r};};
     /* Fila de totales: etiqueta (cols 1..span) + celdas {col:{val,fmt}} ; estiliza hasta maxCol */
     const sumRow=(ws,r,label,span,cells,maxCol)=>{ws.mergeCells(r,1,r,span);const c0=ws.getCell(r,1);c0.value=label;c0.font={bold:true};c0.alignment={horizontal:'right'};c0.fill=TF;c0.border=B;
-      for(let ci=span+1;ci<=(maxCol||span+1);ci++){const c=ws.getCell(r,ci);c.fill=TF;c.border=B;const spec=cells[ci];if(spec){put(c,spec.val,r);c.numFmt=spec.fmt==='p'?PCT:(spec.fmt==='n'?'#,##0.##':MONEY);c.font={bold:true};c.alignment={horizontal:'right'};}}
+      for(let ci=span+1;ci<=(maxCol||span+1);ci++){const c=ws.getCell(r,ci);c.fill=TF;c.border=B;const spec=cells[ci];if(spec){put(c,spec.val,r);c.numFmt=spec.fmt==='p'?PCT:(spec.fmt==='n'?'#,##0.##':((spec.fmt==='MXN'||spec.fmt==='USD')?MF(spec.fmt):MONEY));c.font={bold:true};c.alignment={horizontal:'right'};}}
       return r+1;};
+    /* Totales por moneda: una fila por moneda presente (SUMIF sobre la columna Moneda; nunca mezcla MXN con USD) */
+    const curTot=(ws,r,label,span,mc,first,last,sums,marg,maxCol,bc,sec)=>{const out={};
+      curList(bc,Object.values(sums).map(x=>x.k),sec).forEach(c=>{const cells={};
+        for(const col in sums){const x=sums[col];const fm=x.prod?`SUMPRODUCT((${mc}${first}:${mc}${last}="${c}")*${x.prod})`:`SUMIF(${mc}${first}:${mc}${last},"${c}",${x.L}${first}:${x.L}${last})`;cells[col]={val:F(fm,(bc&&bc[c]&&bc[c][x.k])||0),fmt:c};}
+        if(marg){const b=(bc&&bc[c])||{};cells[marg.col]={val:F(`IF(${marg.p}{r}=0,0,(${marg.p}{r}-${marg.c}{r})/${marg.p}{r})`,b.price?((b.price-(b.cost||0))/b.price):0),fmt:'p'};}
+        out[c]=r;r=sumRow(ws,r,label+' ('+c+')',span,cells,maxCol);});
+      return {next:r,rows:out};};
     const kvF=(ws,r,label,val,fmt)=>{const a=ws.getCell(r,1);a.value=label;a.font={bold:true};a.border=B;const b=ws.getCell(r,2);put(b,val,r);if(fmt)b.numFmt=fmt;b.alignment={horizontal:'left'};b.border=B;return r+1;};
     /* Agrupa filas BOM con separadores (sólo separadores con ítems), calcula rango de cada grupo y su subtotal */
     const groupRows=(list,start,subCol)=>{const out=[];let k=0;
       for(let i=0;i<list.length;i++){const it=list[i];
         if(it.sep){let j=i+1;while(j<list.length&&!list[j].sep)j++;if(j===i+1)continue;
-          const a=start+1+out.length+1,b=a+(j-i-1)-1;out.push({sep:it.label,sub:F(`SUM(${subCol}${a}:${subCol}${b})`,it.v)});}
+          const a=start+1+out.length+1,b=a+(j-i-1)-1;out.push(it.txt?{sep:it.label,sub:it.txt}:{sep:it.label,sub:F(`SUM(${subCol}${a}:${subCol}${b})`,it.v),subFmt:it.cur?MF(it.cur):null});}
         else out.push(it.cells);}
       return out;};
     const posOf=(rows,start)=>{const m=[];rows.forEach((row,k)=>{if(row&&row.__i!=null)m[row.__i]=start+1+k;});return m;};
@@ -2011,8 +2083,8 @@ async function exportExcel(){
     const fIngC='C{r}*D{r}*F{r}', fIngP='IF(H{r}<1,G{r}/(1-H{r}),0)';
     const tRows=[];S.ing.tasks.forEach((t,ti)=>{t.subs.forEach((s,si)=>{const c=R.ing.tasks[ti].subs[si];tRows.push([t.name,s.desc,num(s.horas),num(s.cant),s.perfil,c.chr,F(fIngC,c.cost),c.rowMarg,F(fIngP,c.price)]);});});
     const tt=tbl(ing,ir,['Tarea','Subtarea','Horas unit.','Cantidad','Perfil','Costo/hr','Costo total','Margen','Precio total'],tRows.length?tRows:[['—','',0,0,'',0,F(fIngC,0),0,F(fIngP,0)]],[null,null,'n','n',null,'m','m','p','m']);
-    ir=tt.next;const ingTot=ir;
-    ir=sumRow(ing,ir,'Totales ingeniería',6,{7:{val:F(`SUM(G${tt.first}:G${tt.last})`,R.ing.cost)},8:{val:F('IF(I{r}=0,0,(I{r}-G{r})/I{r})',R.ing.marg),fmt:'p'},9:{val:F(`SUM(I${tt.first}:I${tt.last})`,R.ing.price)}},9);ir+=1;
+    ir=tt.next;const ingTot=ir;const ingCur=NCUR(S.ing.moneda);const ingT={rows:{[ingCur]:ingTot}};
+    ir=sumRow(ing,ir,'Totales ingeniería ('+ingCur+')',6,{7:{val:F(`SUM(G${tt.first}:G${tt.last})`,R.ing.cost),fmt:ingCur},8:{val:F('IF(I{r}=0,0,(I{r}-G{r})/I{r})',R.ing.marg),fmt:'p'},9:{val:F(`SUM(I${tt.first}:I${tt.last})`,R.ing.price),fmt:ingCur}},9);ir+=1;
     title(ing,ir,'Desglose de horas por recurso');ir++;
     const profs=Object.keys(R.ing.byProfile).filter(pf=>R.ing.byProfile[pf].h>0);
     const dA=ir+1,dB=ir+Math.max(1,profs.length);
@@ -2024,19 +2096,19 @@ async function exportExcel(){
     ir=sumRow(ing,ir,'Total',1,{2:{val:F(`SUM(B${dt.first}:B${dt.last})`,R.ing.hours),fmt:'n'},3:{val:F(`SUM(C${dt.first}:C${dt.last})`,profs.length?1:0),fmt:'p'},4:{val:F(`SUM(D${dt.first}:D${dt.last})`,R.ing.cost)}},4);ir+=1;
     title(ing,ir,'Subcontratación / Extras');ir++;
     const fPU='IF(D{r}<1,C{r}/(1-D{r}),0)', fCT='B{r}*C{r}', fPT='E{r}*B{r}';
-    const subcRows=[];S.ing.subc.rows.forEach((row,i)=>{const c=R.subc.rows[i];if(row.concepto||num(row.costo))subcRows.push([row.concepto||'',num(row.cant),num(row.costo),num(row.margin),F(fPU,c.pUnit),F(fCT,c.cost),F(fPT,c.price),row.nota||'']);});
-    const st=tbl(ing,ir,['Concepto','Cantidad','Costo unit.','Margen','Precio unit.','Costo total','Precio total','Notas'],subcRows.length?subcRows:[['—',0,0,0,F(fPU,0),F(fCT,0),F(fPT,0),'']],[null,'n','m','p','m','m','m',null]);
-    ir=st.next;const subcTot=ir;
-    ir=sumRow(ing,ir,'Totales subcontratación',3,{4:{val:F('IF(G{r}=0,0,(G{r}-F{r})/G{r})',R.subc.marg),fmt:'p'},5:{val:F(`SUM(E${st.first}:E${st.last})`,R.subc.rows.reduce((a,x)=>a+x.pUnit,0))},6:{val:F(`SUM(F${st.first}:F${st.last})`,R.subc.cost)},7:{val:F(`SUM(G${st.first}:G${st.last})`,R.subc.price)}},8);ir+=1;
+    const subcRows=[];S.ing.subc.rows.forEach((row,i)=>{const c=R.subc.rows[i];if(row.concepto||num(row.costo)){const a=[row.concepto||'',num(row.cant),num(row.costo),num(row.margin),F(fPU,c.pUnit),F(fCT,c.cost),F(fPT,c.price),row.nota||'',c.cur];a.__cur=c.cur;subcRows.push(a);}});
+    const st=tbl(ing,ir,['Concepto','Cantidad','Costo unit.','Margen','Precio unit.','Costo total','Precio total','Notas','Moneda'],subcRows.length?subcRows:[['—',0,0,0,F(fPU,0),F(fCT,0),F(fPT,0),'',R.subc.cur]],[null,'n','m','p','m','m','m',null,null]);
+    ir=st.next;
+    const subcT=curTot(ing,ir,'Totales subcontratación',3,'I',st.first,st.last,{5:{L:'E',k:'pUnit'},6:{L:'F',k:'cost'},7:{L:'G',k:'price'}},{col:4,c:'F',p:'G'},9,R.subc.byCur,R.subc.cur);ir=subcT.next+1;
     title(ing,ir,'Calculadora de Viajes y Viáticos');ir++;
-    const tripRows=[];S.ing.trips.forEach((t,i)=>{const c=R.trip.rows[i];if(num(t.cant)>0||num(t.costo)>0)tripRows.push([t.concepto||'',num(t.cant),num(t.costo),F('B{r}*C{r}',c.price),t.nota||'']);});
-    const trt=tbl(ing,ir,['Concepto','Cantidad','Costo unit.','Precio total','Notas'],tripRows.length?tripRows:[['—',0,0,F('B{r}*C{r}',0),'']],[null,'n','m','m',null]);
-    ir=trt.next;ir=sumRow(ing,ir,'Precio total viajes',3,{4:{val:F(`SUM(D${trt.first}:D${trt.last})`,R.trip.price)}},5);ir+=1;
+    const tripRows=[];S.ing.trips.forEach((t,i)=>{const c=R.trip.rows[i];if(num(t.cant)>0||num(t.costo)>0){const a=[t.concepto||'',num(t.cant),num(t.costo),F('B{r}*C{r}',c.price),t.nota||'',c.cur];a.__cur=c.cur;tripRows.push(a);}});
+    const trt=tbl(ing,ir,['Concepto','Cantidad','Costo unit.','Precio total','Notas','Moneda'],tripRows.length?tripRows:[['—',0,0,F('B{r}*C{r}',0),'',R.trip.cur]],[null,'n','m','m',null,null]);
+    ir=trt.next;ir=curTot(ing,ir,'Precio total viajes',3,'F',trt.first,trt.last,{4:{L:'D',k:'price'}},null,6,R.trip.byCur,R.trip.cur).next+1;
     title(ing,ir,'Propuesta Ingeniería');ir++;
-    const propRows=((S.ing.prop&&S.ing.prop.rows)||[]).map((row,i)=>{const a=[row.partida||(i+1),htmlToText(row.concepto||''),num(row.cant),num(row.costo),F('C{r}*D{r}',R.prop.rows[i].pTot)];a.__i=i;return a;});
-    const pt=tbl(ing,ir,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],propRows.length?propRows:[['','—',0,0,F('C{r}*D{r}',0)]],[null,null,'n','m','m']);
+    const propRows=((S.ing.prop&&S.ing.prop.rows)||[]).map((row,i)=>{const cc=R.prop.rows[i].cur;const a=[row.partida||(i+1),htmlToText(row.concepto||''),num(row.cant),num(row.costo),F('C{r}*D{r}',R.prop.rows[i].pTot),cc];a.__i=i;a.__cur=cc;return a;});
+    const pt=tbl(ing,ir,['Partida','Descripción','Cantidad','Precio unitario','Precio total','Moneda'],propRows.length?propRows:[['','—',0,0,F('C{r}*D{r}',0),R.prop.cur]],[null,null,'n','m','m',null]);
     const propPos=posOf(propRows,ir);ir=pt.next;
-    ir=sumRow(ing,ir,'Precio total propuesta',4,{5:{val:F(`SUM(E${pt.first}:E${pt.last})`,R.prop.priceTotal)}},5);
+    ir=curTot(ing,ir,'Precio total propuesta',4,'F',pt.first,pt.last,{5:{L:'E',k:'price'}},null,6,R.prop.byCur,R.prop.cur).next;
 
     /* ---- Hoja Serv. Administrados (fórmulas) ---- */
     const SAN='Calculadora Serv. Admin';
@@ -2058,57 +2130,59 @@ async function exportExcel(){
       [[S.sa.servicio,S.sa.cobertura,S.sa.sla,num(S.sa.dur),F(`SUM(C${dvt.first}:C${dvt.last})`,R.sa.nDev),R.sa.monthlySub,sMg,F('IF(G{r}<1,F{r}/(1-G{r}),0)',sumPU),F('IF(G{r}<1,F{r}*D{r}/(1-G{r}),0)',sumPT),R.sa.md,F('I{r}*(1-J{r})',R.sa.managedPrice)]],
       [null,null,null,'n','n','m','p','m','m','p','m']);sr=rdt.next+1;
     title(sa,sr,'Calculadora recurso en sitio');sr++;
-    const onRows=S.sa.onsite.map((o,i)=>{const c=R.onsite.onCalc[i];return [o.d,num(o.cant),(c.meses!=null?c.meses:1),num(o.costo),num(o.carga),F('D{r}*(1+E{r})',c.subUnit),F('F{r}*B{r}*C{r}',c.cost),num(c.marg),F('IF(H{r}<1,F{r}/(1-H{r}),0)',c.pUnit),F('I{r}*B{r}',c.pMes),F('J{r}*C{r}',c.price)];});
-    const ont=tbl(sa,sr,['Descripción','Cant.','Meses','Costo unit.','Carga social','Subtotal unit.','Costo total','Margen','Precio unitario','Precio mensual','Precio total'],
-      onRows.length?onRows:[['—',0,1,0,0,F('D{r}*(1+E{r})',0),F('F{r}*B{r}*C{r}',0),0,F('IF(H{r}<1,F{r}/(1-H{r}),0)',0),F('I{r}*B{r}',0),F('J{r}*C{r}',0)]],
-      [null,'n','n','m','p','m','m','p','m','m','m']);
-    sr=ont.next;const onTot=sr;const oA=ont.first,oB=ont.last;
-    sr=sumRow(sa,sr,'Totales recurso en sitio',3,{4:{val:F(`SUM(D${oA}:D${oB})`,R.onsite.cUnitSum)},6:{val:F(`SUM(F${oA}:F${oB})`,R.onsite.subUnitSum)},7:{val:F(`SUM(G${oA}:G${oB})`,R.onsite.cost)},8:{val:F('IF(K{r}=0,0,(K{r}-G{r})/K{r})',R.onsite.marg),fmt:'p'},9:{val:F(`SUM(I${oA}:I${oB})`,R.onsite.pUnitSum)},10:{val:F(`SUM(J${oA}:J${oB})`,R.onsite.pMesSum)},11:{val:F(`SUM(K${oA}:K${oB})`,R.onsite.price)}},11);sr+=1;
+    const onRows=S.sa.onsite.map((o,i)=>{const c=R.onsite.onCalc[i];const a=[o.d,num(o.cant),(c.meses!=null?c.meses:1),num(o.costo),num(o.carga),F('D{r}*(1+E{r})',c.subUnit),F('F{r}*B{r}*C{r}',c.cost),num(c.marg),F('IF(H{r}<1,F{r}/(1-H{r}),0)',c.pUnit),F('I{r}*B{r}',c.pMes),F('J{r}*C{r}',c.price),c.cur];a.__cur=c.cur;return a;});
+    const ont=tbl(sa,sr,['Descripción','Cant.','Meses','Costo unit.','Carga social','Subtotal unit.','Costo total','Margen','Precio unitario','Precio mensual','Precio total','Moneda'],
+      onRows.length?onRows:[['—',0,1,0,0,F('D{r}*(1+E{r})',0),F('F{r}*B{r}*C{r}',0),0,F('IF(H{r}<1,F{r}/(1-H{r}),0)',0),F('I{r}*B{r}',0),F('J{r}*C{r}',0),R.onsite.cur]],
+      [null,'n','n','m','p','m','m','p','m','m','m',null]);
+    sr=ont.next;const oA=ont.first,oB=ont.last;
+    const onT=curTot(sa,sr,'Totales recurso en sitio',3,'L',oA,oB,{4:{L:'D',k:'cUnit'},6:{L:'F',k:'subUnit'},7:{L:'G',k:'cost'},9:{L:'I',k:'pUnit'},10:{L:'J',k:'pMes'},11:{L:'K',k:'price'}},{col:8,c:'G',p:'K'},12,R.onsite.byCur,R.onsite.cur);sr=onT.next+1;
     /* Calculadora Servicio Administrado */
     const xa=S.sa.sacalc||{rows:[]}, xR=R.sacalc||{rows:[],cost:0,price:0,pUnitSum:0,marg:0};
     title(sa,sr,'Calculadora servicio administrado');sr++;
     sr=kv(sa,sr,'Moneda',xa.moneda||'MXN');sr=kv(sa,sr,'Tipo de cambio',num(xa.fx),MONEY);
-    const xaRows=(xa.rows||[]).map((row,i)=>{const c=xR.rows[i]||{pUnit:0,cost:0,price:0};return [htmlToText(row.concepto||''),num(row.cant),num(row.costo),num(row.margin),F(fPU,c.pUnit),F(fCT,c.cost),F(fPT,c.price),row.nota||''];});
-    const xat=tbl(sa,sr,['Concepto','Cantidad','Costo unitario','Margen','Precio unitario','Costo total','Precio total','Notas'],xaRows.length?xaRows:[['—',0,0,0,F(fPU,0),F(fCT,0),F(fPT,0),'']],[null,'n','m','p','m','m','m',null]);
-    sr=xat.next;const xaTot=sr;
-    sr=sumRow(sa,sr,'Totales servicio administrado',3,{4:{val:F('IF(G{r}=0,0,(G{r}-F{r})/G{r})',xR.marg),fmt:'p'},5:{val:F(`SUM(E${xat.first}:E${xat.last})`,xR.pUnitSum||0)},6:{val:F(`SUM(F${xat.first}:F${xat.last})`,xR.cost)},7:{val:F(`SUM(G${xat.first}:G${xat.last})`,xR.price)}},8);sr++;
-    sr=kvF(sa,sr,'Costo servicio administrado',F(`F${xaTot}`,xR.cost),MONEY);sr=kvF(sa,sr,'Margen',F(`D${xaTot}`,xR.marg),PCT);
-    sr=kvF(sa,sr,'Precio unitario (suma)',F(`E${xaTot}`,xR.pUnitSum||0),MONEY);sr=kvF(sa,sr,'Precio servicio administrado',F(`G${xaTot}`,xR.price),MONEY);
+    const xaRows=(xa.rows||[]).map((row,i)=>{const c=xR.rows[i]||{pUnit:0,cost:0,price:0,cur:xR.cur};const a=[htmlToText(row.concepto||''),num(row.cant),num(row.costo),num(row.margin),F(fPU,c.pUnit),F(fCT,c.cost),F(fPT,c.price),row.nota||'',c.cur];a.__cur=c.cur;return a;});
+    const xat=tbl(sa,sr,['Concepto','Cantidad','Costo unitario','Margen','Precio unitario','Costo total','Precio total','Notas','Moneda'],xaRows.length?xaRows:[['—',0,0,0,F(fPU,0),F(fCT,0),F(fPT,0),'',xR.cur||'MXN']],[null,'n','m','p','m','m','m',null,null]);
+    sr=xat.next;
+    const xaT=curTot(sa,sr,'Totales servicio administrado',3,'I',xat.first,xat.last,{5:{L:'E',k:'pUnit'},6:{L:'F',k:'cost'},7:{L:'G',k:'price'}},{col:4,c:'F',p:'G'},9,xR.byCur,xR.cur);sr=xaT.next+1;
+    Object.keys(xaT.rows).forEach(c=>{const x=xaT.rows[c],b=(xR.byCur&&xR.byCur[c])||{};
+      sr=kvF(sa,sr,'Costo servicio administrado ('+c+')',F(`F${x}`,b.cost||0),MF(c));sr=kvF(sa,sr,'Margen ('+c+')',F(`D${x}`,b.price?((b.price-(b.cost||0))/b.price):0),PCT);
+      sr=kvF(sa,sr,'Precio unitario (suma) ('+c+')',F(`E${x}`,b.pUnit||0),MF(c));sr=kvF(sa,sr,'Precio servicio administrado ('+c+')',F(`G${x}`,b.price||0),MF(c));});
     sr+=2;
     title(sa,sr,'Propuesta de soporte / servicios administrados');sr++;
-    const sacotRows=((S.sa.cotiz&&S.sa.cotiz.rows)||[]).map((row,i)=>{const a=[row.partida||(i+1),htmlToText(row.desc||''),num(row.cant),num(row.costo),F('C{r}*D{r}',R.sacot.rows[i].pTot)];a.__i=i;return a;});
-    const sct=tbl(sa,sr,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],sacotRows.length?sacotRows:[['','—',0,0,F('C{r}*D{r}',0)]],[null,null,'n','m','m']);
+    const sacotRows=((S.sa.cotiz&&S.sa.cotiz.rows)||[]).map((row,i)=>{const cc=R.sacot.rows[i].cur;const a=[row.partida||(i+1),htmlToText(row.desc||''),num(row.cant),num(row.costo),F('C{r}*D{r}',R.sacot.rows[i].pTot),cc];a.__i=i;a.__cur=cc;return a;});
+    const sct=tbl(sa,sr,['Partida','Descripción','Cantidad','Precio unitario','Precio total','Moneda'],sacotRows.length?sacotRows:[['','—',0,0,F('C{r}*D{r}',0),R.sacot.cur]],[null,null,'n','m','m',null]);
     const sacotPos=posOf(sacotRows,sr);sr=sct.next;
-    sr=sumRow(sa,sr,'Precio total propuesta soporte',4,{5:{val:F(`SUM(E${sct.first}:E${sct.last})`,R.sacot.priceTotal)}},5);
+    sr=curTot(sa,sr,'Precio total propuesta soporte',4,'F',sct.first,sct.last,{5:{L:'E',k:'price'}},null,6,R.sacot.byCur,R.sacot.cur).next;
 
     /* ---- Hoja Materiales y Contratos (fórmulas + separadores con subtotal) ---- */
     const MYC='Materiales y Contratos';
     const mc=wb.addWorksheet(MYC,{views:[{showGridLines:false}]});
-    mc.columns=[{width:14},{width:12},{width:8},{width:16},{width:34},{width:12},{width:8},{width:13},{width:10},{width:12},{width:13},{width:9},{width:12},{width:14}];
-    const bomHdr=['Proveedor','Marca','No. Item','SKU','Descripción','PL unit.','Cant.','PL total','Descuento','Costo unit.','Costo subtot.','Margen','Precio unit.','Precio total'];
-    const bomFmt=[null,null,null,null,null,'m','n','m','p','m','m','p','m','m'];
+    mc.columns=[{width:14},{width:12},{width:8},{width:16},{width:34},{width:14},{width:8},{width:15},{width:10},{width:14},{width:15},{width:9},{width:14},{width:16},{width:9}];
+    const bomHdr=['Proveedor','Marca','No. Item','SKU','Descripción','PL unit.','Cant.','PL total','Descuento','Costo unit.','Costo subtot.','Margen','Precio unit.','Precio total','Moneda'];
+    const bomFmt=[null,null,null,null,null,'m','n','m','p','m','m','p','m','m',null];
     let mr=1;
-    const bomSheet=(St,calc,ttl,totLabel)=>{
+    const bomSheet=(St,calc,ttl,totLabel)=>{const Rt=St===S.mat?R.mat:R.con;const Rsec=Rt.cur||'MXN',Rfx=num(St.fx||S.mat.fx);
       title(mc,mr,ttl);mr++;
       const prRow=mr;mr=kv(mc,mr,'Prorrateo (costo a repartir)',num(St.prorr),MONEY);
       const cntRow=mr;mr++;const perRow=mr;mr++;mr++;
       const hdrRow=mr;
       const list=[];St.rows.forEach((row,i)=>{if(row.sep){list.push({sep:true,label:(row.label||'').trim()||'—',v:0});return;}
         if(!(row.sku||row.desc||num(row.pl)||num(row.qty)))return;const c=calc[i];
+        const kx=cvt(1,Rsec,c.cur,Rfx);const kf=(Math.abs(kx-1)>1e-12)?('*'+kx):'';   /* prorrateo (moneda de la sección) llevado a la moneda del renglón */
         const cells=[row.prov||'',row.marca||'',row.item||(i+1),row.sku||'',row.desc||'',num(row.pl),num(row.qty),F('F{r}*G{r}',c.plTot),num(row.disc),
-          F(`F{r}*(1-I{r})+IF(G{r}>0,$B$${perRow}/G{r},0)`,c.cUnit),F('J{r}*G{r}',c.cSub),num(row.margin),F('IF(L{r}<1,J{r}/(1-L{r}),0)',c.pUnit),F('M{r}*G{r}',c.pTot)];
-        cells.__i=i;list.push({cells});});
+          F(`F{r}*(1-I{r})+IF(G{r}>0,$B$${perRow}/G{r}${kf},0)`,c.cUnit),F('J{r}*G{r}',c.cSub),num(row.margin),F('IF(L{r}<1,J{r}/(1-L{r}),0)',c.pUnit),F('M{r}*G{r}',c.pTot),c.cur];
+        cells.__i=i;cells.__cur=c.cur;list.push({cells});});
       /* valor de subtotal por separador (para mostrar sin recalcular) */
-      for(let i=0;i<list.length;i++)if(list[i].sep){let s=0;for(let j=i+1;j<list.length&&!list[j].sep;j++)s+=calc[list[j].cells.__i].pTot;list[i].v=s;}
+      for(let i=0;i<list.length;i++)if(list[i].sep){let s=0;const gb={};for(let j=i+1;j<list.length&&!list[j].sep;j++){const cc=calc[list[j].cells.__i];s+=cc.pTot;bcAdd(gb,cc.cur,{price:cc.pTot});}list[i].v=s;const gc=bcCurs(gb,['price']);list[i].cur=gc[0]||Rsec;if(gc.length>1)list[i].txt=gc.map(c=>money(gb[c].price,c)).join(' · ');}
       const rows=groupRows(list,hdrRow,'N');
       const t=tbl(mc,hdrRow,bomHdr,rows.length?rows:[['','','','','—',0,0,F('F{r}*G{r}',0),0,F('F{r}*(1-I{r})',0),F('J{r}*G{r}',0),0,F('IF(L{r}<1,J{r}/(1-L{r}),0)',0),F('M{r}*G{r}',0)]],bomFmt);
       const pos=posOf(rows,hdrRow);const nQ=list.filter(x=>x.cells&&num(x.cells[6])>0).length;
       /* filas auxiliares del prorrateo (dependen del rango de la tabla) */
       const lc=mc.getCell(cntRow,1);lc.value='Ítems con cantidad > 0';lc.font={bold:true};lc.border=B;const vc=mc.getCell(cntRow,2);put(vc,F(`COUNTIF(G${t.first}:G${t.last},">0")`,nQ),cntRow);vc.border=B;
       const lp=mc.getCell(perRow,1);lp.value='Prorrateo por ítem';lp.font={bold:true};lp.border=B;const vp=mc.getCell(perRow,2);put(vp,F(`IF(B${cntRow}>0,B${prRow}/B${cntRow},0)`,nQ>0?num(St.prorr)/nQ:0),perRow);vp.numFmt=MONEY;vp.border=B;
-      mr=t.next;const tot=mr;const Rt=St===S.mat?R.mat:R.con;
-      mr=sumRow(mc,mr,totLabel,7,{8:{val:F(`SUM(H${t.first}:H${t.last})`,Rt.pl)},11:{val:F(`SUM(K${t.first}:K${t.last})`,Rt.cost)},12:{val:F('IF(N{r}=0,0,(N{r}-K{r})/N{r})',Rt.marg),fmt:'p'},14:{val:F(`SUMPRODUCT(G${t.first}:G${t.last},M${t.first}:M${t.last})`,Rt.price)}},14);
-      mr+=2;return {tot,pos};};
+      mr=t.next;
+      const tt2=curTot(mc,mr,totLabel,7,'O',t.first,t.last,{8:{L:'H',k:'pl'},11:{L:'K',k:'cost'},14:{prod:`G${t.first}:G${t.last}*M${t.first}:M${t.last}`,k:'price'}},{col:12,c:'K',p:'N'},15,Rt.byCur,Rsec);
+      mr=tt2.next+2;return {tot:tt2.rows,pos};};
     const matS=bomSheet(S.mat,R.mat.matCalc,'Materiales (BOM de infraestructura)','Totales materiales');
     const conS=bomSheet(S.con,R.con.conCalc,'Contratos de soporte / renovaciones','Totales contratos');
 
@@ -2125,19 +2199,25 @@ async function exportExcel(){
      const cmt=tbl(cc,cr,['Partida','Descripción','Cantidad','Monto','Notas'],cmRows.length?cmRows:[['','—',0,0,'']],[null,null,'n','m',null]);
      comisTot=cmt.next;sumRow(cc,cmt.next,'Total comisiones/bolsa/eventos',3,{4:{val:F(`SUM(D${cmt.first}:D${cmt.last})`,R.comis||0)}},5);}
 
-    /* ---- Hoja Resumen Financiero (referencias a cada calculadora) ---- */
+    /* ---- Hoja Resumen Financiero: montos por moneda (MXN / USD), sin convertir ---- */
     const RFN='Resumen Financiero';
     const rf=wb.addWorksheet(RFN,{views:[{showGridLines:false}]});
-    rf.columns=[{width:38},{width:18},{width:18},{width:18},{width:12}];
-    let rr=4;title(rf,rr,'Resumen financiero — '+(p.empresa||''));rr++;
-    const refs=[[SH(ING)+'G'+ingTot,SH(ING)+'I'+ingTot],[SH(ING)+'F'+subcTot,SH(ING)+'G'+subcTot],[SH(SAN)+'F'+xaTot,SH(SAN)+'G'+xaTot],
-                [SH(SAN)+'G'+onTot,SH(SAN)+'K'+onTot],[SH(MYC)+'K'+matS.tot,SH(MYC)+'N'+matS.tot],[SH(MYC)+'K'+conS.tot,SH(MYC)+'N'+conS.tot]];
-    const fx=s=>(s.cur==='USD')?(num(s.fx)||1):1;
-    const sRows=R.total.streams.map((s,i)=>{const k=fx(s),m=k!==1?('*'+k):'';return [s.k+(k!==1?' (USD→MXN TC '+k+')':''),F(refs[i][0]+m,s.cost*k),F(refs[i][1]+m,s.price*k),F('C{r}-B{r}',(s.price-s.cost)*k),F('IF(C{r}=0,0,D{r}/C{r})',s.price?((s.price-s.cost)/s.price):0)];});
-    const rft=tbl(rf,rr,['Concepto','Costo','Precio','Utilidad','Margen'],sRows,[null,'m','m','m','p']);rr=rft.next;const rTot=rr;
-    rr=sumRow(rf,rr,'TOTAL',1,{2:{val:F(`SUM(B${rft.first}:B${rft.last})`,R.total.cost)},3:{val:F(`SUM(C${rft.first}:C${rft.last})`,R.total.price)},4:{val:F('C{r}-B{r}',R.total.profit)},5:{val:F('IF(C{r}=0,0,D{r}/C{r})',R.total.margin),fmt:'p'}},5);
-    const rCm=rr;{const a=rf.getCell(rr,1);a.value='Comisiones/Bolsa/Eventos';a.border=B;const d=rf.getCell(rr,4);put(d,F(`-${SH(CCN)}D${comisTot}`,-(R.comis||0)),rr);d.numFmt=MONEY;d.alignment={horizontal:'right'};d.font={color:{argb:'FFC0392B'}};[2,3,4,5].forEach(ci=>rf.getCell(rr,ci).border=B);rr++;}
-    rr=sumRow(rf,rr,'Utilidad neta / Margen Total',3,{4:{val:F(`D${rTot}+D${rCm}`,R.total.profitNet)},5:{val:F(`IF(C${rTot}=0,0,D{r}/C${rTot})`,R.total.marginNet),fmt:'p'}},5);
+    const TB=R.total.byCur||{};const rcurs=['MXN','USD'].filter(c=>c==='MXN'||bcCurs(TB,['cost','price']).includes(c));
+    rf.columns=[{width:40}].concat(...rcurs.map(()=>[{width:18},{width:18},{width:18},{width:11}]));
+    let rr=4;title(rf,rr,'Resumen financiero — '+(p.empresa||'')+(rcurs.length>1?' (por moneda, sin convertir)':''));rr++;
+    const SRC=[{ref:SH(ING),rows:ingT.rows,c:'G',p:'I'},{ref:SH(ING),rows:subcT.rows,c:'F',p:'G'},{ref:SH(SAN),rows:xaT.rows,c:'F',p:'G'},
+               {ref:SH(SAN),rows:onT.rows,c:'G',p:'K'},{ref:SH(MYC),rows:matS.tot,c:'K',p:'N'},{ref:SH(MYC),rows:conS.tot,c:'K',p:'N'}];
+    const CL=ci=>({c:COL(2+ci*4),p:COL(3+ci*4),u:COL(4+ci*4),m:COL(5+ci*4)});
+    const rHdr=['Concepto'],rFmt=[null];rcurs.forEach(c=>{rHdr.push('Costo '+c,'Precio '+c,'Utilidad '+c,'Margen '+c);rFmt.push(c,c,c,'p');});
+    const sRows=R.total.streams.map((s,i)=>{const arr=[s.k];rcurs.forEach((c,ci)=>{const L=CL(ci),b=(s.byCur||{})[c]||{},rw=SRC[i].rows[c];
+      arr.push(rw?F(SRC[i].ref+SRC[i].c+rw,b.cost||0):0,rw?F(SRC[i].ref+SRC[i].p+rw,b.price||0):0,F(`${L.p}{r}-${L.c}{r}`,(b.price||0)-(b.cost||0)),F(`IF(${L.p}{r}=0,0,${L.u}{r}/${L.p}{r})`,b.price?((b.price-(b.cost||0))/b.price):0));});return arr;});
+    const rft=tbl(rf,rr,rHdr,sRows,rFmt);rr=rft.next;const rTot=rr;
+    {const cells={};rcurs.forEach((c,ci)=>{const L=CL(ci),t=TB[c]||{},k=2+ci*4;cells[k]={val:F(`SUM(${L.c}${rft.first}:${L.c}${rft.last})`,t.cost||0),fmt:c};cells[k+1]={val:F(`SUM(${L.p}${rft.first}:${L.p}${rft.last})`,t.price||0),fmt:c};cells[k+2]={val:F(`${L.p}{r}-${L.c}{r}`,t.profit||0),fmt:c};cells[k+3]={val:F(`IF(${L.p}{r}=0,0,${L.u}{r}/${L.p}{r})`,t.margin||0),fmt:'p'};});
+     rr=sumRow(rf,rr,'TOTAL',1,cells,1+rcurs.length*4);}
+    const rCm=rr;{const a=rf.getCell(rr,1);a.value='Comisiones/Bolsa/Eventos (MXN)';a.border=B;for(let ci=2;ci<=1+rcurs.length*4;ci++)rf.getCell(rr,ci).border=B;const d=rf.getCell(rr,4);put(d,F(`-${SH(CCN)}D${comisTot}`,-(R.comis||0)),rr);d.numFmt=MF('MXN');d.alignment={horizontal:'right'};d.font={color:{argb:'FFC0392B'}};rr++;}
+    {const cells={};rcurs.forEach((c,ci)=>{const L=CL(ci),t=TB[c]||{},k=2+ci*4;cells[k+2]={val:F(c==='MXN'?`${L.u}${rTot}+${L.u}${rCm}`:`${L.u}${rTot}`,t.profitNet||0),fmt:c};cells[k+3]={val:F(`IF(${L.p}${rTot}=0,0,${L.u}{r}/${L.p}${rTot})`,t.marginNet||0),fmt:'p'};});
+     rr=sumRow(rf,rr,'Utilidad neta / Margen Total',1,cells,1+rcurs.length*4);}
+
     /* ---- Hoja Cotización ---- */
     const q=wb.addWorksheet('Cotización',{views:[{showGridLines:false}]});
     q.columns=[{width:12},{width:26},{width:26},{width:13},{width:15},{width:15}];
@@ -2155,32 +2235,36 @@ async function exportExcel(){
     cliCell.value={richText:[{font:{bold:true},text:'Cliente: '},{text:(p.empresa||'—')+'\n'},{font:{bold:true},text:'Nombre: '},{text:(cont?cont.nombre:'—')+'\n'},{font:{bold:true},text:'E-mail: '},{text:(cont?cont.email:'—')+'\n'},{font:{bold:true},text:'Teléfono: '},{text:(cont?cont.telefono:'—')+'\n'},{font:{bold:true},text:'Dirección: '},{text:(contactDir(cli,cont)||'—')}]};
     exeCell.value={richText:[{font:{bold:true,color:{argb:ORANGE}},text:'Ejecutivo de cuenta\n'},{font:{bold:true},text:'Nombre: '},{text:(p.ejecutivo||'—')+'\n'},{font:{bold:true},text:'E-mail: '},{text:(am?am.email:'—')+'\n'},{font:{bold:true},text:'Teléfono: '},{text:(am?am.telefono:'—')}]};
     [cliCell,exeCell].forEach(c=>{c.alignment={vertical:'top',wrapText:true};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFDF3EC'}};c.border={top:{style:'thin',color:{argb:LINE}},left:{style:'thin',color:{argb:LINE}},right:{style:'thin',color:{argb:LINE}},bottom:{style:'thin',color:{argb:LINE}}};});
-    let r=13;
+    let r=13;q.getColumn(7).width=9;
     /* Servicios profesionales: cantidad y precio unitario enlazados a la Propuesta Ingeniería */
-    const servRows=[];((S.ing.prop&&S.ing.prop.rows)||[]).forEach((row,i)=>{const c=R.prop.rows[i];if(c&&(c.pTot>0||num(row.costo)>0)&&propPos[i])servRows.push([row.partida||(i+1),htmlToText(row.concepto||''),F(SH(ING)+'C'+propPos[i],num(row.cant)),F(SH(ING)+'D'+propPos[i],c.pUnit),F('C{r}*D{r}',c.pTot)]);});
+    const servRows=[];((S.ing.prop&&S.ing.prop.rows)||[]).forEach((row,i)=>{const c=R.prop.rows[i];if(c&&(c.pTot>0||num(row.costo)>0)&&propPos[i]){const a=[row.partida||(i+1),htmlToText(row.concepto||''),F(SH(ING)+'C'+propPos[i],num(row.cant)),F(SH(ING)+'D'+propPos[i],c.pUnit),F('C{r}*D{r}',c.pTot),c.cur];a.__cur=c.cur;servRows.push(a);}});
     qh(r,'Servicios profesionales');r++;
-    const qs=tbl(q,r,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],servRows.length?servRows:[['','—',0,0,F('C{r}*D{r}',0)]],[null,null,'n','m','m']);r=qs.next;
-    const qServ=r;r=sumRow(q,r,'Total servicios profesionales',4,{5:{val:F(`SUM(E${qs.first}:E${qs.last})`,R.prop.priceTotal)}},6);r++;
+    const qs=tbl(q,r,['Partida','Descripción','Cantidad','Precio unitario','Precio total','Moneda'],servRows.length?servRows:[['','—',0,0,F('C{r}*D{r}',0),R.prop.cur]],[null,null,'n','m','m',null]);r=qs.next;
+    const qServ=curTot(q,r,'Total servicios profesionales',4,'F',qs.first,qs.last,{5:{L:'E',k:'price'}},null,6,R.prop.byCur,R.prop.cur);r=qServ.next+1;
     /* Mesa de ayuda: enlazada a la Propuesta de soporte */
-    const mesaRows=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((row,i)=>{const c=R.sacot.rows[i];if(c&&(c.pTot>0||num(row.costo)>0)&&sacotPos[i])mesaRows.push([row.partida||(i+1),htmlToText(row.desc||''),F(SH(SAN)+'C'+sacotPos[i],num(row.cant)),F(SH(SAN)+'D'+sacotPos[i],c.pUnit),F('C{r}*D{r}',c.pTot)]);});
+    const mesaRows=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((row,i)=>{const c=R.sacot.rows[i];if(c&&(c.pTot>0||num(row.costo)>0)&&sacotPos[i]){const a=[row.partida||(i+1),htmlToText(row.desc||''),F(SH(SAN)+'C'+sacotPos[i],num(row.cant)),F(SH(SAN)+'D'+sacotPos[i],c.pUnit),F('C{r}*D{r}',c.pTot),c.cur];a.__cur=c.cur;mesaRows.push(a);}});
     qh(r,'Mesa de ayuda / Recursos en sitio');r++;
-    const qm=tbl(q,r,['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesaRows.length?mesaRows:[['','—',0,0,F('C{r}*D{r}',0)]],[null,null,'n','m','m']);r=qm.next;
-    const qMesa=r;r=sumRow(q,r,'Total mesa de ayuda / recursos',4,{5:{val:F(`SUM(E${qm.first}:E${qm.last})`,R.sacot.priceTotal)}},6);r++;
+    const qm=tbl(q,r,['Partida','Descripción','Cantidad','Precio unitario','Precio total','Moneda'],mesaRows.length?mesaRows:[['','—',0,0,F('C{r}*D{r}',0),R.sacot.cur]],[null,null,'n','m','m',null]);r=qm.next;
+    const qMesa=curTot(q,r,'Total mesa de ayuda / recursos',4,'F',qm.first,qm.last,{5:{L:'E',k:'price'}},null,6,R.sacot.byCur,R.sacot.cur);r=qMesa.next+1;
     /* Materiales / Contratos: enlazados a la hoja Materiales y Contratos; separadores con subtotal del grupo */
-    const qBom=(St,calc,posMap,label,totLabel,totVal)=>{
+    const qBom=(St,calc,posMap,label,totLabel,Rt)=>{
       const list=[];St.rows.forEach((row,i)=>{if(row.sep){list.push({sep:true,label:(row.label||'').trim()||'—',v:0});return;}
-        if(num(row.qty)>0&&posMap[i]){const c=calc[i];const cells=[row.item||(i+1),row.sku||'',row.desc||'',F(SH(MYC)+'G'+posMap[i],num(row.qty)),F(SH(MYC)+'M'+posMap[i],c.pUnit),F('D{r}*E{r}',c.pTot)];cells.__i=i;list.push({cells});}});
-      for(let i=0;i<list.length;i++)if(list[i].sep){let s=0;for(let j=i+1;j<list.length&&!list[j].sep;j++)s+=calc[list[j].cells.__i].pTot;list[i].v=s;}
+        if(num(row.qty)>0&&posMap[i]){const c=calc[i];const cells=[row.item||(i+1),row.sku||'',row.desc||'',F(SH(MYC)+'G'+posMap[i],num(row.qty)),F(SH(MYC)+'M'+posMap[i],c.pUnit),F('D{r}*E{r}',c.pTot),c.cur];cells.__i=i;cells.__cur=c.cur;list.push({cells});}});
+      for(let i=0;i<list.length;i++)if(list[i].sep){let s=0;const gb={};for(let j=i+1;j<list.length&&!list[j].sep;j++){const cc=calc[list[j].cells.__i];s+=cc.pTot;bcAdd(gb,cc.cur,{price:cc.pTot});}list[i].v=s;const gc=bcCurs(gb,['price']);list[i].cur=gc[0]||Rt.cur;if(gc.length>1)list[i].txt=gc.map(c=>money(gb[c].price,c)).join(' · ');}
       qh(r,label);r++;
       const rows=groupRows(list,r,'F');
-      const t=tbl(q,r,['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total'],rows.length?rows:[['','','—',0,0,F('D{r}*E{r}',0)]],[null,null,null,'n','m','m']);r=t.next;
-      const tot=r;r=sumRow(q,r,totLabel,5,{6:{val:F(`SUMPRODUCT(D${t.first}:D${t.last},E${t.first}:E${t.last})`,totVal)}},6);r++;return tot;};
-    const qMat=qBom(S.mat,R.mat.matCalc,matS.pos,'Materiales','Total materiales',R.mat.price);
-    const qCon=qBom(S.con,R.con.conCalc,conS.pos,'Contratos de soporte / renovación','Total contratos',R.con.price);
-    const sub=R.prop.priceTotal+R.sacot.priceTotal+R.mat.price+R.con.price, iva=sub*0.16;
-    const qSub=r;r=sumRow(q,r,'Subtotal',5,{6:{val:F(`E${qServ}+E${qMesa}+F${qMat}+F${qCon}`,sub)}},6);
-    const qIva=r;r=sumRow(q,r,'Impuesto (16%)',5,{6:{val:F(`F${qSub}*0.16`,iva)}},6);
-    r=sumRow(q,r,'TOTAL',5,{6:{val:F(`F${qSub}+F${qIva}`,sub+iva)}},6);r+=2;
+      const t=tbl(q,r,['No. Item','No. Parte','Descripción','Cantidad','Precio unitario','Precio total','Moneda'],rows.length?rows:[['','','—',0,0,F('D{r}*E{r}',0),Rt.cur]],[null,null,null,'n','m','m',null]);r=t.next;
+      const tt=curTot(q,r,totLabel,5,'G',t.first,t.last,{6:{prod:`D${t.first}:D${t.last}*E${t.first}:E${t.last}`,k:'price'}},null,7,Rt.byCur,Rt.cur);r=tt.next+1;return tt;};
+    const qMat=qBom(S.mat,R.mat.matCalc,matS.pos,'Materiales','Total materiales',R.mat);
+    const qCon=qBom(S.con,R.con.conCalc,conS.pos,'Contratos de soporte / renovación','Total contratos',R.con);
+    /* Subtotal / IVA / Total por moneda (sin convertir) */
+    const QGx=quoteTotalsByCur(R);
+    QGx.curs.forEach(c=>{const refs=[];[[qServ,'E'],[qMesa,'E'],[qMat,'F'],[qCon,'F']].forEach(([t,L])=>{if(t.rows[c])refs.push(L+t.rows[c]);});
+      const sub=QGx.byCur[c]||0,iva=sub*0.16;
+      const rs=r;r=sumRow(q,r,'Subtotal ('+c+')',5,{6:{val:F(refs.length?refs.join('+'):'0',sub),fmt:c}},6);
+      const ri=r;r=sumRow(q,r,'Impuesto (16%)',5,{6:{val:F(`F${rs}*0.16`,iva),fmt:c}},6);
+      r=sumRow(q,r,'TOTAL ('+c+')',5,{6:{val:F(`F${rs}+F${ri}`,sub+iva),fmt:c}},6);r++;});
+    r+=1;
     const co=S.comercial||{notas:'',condiciones:''};
     if(co.notas){qh(r,'Notas');r++;q.mergeCells(r,1,r,6);q.getCell('A'+r).value=co.notas;q.getCell('A'+r).alignment={wrapText:true,vertical:'top'};q.getCell('A'+r).font={size:10};r+=3;}
     qh(r,'Condiciones comerciales');r++;q.mergeCells(r,1,r+18,6);q.getCell('A'+r).value=co.condiciones||'';q.getCell('A'+r).alignment={wrapText:true,vertical:'top'};q.getCell('A'+r).font={size:9};r+=20;
@@ -2269,19 +2353,21 @@ async function downloadTemplate(tag){
     const titulo=tag==='mat'?'Materiales':'Contratos';
     const wb=new ExcelJS.Workbook();
     const ws=wb.addWorksheet('Carga Masiva');
-    ws.columns=[{width:20},{width:16},{width:9},{width:20},{width:48},{width:12},{width:8},{width:13}];
-    ws.getRow(1).values=['Proveedor','Marca','No. Item','SKU','Descripción','PL unit.','Cant.','Descuento (%)'];
+    ws.columns=[{width:20},{width:16},{width:9},{width:20},{width:48},{width:12},{width:8},{width:13},{width:10}];
+    ws.getRow(1).values=['Proveedor','Marca','No. Item','SKU','Descripción','PL unit.','Cant.','Descuento (%)','Moneda'];
     ws.getRow(1).height=24;
     ws.getRow(1).eachCell(c=>{c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0F2B5B'}};c.font={bold:true,color:{argb:'FFFFFFFF'}};c.alignment={horizontal:'center',vertical:'middle',wrapText:true};c.border=xlBorder();});
     ws.getCell('A1').note='Para crear un SEPARADOR (grupo): escribe la palabra SEPARADOR en la columna Proveedor y el nombre del grupo en Descripción; deja vacías las demás columnas.';
+    ws.getCell('I1').note='Moneda del PL unit. de este renglón: MXN o USD. Si lo dejas vacío se usa la Moneda por defecto de la sección.';
     ws.getCell('H1').note='Descuento por fila en porcentaje (ej. 40.4 o 40.40%). Si lo dejas vacío se usa el Descuento Global de la sección.';
     const ex=[['SEPARADOR','','','','Switches LAN (EJEMPLO - borrar)','','',''],
-              ['INGRAM','Cisco',1,'C9200-24T-E','Catalyst 9200 24-port switch (EJEMPLO - borrar)',1850.00,4,0.404],
-              ['CT INTERNACIONAL','Fortinet',2,'FG-100F','FortiGate 100F Firewall (EJEMPLO - borrar)',3200.50,2,0.15]];
+              ['INGRAM','Cisco',1,'C9200-24T-E','Catalyst 9200 24-port switch (EJEMPLO - borrar)',1850.00,4,0.404,'USD'],
+              ['CT INTERNACIONAL','Fortinet',2,'FG-100F','FortiGate 100F Firewall (EJEMPLO - borrar)',3200.50,2,0.15,'MXN']];
     ex.forEach(r=>ws.addRow(r));
     for(let r=2;r<=30;r++){
       const row=ws.getRow(r);
-      for(let c=1;c<=8;c++){const cell=row.getCell(c);cell.border=xlBorder();cell.alignment={horizontal:([3,6,7,8].includes(c)?'center':'left'),vertical:'middle'};}
+      for(let c=1;c<=9;c++){const cell=row.getCell(c);cell.border=xlBorder();cell.alignment={horizontal:([3,6,7,8,9].includes(c)?'center':'left'),vertical:'middle'};}
+      row.getCell(9).dataValidation={type:'list',allowBlank:true,formulae:['"MXN,USD"']};
       if(r<=4)row.eachCell(c=>{c.font={italic:true,color:{argb:'FF8A8F99'}};});
       row.getCell(6).numFmt='#,##0.00';row.getCell(7).numFmt='0';row.getCell(8).numFmt='0.00%';
     }
@@ -2313,11 +2399,12 @@ async function importBulk(tag,ev){
             sku=String(cellText(row.getCell(4).value)).trim(),desc=String(cellText(row.getCell(5).value)).trim();
       const pl=num(cellText(row.getCell(6).value)),qty=num(cellText(row.getCell(7).value));
       const dRaw=cellText(row.getCell(8).value);const disc=parseDiscCell(dRaw,St0.disc);
+      const cRaw=String(cellText(row.getCell(9).value)||'').trim().toUpperCase();const cur=(cRaw==='USD'||cRaw==='MXN')?cRaw:undefined;
       if(prov.toUpperCase()==='SEPARADOR'){if(!/ejemplo\s*-\s*borrar/i.test(desc))rows.push({sep:true,label:(desc||marca||'').trim()});return;}
       if(!prov&&!marca&&!item&&!sku&&!desc&&!pl&&!qty)return;
       if(/ejemplo\s*-\s*borrar/i.test(desc))return;
       if(String(dRaw).trim()!=='')withDisc++;
-      rows.push({prov,marca,item,sku,desc,pl,qty,disc,margin:tag==='mat'?0.15:0.20});
+      const o={prov,marca,item,sku,desc,pl,qty,disc,margin:tag==='mat'?0.15:0.20};if(cur)o.cur=cur;rows.push(o);
     });
     if(!rows.length){alert('No se encontraron filas válidas en la plantilla (revisa que uses las columnas Proveedor, Marca, SKU, Descripción, PL unit. y Cant.).');return;}
     const St=tag==='mat'?S.mat:S.con;
