@@ -402,7 +402,7 @@ select.cursel{width:auto;min-width:62px;padding:3px 4px;font-size:12px;font-weig
         <thead><tr><th class="l">Concepto</th><th class="fit">Cantidad</th><th class="fit">Moneda</th><th class="fit">Costo Unitario</th><th class="fit">Margen</th><th class="fit nw">Precio unitario</th><th class="nw">Costo total</th><th class="nw">Precio total</th><th class="l">Notas</th><th></th></tr></thead>
         <tbody id="sacalc_body"></tbody>
       </table>
-      <div style="margin-top:8px"><button class="mini add" onclick="addSacalc()">＋ Agregar fila</button></div>
+      <div style="margin-top:8px;display:flex;gap:8px"><button class="mini add" onclick="addSacalc()">＋ Agregar fila</button><button class="mini add" onclick="addSaSep('sacalc')" title="Inserta una fila separadora (solo etiqueta de grupo)">＋ Separador</button></div>
       <div class="kpis" style="margin-top:12px;grid-template-columns:repeat(4,1fr)">
         <div class="kpi cost"><div class="lab">Costo Servicio Administrado</div><div class="val" id="sacalc_cost">–</div></div>
         <div class="kpi"><div class="lab">Margen</div><div class="val" id="sacalc_marg">–</div></div>
@@ -418,7 +418,7 @@ select.cursel{width:auto;min-width:62px;padding:3px 4px;font-size:12px;font-weig
         <thead><tr><th class="fit">Partida</th><th class="l">Descripción</th><th class="fit">Cantidad</th><th class="fit">Moneda</th><th class="fit nw">Precio Unitario</th><th class="nw">Precio Total</th><th class="l">Notas</th><th></th></tr></thead>
         <tbody id="sacot_body"></tbody>
       </table>
-      <div style="margin-top:8px"><button class="mini add" onclick="addCotRow()">＋ Agregar partida</button></div>
+      <div style="margin-top:8px;display:flex;gap:8px"><button class="mini add" onclick="addCotRow()">＋ Agregar partida</button><button class="mini add" onclick="addSaSep('sacot')" title="Inserta una fila separadora (solo etiqueta de grupo)">＋ Separador</button></div>
       <div class="kpis" style="margin-top:12px;grid-template-columns:repeat(1,1fr)">
         <div class="kpi good"><div class="lab">Precio total Propuesta de Soporte</div><div class="val" id="sacot_price">–</div></div>
       </div>
@@ -830,6 +830,11 @@ function money(v,cur){cur=cur||'MXN';return (v<0?'-':'')+cur+' '+Math.abs(v).toL
 function n2(v){return (v<0?'-':'')+Math.abs(num(v)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 /* Suma el Precio total (pTot) de cada grupo definido por un separador, indexado por la fila del separador.
    Se usa para mostrar el subtotal en el mismo encabezado del separador (Materiales/Contratos). */
+/* Subtotal (Precio total) de cada grupo de separador, con predicado de inclusión del renglón */
+function groupTotalsBy(rows,calc,incl){const m={};let cur=-1;for(let i=0;i<rows.length;i++){const row=rows[i];if(row.sep){cur=i;m[i]={total:0,bc:{}};continue;}const c=calc&&calc[i];if(c&&cur>=0&&incl(row,c)){m[cur].total+=c.pTot;bcAdd(m[cur].bc,c.cur||'MXN',{price:c.pTot});}}return m;}
+/* Fila separadora editable (Serv. Admin): etiqueta + eliminar */
+function sepRowHtml(tag,i,row,span,delAttr){return `<td class="l" colspan="${span}" style="background:#0c1730"><div style="display:flex;align-items:center;gap:6px">${grip(tag,i)}<span style="color:#E8632A;font-weight:800">▸</span><input type="text" data-sep="${tag}" data-i="${i}" value="${esc(row.label||'')}" placeholder="Grupo (ej. Soporte nivel 1)" style="flex:1;min-width:0;width:100%;background:transparent;border:none;color:#E8632A;font-weight:700;font-size:13px;outline:none"></div></td><td class="fit" style="text-align:center;background:#0c1730"><button class="mini del" ${delAttr}="${i}">✕</button></td>`;}
+function addSaSep(kind){if(kind==='sacalc'){if(!S.sa.sacalc)S.sa.sacalc={moneda:'MXN',fx:20,rows:[]};S.sa.sacalc.rows.push({sep:true,label:''});}else{if(!S.sa.cotiz)S.sa.cotiz={rows:[]};if(!S.sa.cotiz.rows)S.sa.cotiz.rows=[];S.sa.cotiz.rows.push({sep:true,label:''});}recompute();}
 function bomGroupTotals(rows,calc){const m={};let cur=-1;for(let i=0;i<rows.length;i++){const row=rows[i];if(row.sep){cur=i;m[i]={total:0,bc:{}};continue;}const c=calc&&calc[i];if(c&&num(row.qty)>0&&cur>=0){m[cur].total+=c.pTot;bcAdd(m[cur].bc,c.cur||'MXN',{price:c.pTot});}}return m;}
 /* Cotización con varias monedas: si una sección mezcla MXN y USD, cada importe lleva su moneda; los totales van por moneda (sin convertir). */
 function qMixed(bc){return bcCurs(bc,['price']).length>1;}
@@ -989,7 +994,7 @@ function compute(){
   /* Calculadora Servicio Administrado (independiente, NO entra al Resumen Financiero) */
   const xac=S.sa.sacalc||{rows:[]};
   let xaCost=0,xaPrice=0,xaPUnit=0; const xaRows=[],xaBC={};const xaSec=CUR_SECS.sacalc.cur(),xaFx=CUR_SECS.sacalc.fx();
-  (xac.rows||[]).forEach(r=>{const cur=curOf(r,xaSec);const bu=num(r.costo);const cost=bu*num(r.cant);const mm=num(r.margin);const price=mm<1?(bu/(1-mm))*num(r.cant):0;const pUnit=mm<1?bu/(1-mm):0;xaRows.push({baseUnit:bu,cost,price,pUnit,cur});bcAdd(xaBC,cur,{cost,price,pUnit});xaCost+=cvt(cost,cur,xaSec,xaFx);xaPrice+=cvt(price,cur,xaSec,xaFx);xaPUnit+=cvt(pUnit,cur,xaSec,xaFx);});
+  (xac.rows||[]).forEach(r=>{if(r.sep){xaRows.push({sep:true,baseUnit:0,cost:0,price:0,pUnit:0,cur:xaSec});return;}const cur=curOf(r,xaSec);const bu=num(r.costo);const cost=bu*num(r.cant);const mm=num(r.margin);const price=mm<1?(bu/(1-mm))*num(r.cant):0;const pUnit=mm<1?bu/(1-mm):0;xaRows.push({baseUnit:bu,cost,price,pUnit,cur});bcAdd(xaBC,cur,{cost,price,pUnit});xaCost+=cvt(cost,cur,xaSec,xaFx);xaPrice+=cvt(price,cur,xaSec,xaFx);xaPUnit+=cvt(pUnit,cur,xaSec,xaFx);});
   R.sacalc={cost:xaCost,price:xaPrice,pUnitSum:xaPUnit,rows:xaRows,byCur:xaBC,cur:xaSec,marg:xaPrice?((xaPrice-xaCost)/xaPrice):0};
 
   /* Propuesta Ingeniería (calculadora independiente, mismas fórmulas que Subcontratación) */
@@ -1049,7 +1054,7 @@ function compute(){
      TotalFinal=PrecioTotal*(1-%Desc); MargenReal=(ΣTotalFinal-ΣCostoTotal)/ΣTotalFinal */
   const cotRows=(S.sa.cotiz&&S.sa.cotiz.rows?S.sa.cotiz.rows:[]);
   let cotP=0; const cotBC={};const ctSec=CUR_SECS.sacot.cur(),ctFx=CUR_SECS.sacot.fx();
-  const cotCalc=cotRows.map(r=>{const cur=curOf(r,ctSec);const pUnit=num(r.costo);const pTot=pUnit*num(r.cant);bcAdd(cotBC,cur,{price:pTot});cotP+=cvt(pTot,cur,ctSec,ctFx);return {pUnit,pTot,cur};});
+  const cotCalc=cotRows.map(r=>{if(r.sep)return {sep:true,pUnit:0,pTot:0,cur:ctSec};const cur=curOf(r,ctSec);const pUnit=num(r.costo);const pTot=pUnit*num(r.cant);bcAdd(cotBC,cur,{price:pTot});cotP+=cvt(pTot,cur,ctSec,ctFx);return {pUnit,pTot,cur};});
   R.sacot={priceTotal:cotP,rows:cotCalc,byCur:cotBC,cur:ctSec};
 
   /* Recurso en sitio */
@@ -1435,6 +1440,7 @@ function renderSA(){
   (S.sa.cotiz&&S.sa.cotiz.rows?S.sa.cotiz.rows:[]).forEach((r,i)=>{
     const c=R.sacot.rows[i];
     const tr=document.createElement('tr');tr.dataset.dndg='sacot';tr.dataset.dndi=i;
+    if(r.sep){tr.className='sep-row';tr.innerHTML=sepRowHtml('sacot',i,r,7,'data-delcot');cb.appendChild(tr);return;}
     tr.innerHTML=`<td class="fit"><div style="display:flex;align-items:center;gap:3px">${grip('sacot',i)}<input class="num" type="text" inputmode="decimal" data-cot="${i}" data-k="partida" value="${esc(r.partida||'')}" style="text-align:center;flex:1;min-width:0"></div></td>
       <td class="l rtecell">${rteBar('sacot',i)}</td>
       <td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-cot="${i}" data-k="cant" value="${r.cant}"></td>
@@ -1463,6 +1469,7 @@ function renderSA(){
     S.sa.sacalc.rows.forEach((r,i)=>{
       const c=(R.sacalc&&R.sacalc.rows[i])||{cost:0,price:0};
       const tr=document.createElement('tr');tr.dataset.dndg='sacalc';tr.dataset.dndi=i;
+      if(r.sep){tr.className='sep-row';tr.innerHTML=sepRowHtml('sacalc',i,r,9,'data-delsacx');xb.appendChild(tr);return;}
       tr.innerHTML=`<td class="l"><div style="display:flex;align-items:center;gap:3px">${grip('sacalc',i)}<textarea class="ta" rows="1" data-sacx="${i}" data-k="concepto" style="flex:1;min-width:0">${esc(r.concepto)}</textarea></div></td>
         <td class="fit" style="text-align:center"><input class="num" type="text" inputmode="decimal" data-sacx="${i}" data-k="cant" value="${r.cant}"></td>
         <td class="fit" style="text-align:center">${curSel('sacalc',i,r)}</td>
@@ -1533,7 +1540,7 @@ function setBOMglobal(tag,field,pctVal){const St=tag==='mat'?S.mat:S.con;const v
 /* Conversión de moneda para calculadoras basadas en "costo" (Subcontratación y Servicio Administrado) */
 function convertCosto(St,selId,label){if(!St){return;}const tc=num(St.fx);if(tc<=0){alert('Ingresa un Tipo de cambio válido (> 0).');return;}
   const from=St.moneda||'MXN', to=(from==='MXN'?'USD':'MXN');
-  (St.rows||[]).forEach(r=>{const rc=curOf(r,from);if(rc!==to){r.costo=cvt(num(r.costo),rc,to,tc);delete r.costo__f;}r.cur=to;});   /* cada renglón desde su propia moneda */
+  (St.rows||[]).forEach(r=>{if(r.sep)return;const rc=curOf(r,from);if(rc!==to){r.costo=cvt(num(r.costo),rc,to,tc);delete r.costo__f;}r.cur=to;});   /* cada renglón desde su propia moneda */
   St.moneda=to;const sel=$(selId);if(sel)sel.value=to;recompute();
   alert((label||'Costo Unitario')+' convertido de '+from+' a '+to+' (Tipo de cambio '+tc.toFixed(2)+').');}
 function convertSubc(){convertCosto(S.ing.subc,'subc_moneda','Costo Unitario (Subcontratación)');}
@@ -1561,7 +1568,7 @@ function bindBOM2(){
     el.onfocus=()=>moneyFocus(el);
     el.onblur=()=>moneyBlur(el);
   });
-  document.querySelectorAll('[data-sep]').forEach(el=>{el.oninput=()=>{const tag=el.dataset.sep,i=+el.dataset.i;const St=tag==='mat'?S.mat:S.con;if(St.rows[i])St.rows[i].label=el.value;};});
+  document.querySelectorAll('[data-sep]').forEach(el=>{el.oninput=()=>{const tag=el.dataset.sep,i=+el.dataset.i;const arr=tag==='mat'?S.mat.rows:tag==='con'?S.con.rows:tag==='sacalc'?((S.sa.sacalc&&S.sa.sacalc.rows)||[]):((S.sa.cotiz&&S.sa.cotiz.rows)||[]);if(arr[i]){arr[i].label=el.value;renderQuote();}};});
   document.querySelectorAll('[data-delb2]').forEach(el=>{el.onclick=()=>{const p=el.dataset.delb2.split('.'),tag=p[0],i=+p[1];const St=tag==='mat'?S.mat:S.con;if(St.rows.length>1)St.rows.splice(i,1);else alert('Debe quedar al menos una fila.');recompute();};});
 }
 function addBOMrow(tag){const St=tag==='mat'?S.mat:S.con;St.rows.push({prov:'',marca:'',item:'',sku:'',desc:'',pl:0,qty:0,disc:0,margin:tag==='mat'?0.15:0.20});recompute();}
@@ -1645,7 +1652,8 @@ function renderQuote(){
   const servTotal=R.prop.priceTotal;
   // Mesa de ayuda / Recursos en sitio <- Propuesta de Soporte
   let mesaRows='';
-  ((S.sa.cotiz&&S.sa.cotiz.rows)?S.sa.cotiz.rows:[]).forEach((r,i)=>{const c=R.sacot.rows[i];if(c&&(c.pTot>0||num(r.costo)>0)){mesaRows+=`<tr><td>${esc(r.partida||(i+1))}</td><td class="l"><div class="rich">${conceptoToHtml(r.desc||'')}</div></td><td>${esc(r.cant)}</td><td class="nw">${qf(c.pUnit,c.cur,mxM)}</td><td class="nw">${qf(c.pTot,c.cur,mxM)}</td></tr>`;}});
+  const mInc=(r,c)=>c&&(c.pTot>0||num(r.costo)>0);const mesaG=groupTotalsBy((S.sa.cotiz&&S.sa.cotiz.rows)||[],R.sacot.rows,mInc);let pmesIdx=-1;
+  ((S.sa.cotiz&&S.sa.cotiz.rows)?S.sa.cotiz.rows:[]).forEach((r,i)=>{if(r.sep){pmesIdx=i;return;}const c=R.sacot.rows[i];if(mInc(r,c)){if(pmesIdx>=0){const lbl=(S.sa.cotiz.rows[pmesIdx].label||'').trim();mesaRows+=`<tr><td colspan="4" style="font-weight:700;color:#E8632A;background:#fff3ec">${esc(lbl)}</td><td class="nw" style="font-weight:700;color:#E8632A;background:#fff3ec;text-align:right">${qGroup(mesaG[pmesIdx],mxM)}</td></tr>`;pmesIdx=-1;}mesaRows+=`<tr><td>${esc(r.partida||(i+1))}</td><td class="l"><div class="rich">${conceptoToHtml(r.desc||'')}</div></td><td>${esc(r.cant)}</td><td class="nw">${qf(c.pUnit,c.cur,mxM)}</td><td class="nw">${qf(c.pTot,c.cur,mxM)}</td></tr>`;}});
   const hasMesa=mesaRows!=='';if(!mesaRows)mesaRows=`<tr><td colspan="5" class="l" style="color:#999">Sin partidas</td></tr>`;
   const mesaTotal=R.sacot.priceTotal;
   // Materiales <- BOM
@@ -1826,7 +1834,8 @@ async function buildQuotePDF(){
   const qT=(lbl,bc,sc)=>qTotals(bc,sc).map(t=>({label:lbl+' ('+t.c+')',val:t.v}));
   const serv=[];((S.ing.prop&&S.ing.prop.rows)||[]).forEach((r,i)=>{const c=R.prop.rows[i];if(num(r.cant)>0)serv.push([String(r.partida||(i+1)),richCell(r.concepto||''),String(num(r.cant)),qf(c.pUnit,c.cur,mxS),qf(c.pTot,c.cur,mxS)]);});
   if(serv.length)sect('Servicios profesionales',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],serv,qT('Total servicios profesionales',R.prop.byCur,QG.cu.serv),'',{0:{halign:'center',cellWidth:15},1:{halign:'left',cellWidth:DW},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
-  const mesa=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((r,i)=>{const c=R.sacot.rows[i];if(num(r.cant)>0)mesa.push([String(r.partida||(i+1)),richCell(r.desc||''),String(num(r.cant)),qf(c.pUnit,c.cur,mxM),qf(c.pTot,c.cur,mxM)]);});
+  const mIncP=(r,c)=>c&&num(r.cant)>0;const mesaGP=groupTotalsBy((S.sa.cotiz&&S.sa.cotiz.rows)||[],R.sacot.rows,mIncP);let pmesP=-1;
+  const mesa=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((r,i)=>{if(r.sep){pmesP=i;return;}const c=R.sacot.rows[i];if(mIncP(r,c)&&pmesP>=0){const lbl=(S.sa.cotiz.rows[pmesP].label||'').trim();mesa.push([{content:lbl,colSpan:4,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'left'}},{content:qGroup(mesaGP[pmesP],mxM),styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'right'}}]);pmesP=-1;}if(mIncP(r,c))mesa.push([String(r.partida||(i+1)),richCell(r.desc||''),String(num(r.cant)),qf(c.pUnit,c.cur,mxM),qf(c.pTot,c.cur,mxM)]);});
   if(mesa.length)sect('Mesa de ayuda / Recursos en sitio',['Partida','Descripción','Cantidad','Precio unitario','Precio total'],mesa,qT('Total mesa de ayuda / recursos',R.sacot.byCur,QG.cu.mesa),'',{0:{halign:'center',cellWidth:15},1:{halign:'left',cellWidth:DW},2:{halign:'center',cellWidth:18},3:{halign:'right',cellWidth:27},4:{halign:'right',cellWidth:27}});
   const mat=[];let pmatIdx=-1;const matG=bomGroupTotals(S.mat.rows,R.mat.matCalc);
   S.mat.rows.forEach((row,i)=>{if(row.sep){pmatIdx=i;return;}const c=R.mat.matCalc[i];if(num(row.qty)>0){if(pmatIdx>=0){const lbl=(S.mat.rows[pmatIdx].label||'').trim();const gt=matG[pmatIdx]?matG[pmatIdx].total:0;mat.push([{content:lbl,colSpan:5,styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'left'}},{content:qGroup(matG[pmatIdx],mxMat),styles:{fontStyle:'bold',textColor:BR,fillColor:TOT,halign:'right'}}]);pmatIdx=-1;}mat.push([String(row.item||(i+1)),String(row.sku||''),String(row.desc||''),String(num(row.qty)),qf(c.pUnit,c.cur,mxMat),qf(c.pTot,c.cur,mxMat)]);}});
@@ -2029,8 +2038,9 @@ async function exportExcel(){
     const tbl=(ws,start,headers,rows,fmt)=>{hdr(ws,start,headers);let r=start+1;const first=r;const n=headers.length;
       rows.forEach(row=>{const rr=ws.getRow(r);
         if(row&&!Array.isArray(row)&&row.sep!==undefined){
-          ws.mergeCells(r,1,r,row.sub?n-1:n);const c0=rr.getCell(1);c0.value=row.sep;c0.font={bold:true,color:{argb:ORANGE}};c0.fill=SF;c0.border=B;c0.alignment={horizontal:'left'};
-          if(row.sub){const cs=rr.getCell(n);put(cs,row.sub,r);cs.numFmt=row.subFmt||MONEY;cs.font={bold:true,color:{argb:ORANGE}};cs.fill=SF;cs.border=B;cs.alignment={horizontal:'right'};}
+          const at=row.sub?(row.subAt||n):n;ws.mergeCells(r,1,r,row.sub?at-1:n);const c0=rr.getCell(1);c0.value=row.sep;c0.font={bold:true,color:{argb:ORANGE}};c0.fill=SF;c0.border=B;c0.alignment={horizontal:'left'};
+          for(let ci=at+1;ci<=n;ci++){const cx=rr.getCell(ci);cx.fill=SF;cx.border=B;}
+          if(row.sub){const cs=rr.getCell(at);put(cs,row.sub,r);cs.numFmt=row.subFmt||MONEY;cs.font={bold:true,color:{argb:ORANGE}};cs.fill=SF;cs.border=B;cs.alignment={horizontal:'right'};}
         }else row.forEach((v,i)=>{const c=rr.getCell(i+1);put(c,v,r);c.border=B;const f=fmt&&fmt[i];
           if(f==='m'||f==='MXN'||f==='USD'){c.numFmt=(f==='m')?(row.__cur?MF(row.__cur):MONEY):MF(f);c.alignment={horizontal:'right'};}else if(f==='p'){c.numFmt=PCT;c.alignment={horizontal:'right'};}else if(f==='n'){c.numFmt='#,##0.##';c.alignment={horizontal:'center'};}else{c.alignment={wrapText:true,vertical:'top'};}});
         r++;});
@@ -2051,9 +2061,13 @@ async function exportExcel(){
     const groupRows=(list,start,subCol)=>{const out=[];let k=0;
       for(let i=0;i<list.length;i++){const it=list[i];
         if(it.sep){let j=i+1;while(j<list.length&&!list[j].sep)j++;if(j===i+1)continue;
-          const a=start+1+out.length+1,b=a+(j-i-1)-1;out.push(it.txt?{sep:it.label,sub:it.txt}:{sep:it.label,sub:F(`SUM(${subCol}${a}:${subCol}${b})`,it.v),subFmt:it.cur?MF(it.cur):null});}
+          const a=start+1+out.length+1,b=a+(j-i-1)-1;const at=subCol.charCodeAt(0)-64;out.push(it.txt?{sep:it.label,sub:it.txt,subAt:at}:{sep:it.label,sub:F(`SUM(${subCol}${a}:${subCol}${b})`,it.v),subFmt:it.cur?MF(it.cur):null,subAt:at});}
         else out.push(it.cells);}
       return out;};
+    /* Construye la lista {sep}/{cells} y calcula el subtotal (por moneda) de cada separador */
+    const sepList=(rowsArr,calc,mk,secCur)=>{const list=[];rowsArr.forEach((row,i)=>{if(row.sep){list.push({sep:true,label:(row.label||'').trim()||'—',v:0});return;}const cells=mk(row,i);if(cells){cells.__i=i;list.push({cells});}});
+      for(let i=0;i<list.length;i++)if(list[i].sep){let s=0;const gb={};for(let j=i+1;j<list.length&&!list[j].sep;j++){const cc=calc[list[j].cells.__i];s+=cc.price!=null?cc.price:cc.pTot;bcAdd(gb,cc.cur,{price:cc.price!=null?cc.price:cc.pTot});}list[i].v=s;const gc=bcCurs(gb,['price']);list[i].cur=gc[0]||secCur;if(gc.length>1)list[i].txt=gc.map(c=>money(gb[c].price,c)).join(' · ');}
+      return list;};
     const posOf=(rows,start)=>{const m=[];rows.forEach((row,k)=>{if(row&&row.__i!=null)m[row.__i]=start+1+k;});return m;};
 
     /* ---- Hoja Proyecto ---- */
@@ -2140,7 +2154,7 @@ async function exportExcel(){
     const xa=S.sa.sacalc||{rows:[]}, xR=R.sacalc||{rows:[],cost:0,price:0,pUnitSum:0,marg:0};
     title(sa,sr,'Calculadora servicio administrado');sr++;
     sr=kv(sa,sr,'Moneda',xa.moneda||'MXN');sr=kv(sa,sr,'Tipo de cambio',num(xa.fx),MONEY);
-    const xaRows=(xa.rows||[]).map((row,i)=>{const c=xR.rows[i]||{pUnit:0,cost:0,price:0,cur:xR.cur};const a=[htmlToText(row.concepto||''),num(row.cant),num(row.costo),num(row.margin),F(fPU,c.pUnit),F(fCT,c.cost),F(fPT,c.price),row.nota||'',c.cur];a.__cur=c.cur;return a;});
+    const xaRows=groupRows(sepList(xa.rows||[],xR.rows,(row,i)=>{const c=xR.rows[i]||{pUnit:0,cost:0,price:0,cur:xR.cur};const a=[htmlToText(row.concepto||''),num(row.cant),num(row.costo),num(row.margin),F(fPU,c.pUnit),F(fCT,c.cost),F(fPT,c.price),row.nota||'',c.cur];a.__cur=c.cur;return a;},xR.cur),sr,'G');
     const xat=tbl(sa,sr,['Concepto','Cantidad','Costo unitario','Margen','Precio unitario','Costo total','Precio total','Notas','Moneda'],xaRows.length?xaRows:[['—',0,0,0,F(fPU,0),F(fCT,0),F(fPT,0),'',xR.cur||'MXN']],[null,'n','m','p','m','m','m',null,null]);
     sr=xat.next;
     const xaT=curTot(sa,sr,'Totales servicio administrado',3,'I',xat.first,xat.last,{5:{L:'E',k:'pUnit'},6:{L:'F',k:'cost'},7:{L:'G',k:'price'}},{col:4,c:'F',p:'G'},9,xR.byCur,xR.cur);sr=xaT.next+1;
@@ -2149,7 +2163,7 @@ async function exportExcel(){
       sr=kvF(sa,sr,'Precio unitario (suma) ('+c+')',F(`E${x}`,b.pUnit||0),MF(c));sr=kvF(sa,sr,'Precio servicio administrado ('+c+')',F(`G${x}`,b.price||0),MF(c));});
     sr+=2;
     title(sa,sr,'Propuesta de soporte / servicios administrados');sr++;
-    const sacotRows=((S.sa.cotiz&&S.sa.cotiz.rows)||[]).map((row,i)=>{const cc=R.sacot.rows[i].cur;const a=[row.partida||(i+1),htmlToText(row.desc||''),num(row.cant),num(row.costo),F('C{r}*D{r}',R.sacot.rows[i].pTot),cc];a.__i=i;a.__cur=cc;return a;});
+    const sacotRows=groupRows(sepList((S.sa.cotiz&&S.sa.cotiz.rows)||[],R.sacot.rows,(row,i)=>{const cc=R.sacot.rows[i].cur;const a=[row.partida||(i+1),htmlToText(row.desc||''),num(row.cant),num(row.costo),F('C{r}*D{r}',R.sacot.rows[i].pTot),cc];a.__cur=cc;return a;},R.sacot.cur),sr,'E');
     const sct=tbl(sa,sr,['Partida','Descripción','Cantidad','Precio unitario','Precio total','Moneda'],sacotRows.length?sacotRows:[['','—',0,0,F('C{r}*D{r}',0),R.sacot.cur]],[null,null,'n','m','m',null]);
     const sacotPos=posOf(sacotRows,sr);sr=sct.next;
     sr=curTot(sa,sr,'Precio total propuesta soporte',4,'F',sct.first,sct.last,{5:{L:'E',k:'price'}},null,6,R.sacot.byCur,R.sacot.cur).next;
@@ -2242,8 +2256,8 @@ async function exportExcel(){
     const qs=tbl(q,r,['Partida','Descripción','Cantidad','Precio unitario','Precio total','Moneda'],servRows.length?servRows:[['','—',0,0,F('C{r}*D{r}',0),R.prop.cur]],[null,null,'n','m','m',null]);r=qs.next;
     const qServ=curTot(q,r,'Total servicios profesionales',4,'F',qs.first,qs.last,{5:{L:'E',k:'price'}},null,6,R.prop.byCur,R.prop.cur);r=qServ.next+1;
     /* Mesa de ayuda: enlazada a la Propuesta de soporte */
-    const mesaRows=[];((S.sa.cotiz&&S.sa.cotiz.rows)||[]).forEach((row,i)=>{const c=R.sacot.rows[i];if(c&&(c.pTot>0||num(row.costo)>0)&&sacotPos[i]){const a=[row.partida||(i+1),htmlToText(row.desc||''),F(SH(SAN)+'C'+sacotPos[i],num(row.cant)),F(SH(SAN)+'D'+sacotPos[i],c.pUnit),F('C{r}*D{r}',c.pTot),c.cur];a.__cur=c.cur;mesaRows.push(a);}});
     qh(r,'Mesa de ayuda / Recursos en sitio');r++;
+    const mesaRows=groupRows(sepList((S.sa.cotiz&&S.sa.cotiz.rows)||[],R.sacot.rows,(row,i)=>{const c=R.sacot.rows[i];if(!(c&&(c.pTot>0||num(row.costo)>0)&&sacotPos[i]))return null;const a=[row.partida||(i+1),htmlToText(row.desc||''),F(SH(SAN)+'C'+sacotPos[i],num(row.cant)),F(SH(SAN)+'D'+sacotPos[i],c.pUnit),F('C{r}*D{r}',c.pTot),c.cur];a.__cur=c.cur;return a;},R.sacot.cur),r,'E');
     const qm=tbl(q,r,['Partida','Descripción','Cantidad','Precio unitario','Precio total','Moneda'],mesaRows.length?mesaRows:[['','—',0,0,F('C{r}*D{r}',0),R.sacot.cur]],[null,null,'n','m','m',null]);r=qm.next;
     const qMesa=curTot(q,r,'Total mesa de ayuda / recursos',4,'F',qm.first,qm.last,{5:{L:'E',k:'price'}},null,6,R.sacot.byCur,R.sacot.cur);r=qMesa.next+1;
     /* Materiales / Contratos: enlazados a la hoja Materiales y Contratos; separadores con subtotal del grupo */
